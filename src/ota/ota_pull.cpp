@@ -24,7 +24,7 @@ const char *project_name() { return esp_app_get_description()->project_name; }
 constexpr uint32_t kFirstPollMs = 90UL * 1000UL;
 constexpr uint32_t kPollMs = 10UL * 60UL * 1000UL;
 constexpr uint32_t kRetryMs = 3UL * 60UL * 1000UL;
-constexpr const char *kBase = "https://github.com/M4dm0nky/cyd-buddy/releases/latest/download";
+constexpr const char *kBase = "https://github.com/M4dm0nky/madbuddy/releases/latest/download";
 constexpr const char *kManifest = "manifest.json";
 constexpr uint32_t kMinSize = 200UL * 1024UL;
 constexpr uint32_t kSlotSize = 1966080UL;    // App-Slot der Partition min_spiffs

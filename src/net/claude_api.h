@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include "../logic/claude_state.h"
 
-// Claude-Modus: kleiner HTTP-Empfaenger (Arduino WebServer, Port 80, mDNS "cyd-buddy").
+// Claude-Modus: kleiner HTTP-Empfaenger (Arduino WebServer, Port 80, mDNS "madbuddy").
 // POST /claude (Header X-Buddy-Key, JSON <= 256 B) -> claude_event; GET /claude/ping -> {"ok":true,"state":"..."}.
 // Laeuft komplett im Haupt-Task (handleClient() aus claude_api_loop), kein eigener Thread.
 void claude_api_begin(ClaudeLogic *logic);   // Schluessel laden/erzeugen (NVS "ckey"), seriell ausgeben; Server startet spaeter

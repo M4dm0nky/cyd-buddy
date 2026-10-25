@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Veröffentlicht eine gebaute CYD-Buddy-Firmware für den Abruf-Update des Geräts (docs/ota.md).
+// Veröffentlicht eine gebaute MadBuddy-Firmware für den Abruf-Update des Geräts (docs/ota.md).
 //
 //   node tools/ota-publish.mjs --check              nur prüfen und anzeigen (Projektname, ELF, Größe), nichts schreiben
 //   node tools/ota-publish.mjs                      prüfen + nach ota-out/ schreiben (firmware.bin, zuletzt manifest.json)
-//   node tools/ota-publish.mjs --release            zusätzlich als neuestes GitHub-Release von M4dm0nky/cyd-buddy veröffentlichen (gh)
+//   node tools/ota-publish.mjs --release            zusätzlich als neuestes GitHub-Release von M4dm0nky/madbuddy veröffentlichen (gh)
 //   node tools/ota-publish.mjs --bin pfad.bin       bestimmte Datei statt .pio/build/cyd2usb/firmware.bin
 //
 // Das Gerät stimmt am Display zu und holt dann manifest.json + firmware.bin aus dem neuesten Release. Dieses Skript schreibt NIE auf das Gerät.
@@ -24,7 +24,7 @@ const CHECK_BYTES = 32 + 176;          // bis zum Ende von app_elf_sha256 (wie O
 const SLOT_SIZE = 1966080;             // App-Slot der Partition min_spiffs
 const MANIFEST_NAME = 'manifest.json';
 const FIRMWARE_NAME = 'firmware.bin';
-const REPO = 'M4dm0nky/cyd-buddy';
+const REPO = 'M4dm0nky/madbuddy';
 
 // --- Image prüfen (dieselben Offsets wie src/logic/ota_policy.h) ---
 export function inspectImage(buf, project = PROJECT) {

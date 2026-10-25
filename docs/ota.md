@@ -1,6 +1,6 @@
-# Firmware-Update per Abruf (CYD-Buddy)
+# Firmware-Update per Abruf (MadBuddy)
 
-Das Gerät holt sich neue Firmware selbst aus dem neuesten GitHub-Release von `M4dm0nky/cyd-buddy`. Ein Mensch am Display stimmt zu, danach läuft alles ohne Kabel.
+Das Gerät holt sich neue Firmware selbst aus dem neuesten GitHub-Release von `M4dm0nky/madbuddy`. Ein Mensch am Display stimmt zu, danach läuft alles ohne Kabel.
 Portiert aus dem HA-Buddy (7"-Display), Vorlage in `reference/ha_buddy_ota/`.
 **Das erste Mal** muss die Firmware mit diesem Feature per Kabel aufgespielt werden (`pio run -e cyd2usb -t upload`); danach geht es ohne Kabel.
 Jede Änderung der Abruf-Adresse, der Dateinamen oder des Projektnamens kostet wieder einen Kabel-Flash.
@@ -18,14 +18,14 @@ node tools/ota-publish.mjs --release ►  releases/latest/download/        ◄�
                                                                                 Neustart, Gesundheitsnachweis
 ```
 
-Basis-URL im Gerät: `https://github.com/M4dm0nky/cyd-buddy/releases/latest/download` (Konstante `kBase` in `src/ota/ota_pull.cpp`).
+Basis-URL im Gerät: `https://github.com/M4dm0nky/madbuddy/releases/latest/download` (Konstante `kBase` in `src/ota/ota_pull.cpp`).
 GitHub leitet `…/latest/download/<Datei>` um (auf `…/releases/download/<Tag>/<Datei>` und weiter auf `*.githubusercontent.com`).
 
 ## Zustimmung und Sicherheit
 
 1. **Zustimmung vor Ort.** Heruntergeladen wird erst nach einem Tipp auf *Ja*. *Später* und jeder Tipp daneben schlummern eine Stunde.
    Die Karte erscheint nur auf dem Augen-Bildschirm bei wachem Display (nicht schlafend/gedimmt, damit ein Tipp in ein dunkles Display nie zustimmt) und ignoriert Tipps in der ersten Sekunde.
-2. **Keine Geheimnisse in der `.bin`.** WLAN-Zugang und Ort kommen aus dem Portal „CYD-Buddy“ und liegen im NVS, nicht im Code. Darum darf die Datei öffentlich im Release liegen, ohne Token.
+2. **Keine Geheimnisse in der `.bin`.** WLAN-Zugang und Ort kommen aus dem Portal „MadBuddy“ und liegen im NVS, nicht im Code. Darum darf die Datei öffentlich im Release liegen, ohne Token.
 3. **Nur HTTPS, nur GitHub.** `NetworkClientSecure` mit dem Zertifikatspaket des Cores (`useBuiltinCACertBundle()`), **kein** `setInsecure()`.
    Umleitungen verfolgt `open_follow()` selbst (`HTTPC_DISABLE_FOLLOW_REDIRECTS`, Header `Location`, höchstens 3 Sprünge).
    Jede Adresse, auch die erste, muss `ota_redirect_ok()` bestehen: nur `https://`, Host `github.com` oder Endung `.githubusercontent.com` (Host-Test `test/test_ota_policy`).
@@ -62,7 +62,7 @@ pio run -e cyd2usb && node tools/ota-publish.mjs --release
 ```
 - `node tools/ota-publish.mjs --check` – nur prüfen und anzeigen (Projektname, ELF, Größe), nichts schreiben
 - `node tools/ota-publish.mjs` – prüfen und nach `ota-out/` schreiben, ohne Release
-- `node tools/ota-publish.mjs --release` – zusätzlich `gh release create v<JJJJMMTT-HHMM> ota-out/firmware.bin ota-out/manifest.json --latest --repo M4dm0nky/cyd-buddy`
+- `node tools/ota-publish.mjs --release` – zusätzlich `gh release create v<JJJJMMTT-HHMM> ota-out/firmware.bin ota-out/manifest.json --latest --repo M4dm0nky/madbuddy`
 
 Gates des Skripts: Image gültig und vom richtigen Projekt; nicht größer als der Slot; Quellcode nicht neuer als die `.bin` (`--allow-stale`);
 keine uncommitteten Änderungen in `src`, `tools`, `platformio.ini` (`--allow-dirty`), damit kein Stand verschickt wird, den es im Repo nicht gibt.

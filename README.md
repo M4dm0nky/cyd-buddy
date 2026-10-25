@@ -1,4 +1,4 @@
-# CYD-Buddy
+# MadBuddy
 
 Ein Wesen mit großen Augen auf dem ESP32-2432S028 (Cheap Yellow Display, Variante mit 2 USB-Buchsen). Es schaut sich um, blinzelt, freut sich über Streicheln, langweilt sich, wenn sich keiner kümmert, schläft im Dunkeln und reagiert auf Tageszeit und Wetter.
 
@@ -26,7 +26,7 @@ Ein Wesen mit großen Augen auf dem ESP32-2432S028 (Cheap Yellow Display, Varian
 
 **Hunger, Krankheit, Charakter:** Wird er nicht gefüttert, wird er hungrig. Ist er 2 Stunden lang sehr hungrig und ungeliebt, wird er krank (blass, „Hatschi“). Heilen: satt füttern, dann 3× streicheln. Sterben kann er nicht. Wie du mit ihm umgehst, prägt seinen Charakter: viel Streicheln macht ihn verschmust, Stupsen frech, Spielen verspielt.
 
-**WLAN und Ort:** Beim ersten Start (und wenn 30 s kein WLAN da ist) öffnet der Buddy den Access-Point **„CYD-Buddy“**. Mit dem Handy verbinden, WLAN wählen, im Feld **„Ort“** den Wohnort eintragen (z. B. „Berlin“), speichern. Der Buddy lebt währenddessen weiter; der Statusstreifen zeigt „WLAN einrichten: CYD-Buddy“. Aus dem Ort werden die Koordinaten für das Wetter (Open-Meteo) bestimmt.
+**WLAN und Ort:** Beim ersten Start (und wenn 30 s kein WLAN da ist) öffnet der Buddy den Access-Point **„MadBuddy“**. Mit dem Handy verbinden, WLAN wählen, im Feld **„Ort“** den Wohnort eintragen (z. B. „Berlin“), speichern. Der Buddy lebt währenddessen weiter; der Statusstreifen zeigt „WLAN einrichten: MadBuddy“. Aus dem Ort werden die Koordinaten für das Wetter (Open-Meteo) bestimmt.
 
 **Schlaf:** Nachts (22–7 Uhr) schläft er nach 10 min ohne Berührung ein (zZz, Hintergrundlicht 10 %) und begrüßt dich morgens. Ist seine Energie fast leer, macht er ein Nickerchen; eine Berührung weckt ihn.
 

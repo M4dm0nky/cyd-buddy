@@ -6,7 +6,7 @@
 // WLAN-Portal (WiFiManager, nicht blockierend), NTP, Ort -> Koordinaten, Wetter. Abrufe laufen im net_task (Kern 0).
 struct NetWeather { bool valid; int code; float temp_c; bool is_day; uint32_t fetched_ms; };
 
-void net_begin(Persist *p);          // AP "CYD-Buddy" mit Zusatzfeld "Ort"; startet net_task
+void net_begin(Persist *p);          // AP "MadBuddy" mit Zusatzfeld "Ort"; startet net_task
 void net_loop();                     // aus app_loop: wm.process(), übernimmt Ort/Geocoding-Ergebnis in *p
 bool net_wifi_ok();
 bool net_portal_active();

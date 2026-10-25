@@ -1,4 +1,4 @@
-// Claude-Modus: Hook-Skript für Claude Code. Schickt den Arbeitszustand an den CYD-Buddy.
+// Claude-Modus: Hook-Skript für Claude Code. Schickt den Arbeitszustand an den MadBuddy.
 // Liest das Hook-JSON von stdin, bildet einen Kurzkörper und sendet ihn per POST.
 // Beendet sich IMMER mit Exit 0 und schreibt NIE auf stdout (Claude würde es als Hook-Antwort lesen).
 import fs from 'node:fs';

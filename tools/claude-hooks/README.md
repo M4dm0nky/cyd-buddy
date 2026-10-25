@@ -2,7 +2,7 @@
 
 `buddy-status.mjs` wird von Claude Code bei jedem Ereignis aufgerufen und
 schickt den Arbeitszustand (Lesen, Schreiben, Fehler, Rückfrage …) an den
-CYD-Buddy. Das Skript braucht nur Node ≥ 20 und beendet sich immer mit Exit 0,
+MadBuddy. Das Skript braucht nur Node ≥ 20 und beendet sich immer mit Exit 0,
 auch wenn der Buddy nicht erreichbar ist.
 
 ## Einrichtung
@@ -12,8 +12,8 @@ auch wenn der Buddy nicht erreichbar ist.
    `%USERPROFILE%\.claude\hooks\buddy-status.json` kopieren und ausfüllen:
    - `host`: **IP des Buddy** (z. B. `192.168.2.137`; im Router fest vergeben)
    - `key`: Schlüssel aus dem Buddy unter Einstellungen → Info
-   - `fallbackHost`: `cyd-buddy.local`
-   Gemessen 2026-10-25: Unter Windows braucht Node für die erste Auflösung von `cyd-buddy.local` länger als die
+   - `fallbackHost`: `madbuddy.local`
+   Gemessen 2026-10-25: Unter Windows braucht Node für die erste Auflösung von `madbuddy.local` länger als die
    800 ms Zeitlimit – das erste Ereignis ging dann verloren. Darum zuerst die IP, der Name nur als Ersatz.
 3. Hooks in `%USERPROFILE%\.claude\settings.json` eintragen (vorher sichern),
    Block unten einfügen. Bestehende Einträge bleiben erhalten, nur die
@@ -44,5 +44,5 @@ Die Konfiguration darf nicht ins Repo. Im Repo liegt nur die Vorlage mit Platzha
 ## Prüfen
 
 - Tests im Repo: `node --test tools/claude-hooks/buddy-status.test.mjs`
-- Am Buddy: `curl -H "X-Buddy-Key: <Schlüssel>" http://cyd-buddy.local/claude/ping` → `200` (ohne Schlüssel `401`).
+- Am Buddy: `curl -H "X-Buddy-Key: <Schlüssel>" http://madbuddy.local/claude/ping` → `200` (ohne Schlüssel `401`).
 - Debug: Umgebungsvariable `BUDDY_DEBUG=1` schreibt Fehler auf stderr.

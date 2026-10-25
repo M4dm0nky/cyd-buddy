@@ -38,7 +38,7 @@ void status_draw(LGFX &lcd, const StatusInfo &s) {
   if (s.portal && !s.wifi_ok) {
     lcd.setFont(&FONT_S);
     lcd.setTextColor(lcd.color888(255, 200, 0), TFT_BLACK);
-    lcd.drawString("WLAN einrichten: CYD-Buddy", 8, cy);
+    lcd.drawString("WLAN einrichten: MadBuddy", 8, cy);
     lcd.endWrite();
     return;
   }

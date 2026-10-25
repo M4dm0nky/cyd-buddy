@@ -8,7 +8,7 @@
 #include <string.h>
 #include <ctype.h>
 
-static constexpr const char *kApName = "CYD-Buddy";
+static constexpr const char *kApName = "MadBuddy";
 static constexpr const char *kTz = "CET-1CEST,M3.5.0,M10.5.0/3";
 static constexpr uint32_t kConnectWaitMs = 30000;          // so lange auf gespeichertes WLAN warten, dann Portal
 static constexpr uint32_t kManualPortalMs = 5UL * 60000UL; // von Hand geöffnetes Portal schließt danach wieder
@@ -221,7 +221,7 @@ static void start_portal(bool automatic) {
   s_portal_auto = automatic;
   s_portal_manual_since = automatic ? 0 : millis();
   s_wm.startConfigPortal(kApName);
-  Serial.println("net: Portal CYD-Buddy offen");
+  Serial.println("net: Portal MadBuddy offen");
 }
 
 void net_begin(Persist *p) {
@@ -230,7 +230,7 @@ void net_begin(Persist *p) {
   s_param_place.setValue(p->place, 47);
   s_wm.addParameter(&s_param_place);
   s_wm.setConfigPortalBlocking(false);
-  s_wm.setTitle("CYD-Buddy");
+  s_wm.setTitle("MadBuddy");
   const char *menu[] = {"wifi", "exit"};
   s_wm.setMenu(menu, 2);
   s_wm.setShowInfoUpdate(false);

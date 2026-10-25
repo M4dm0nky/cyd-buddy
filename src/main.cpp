@@ -1,4 +1,4 @@
-// CYD-Buddy: setup()/loop() geben nur an app weiter.
+// MadBuddy: setup()/loop() geben nur an app weiter.
 // Touch: beim ersten Start (oder Finger beim Einschalten auf dem Display) Kalibrierung mit vier Eckpunkten, Werte im NVS.
 #include <Arduino.h>
 #include "app.h"

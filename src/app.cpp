@@ -683,7 +683,7 @@ void app_setup() {
   status_invalidate();
   set_backlight(kBacklight[s_persist.brightness]);
   s_last_frame = s_last_save = s_last_log = now;
-  Serial.printf("CYD-Buddy gestartet, Panel %s, heap=%u\n", LGFX::PANEL_NAME, (unsigned)ESP.getFreeHeap());
+  Serial.printf("MadBuddy gestartet, Panel %s, heap=%u\n", LGFX::PANEL_NAME, (unsigned)ESP.getFreeHeap());
 }
 
 void app_loop() {

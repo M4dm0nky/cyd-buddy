@@ -1,6 +1,10 @@
-# Fortschritt CYD-Buddy
+# Fortschritt MadBuddy
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
+
+## Umbenennung CYD-Buddy -> MadBuddy – ERLEDIGT (2026-10-25)
+
+Umbenennung CYD-Buddy -> MadBuddy (Portal, mDNS madbuddy.local, Repo M4dm0nky/madbuddy).
 
 ## Lokal 4 – Code-Review und Fixes – ERLEDIGT
 - Zeit: 2026-10-25 (Review: 3 Sonnet-Prüfer, Funde von Opus am Code/Core-Quellen bestätigt; Fixes: Sonnet in Paketen A/B/C + Nachtrag)

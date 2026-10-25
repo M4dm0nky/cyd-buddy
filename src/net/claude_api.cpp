@@ -8,7 +8,7 @@
 #include "net.h"
 #include "../hw/store.h"
 
-static constexpr const char *kHost = "cyd-buddy";
+static constexpr const char *kHost = "madbuddy";
 static constexpr size_t kMaxBody = 256;
 static constexpr size_t kKeyLen = 12;
 

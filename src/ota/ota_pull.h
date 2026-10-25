@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 // Firmware-Update per Abruf: Das Gerät fragt selten ein Manifest ab (manifest.json neben der firmware.bin im neuesten
-// GitHub-Release von M4dm0nky/cyd-buddy, nur über HTTPS mit dem Zertifikatspaket des Cores), erkennt eine neue Version
+// GitHub-Release von M4dm0nky/madbuddy, nur über HTTPS mit dem Zertifikatspaket des Cores), erkennt eine neue Version
 // an der ELF-SHA-256 im Image und holt die Datei erst, wenn jemand am Display "Jetzt aktualisieren" tippt (Zustimmung vor Ort).
 // Geprüft wird am Image selbst (Chip, Projektname, ELF-Kennung) und per SHA-256 über die ganze Datei, erst dann wird die Partition freigegeben.
 // Aufbau, Hosting und Sicherheitsmodell: docs/ota.md.

@@ -44,6 +44,8 @@ void test_redirect_authority_tricks() {
   TEST_ASSERT_TRUE(ota_redirect_ok("https://github.com:/x"));   // leerer Port ist gültig
 }
 void test_redirect_ok() {
+  TEST_ASSERT_TRUE(ota_redirect_ok("https://github.com/M4dm0nky/madbuddy/releases/latest/download/manifest.json"));
+  // Alter Repo-Name: GitHub leitet um, muss weiter akzeptiert werden.
   TEST_ASSERT_TRUE(ota_redirect_ok("https://github.com/M4dm0nky/cyd-buddy/releases/latest/download/manifest.json"));
   TEST_ASSERT_TRUE(ota_redirect_ok("https://release-assets.githubusercontent.com/github-production-release-asset/1?x=1"));
   TEST_ASSERT_TRUE(ota_redirect_ok("https://objects.githubusercontent.com/abc"));

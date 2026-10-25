@@ -41,7 +41,7 @@ static bool unchanged(char *cache, size_t n, const char *key, bool force) {
 static void draw_wifi(LGFX &d, const Persist &p, bool force) {
   static char s_cache[80] = "";
   const bool ok = net_wifi_ok();
-  const char *txt = net_portal_active() ? "Portal offen: CYD-Buddy" : (p.place[0] ? p.place : "WLAN / Ort einrichten");
+  const char *txt = net_portal_active() ? "Portal offen: MadBuddy" : (p.place[0] ? p.place : "WLAN / Ort einrichten");
   char key[80];
   snprintf(key, sizeof key, "%d|%s", ok ? 1 : 0, txt);
   if (unchanged(s_cache, sizeof s_cache, key, force)) return;
