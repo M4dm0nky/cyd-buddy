@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "../logic/mood.h"
+#include "../logic/daystats.h"
 
 // Dauerhafte Werte im NVS (Preferences, Namensraum "buddy").
 struct Persist {
@@ -10,6 +11,7 @@ struct Persist {
   char place[48];
   float lat, lon;
   bool has_place;        // lat/lon passen zu place
+  DayStats day;          // Tageszähler (F2); day.day = last_day (YYYYMMDD)
 };
 
 void store_defaults(Persist &p);     // needs {60,60,80}, epoch 0, brightness 2, place "", has_place false

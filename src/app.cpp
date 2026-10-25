@@ -6,6 +6,10 @@
 #include "logic/eye_model.h"
 #include "logic/weather_mood.h"
 #include "logic/look.h"
+#include "logic/speech.h"
+#include "logic/rituals.h"
+#include "logic/daystats.h"
+#include "ui/review.h"
 #include "hw/led.h"
 #include "hw/light.h"
 #include "hw/store.h"
@@ -56,7 +60,24 @@ static uint32_t s_hand_until = 0;                  // High-Five-Hand sichtbar bi
 static uint32_t s_led_flash_until = 0;             // LED kurz weiß
 static constexpr uint32_t kHandMs = 1500, kLedFlashMs = 250;
 
-enum class Screen { EYES, MENU, CLOCK, SETTINGS, GAME_CATCH, GAME_SIMON, OTA };
+// F2: Sprechblasen, Rituale, Tageszähler
+static constexpr uint32_t kBubbleMs = 4000;
+static constexpr uint32_t kMorningWeatherDelayMs = 4000;
+static constexpr uint8_t kStrokeSayPct = 25;
+static SpeechState s_speech;
+static RitualState s_rituals{};
+static char s_bubble[64] = "";
+static uint32_t s_bubble_until = 0;
+static char s_pending[64] = "";        // zweite Blase (Morgen: Tageswetter)
+static uint32_t s_pending_at = 0;
+static bool s_touch_began = false;     // in diesem Bild hat eine Berührung begonnen
+static bool s_prev_sleeping = false;
+static bool s_prev_storm = false;
+static uint32_t s_seen_weather_ms = 0; // fetched_ms des zuletzt ausgewerteten Wetters
+static bool s_sky_known = false;
+static Sky s_last_sky = Sky::CLOUDY;
+
+enum class Screen { EYES, MENU, CLOCK, SETTINGS, GAME_CATCH, GAME_SIMON, OTA, REVIEW };
 static Screen s_screen = Screen::EYES;
 
 static int current_hour() { return net_hour(); }
@@ -113,6 +134,19 @@ static void apply_elapsed_once() {
   s_persist.epoch = now_epoch;
 }
 
+static void show_bubble(const char *txt, uint32_t now) {
+  strlcpy(s_bubble, txt, sizeof s_bubble);
+  s_bubble_until = now + kBubbleMs;
+  speech_shown(s_speech, now);
+}
+static void say(Say what, uint32_t now) { show_bubble(speech_pick(s_speech, what, esp_random()), now); }
+
+// Heutiges Datum als YYYYMMDD, 0 wenn die Zeit unbekannt ist.
+static uint32_t today(struct tm *t) {
+  if (!net_local_time(t)) return 0;
+  return day_key(t->tm_year + 1900, t->tm_mon + 1, t->tm_mday);
+}
+
 // Touch lesen und Gesten an die Stimmung weitergeben. Liefert die Geste (für Menü usw.).
 static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
   int32_t x = 0, y = 0;
@@ -124,6 +158,7 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
   tx = s_last_x;
   ty = s_last_y;
   if (pressed) mood_touch(s_mood, now);
+  s_touch_began = pressed && !s_pressed;
   s_pressed = pressed;   // jede Berührung hält ihn nachts wach bzw. weckt ihn
 #if CYD_DIAG_TOUCH
   static bool s_was_pressed = false;
@@ -158,6 +193,7 @@ static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
     case Gesture::TAP:
       if (highfive_hit(tx, ty)) {   // obere Ecke: High-Five statt Tippen
         mood_event(s_mood, MoodEvent::HIGHFIVE, now, hour);
+        say(Say::HIGHFIVE, now);
         eyes_set_hand(tx > 160, now);
         s_hand_until = now + kHandMs;
         s_led_flash_until = now + kLedFlashMs;
@@ -165,8 +201,16 @@ static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
         mood_event(s_mood, MoodEvent::TAP, now, hour);
       }
       break;
-    case Gesture::STROKE: mood_event(s_mood, MoodEvent::STROKE, now, hour); break;
-    case Gesture::POKE: mood_event(s_mood, MoodEvent::POKE, now, hour); break;
+    case Gesture::STROKE:
+      mood_event(s_mood, MoodEvent::STROKE, now, hour);
+      s_persist.day.strokes++;
+      if (speech_may(s_speech, now) && esp_random() % 100 < kStrokeSayPct) say(Say::VERLIEBT, now);   // Abstand gilt
+      break;
+    case Gesture::POKE:
+      mood_event(s_mood, MoodEvent::POKE, now, hour);
+      s_persist.day.pokes++;
+      say(Say::GENERVT, now);
+      break;
     default: break;
   }
 }
@@ -181,6 +225,54 @@ static void mood_frame(uint32_t now, uint32_t dt) {
   s_emotion = mood_emotion(s_mood, hour, now);
 }
 
+// Neues Wetter mit geändertem Himmel: einmal ein passender Satz.
+static void weather_say(uint32_t now) {
+  WeatherMood wm;
+  NetWeather w;
+  if (!fresh_weather(now, &wm, &w) || w.fetched_ms == s_seen_weather_ms) return;
+  s_seen_weather_ms = w.fetched_ms;
+  const bool changed = s_sky_known && wm.sky != s_last_sky;
+  s_sky_known = true;
+  s_last_sky = wm.sky;
+  if (!changed) return;
+  if (wm.hot) say(Say::HITZE, now);
+  else if (wm.cold) say(Say::KALT, now);
+  else if (wm.sky == Sky::RAIN) say(Say::REGEN, now);
+  else if (wm.sky == Sky::SUNNY) say(Say::SONNE, now);
+}
+
+// Sprechblasen und Rituale auf dem Augen-Bildschirm (nicht im Schlaf).
+static void speech_frame(uint32_t now, bool sleeping) {
+  const bool woke = (s_prev_sleeping && !sleeping) || s_touch_began;
+  s_prev_sleeping = sleeping;
+  if (sleeping) { s_bubble_until = now; s_pending_at = 0; return; }
+  struct tm t;
+  const uint32_t day = today(&t);
+  daystats_roll(s_persist.day, day);
+  const int hour = day ? t.tm_hour : -1, minute = day ? t.tm_min : 0;
+  if (ritual_morning(s_rituals, woke, hour, day)) {
+    mood_set_transient(s_mood, Emotion::GREETING, now, 3000);
+    say(Say::MORGEN, now);
+    WeatherMood wm;
+    NetWeather w;
+    if (fresh_weather(now, &wm, &w)) {
+      weather_sentence(w.temp_c, wm.sky, s_pending, sizeof s_pending);
+      s_pending_at = now + kMorningWeatherDelayMs;
+    }
+  }
+  if (ritual_night(s_rituals, true, hour, minute, day)) {
+    mood_set_transient(s_mood, Emotion::YAWN, now, 3000);
+    say(Say::NACHT, now);
+  }
+  if (s_pending_at && (int32_t)(now - s_pending_at) >= 0) {
+    s_pending_at = 0;
+    show_bubble(s_pending, now);
+  }
+  weather_say(now);
+  Say what;
+  if (speech_due(s_speech, mood_base_emotion(s_mood, hour), now, &what, 0)) say(what, now);
+}
+
 static void eyes_frame(uint32_t now, uint32_t dt) {
   const bool sleeping = s_emotion == Emotion::SLEEPING;
   WeatherMood wm;
@@ -190,6 +282,9 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
   if ((int32_t)(s_hand_until - now) > 0 && !sleeping) ov |= OV_HAND;
 
   const bool storm = (ov & OV_STORM) && now % kStormEveryMs < kStormForMs;
+  if (storm && !s_prev_storm && !sleeping) say(Say::GEWITTER, now);   // Gewitter-Schreck
+  s_prev_storm = storm;
+  speech_frame(now, sleeping);
   FaceExpr target = face_expression(storm ? Emotion::STARTLED : s_emotion);
   gazer_update(s_gaze, now);
   float gx = s_gaze.gx, gy = s_gaze.gy;
@@ -204,7 +299,7 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
 
   FaceShape draw = s_face;
   if (!sleeping) draw.eye.open *= blinker_open(s_blink, now);
-  eyes_draw(s_lcd, draw, s_color, ov, now);
+  eyes_draw(s_lcd, draw, s_color, ov, now, (int32_t)(s_bubble_until - now) > 0 ? s_bubble : nullptr);
   status_draw(s_lcd, status_info(now));
 
   if ((int32_t)(s_led_flash_until - now) > 0) led_set(Rgb{255, 255, 255}, kLedPct);   // High-Five
@@ -250,6 +345,18 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
       if (ota_card_wanted(now, s_emotion != Emotion::SLEEPING)) {   // nur bei wachem Display
         open_ota_card(now);
         return;
+      }
+      {
+        struct tm t;
+        const uint32_t day = today(&t);
+        const bool awake = s_emotion != Emotion::SLEEPING;
+        if (ritual_review(s_rituals, awake, s_touch_began, day ? t.tm_hour : -1, day ? t.tm_min : 0, day)) {
+          daystats_roll(s_persist.day, day);
+          s_screen = Screen::REVIEW;
+          set_backlight(kBacklight[s_persist.brightness]);
+          review_open(s_lcd, s_persist.day, now);
+          return;
+        }
       }
       if (s_pressed) look_at(s_look, tx, ty, now);   // bei Touch-Beginn und während des Streichelns
       touch_to_mood(g, tx, ty, now);
@@ -308,6 +415,8 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
       const GameResult r = s_screen == Screen::GAME_CATCH ? game_catch_update(s_lcd, tap, tx, ty, now)
                                                           : game_simon_update(s_lcd, tap, tx, ty, now);
       if (r == GameResult::RUNNING) return;
+      s_persist.day.games++;
+      if (r == GameResult::WON) s_persist.day.wins++;
       mood_event(s_mood, r == GameResult::WON ? MoodEvent::GAME_WON : MoodEvent::GAME_LOST, now, current_hour());
       go_eyes();
       return;
@@ -326,6 +435,10 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
       ota_card_draw(s_lcd, now);
       return;
     }
+
+    case Screen::REVIEW:
+      if (tap || !review_update(s_lcd, now)) go_eyes();
+      return;
 
     default:
       go_eyes();
@@ -348,6 +461,7 @@ void app_setup() {
   blinker_init(s_blink, seed, now);
   gazer_init(s_gaze, seed ^ 0x9E3779B9u, now);
   mood_seed(s_mood, esp_random());
+  speech_init(s_speech, now, esp_random());
   const FaceExpr start = face_expression(Emotion::CONTENT);
   s_face = start.s;
   s_color = start.color;

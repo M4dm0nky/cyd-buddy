@@ -3,7 +3,8 @@
 #include <string.h>
 
 static constexpr const char *kNs = "buddy";
-static constexpr uint8_t kVersion = 1;
+// Version 2: Tageszähler. Ältere Stände werden übernommen, fehlende Schlüssel bekommen Startwerte.
+static constexpr uint8_t kVersion = 2;
 
 void store_defaults(Persist &p) {
   p = Persist{};
@@ -13,13 +14,15 @@ void store_defaults(Persist &p) {
   p.place[0] = '\0';
   p.lat = p.lon = 0;
   p.has_place = false;
+  p.day = DayStats{};
 }
 
 bool store_load(Persist &p) {
   store_defaults(p);
   Preferences prefs;
   if (!prefs.begin(kNs, true)) return false;   // Namensraum fehlt = noch nie gespeichert
-  if (prefs.getUChar("ver", 0) != kVersion) { prefs.end(); return false; }
+  const uint8_t ver = prefs.getUChar("ver", 0);
+  if (ver == 0 || ver > kVersion) { prefs.end(); return false; }
   p.needs.affection = prefs.getFloat("aff", p.needs.affection);
   p.needs.fun = prefs.getFloat("fun", p.needs.fun);
   p.needs.energy = prefs.getFloat("ene", p.needs.energy);
@@ -31,6 +34,13 @@ bool store_load(Persist &p) {
   p.lat = prefs.getFloat("lat", 0);
   p.lon = prefs.getFloat("lon", 0);
   p.has_place = prefs.getBool("hasp", false);
+  p.day.day = prefs.getULong("d_day", 0);
+  p.day.strokes = prefs.getUShort("d_str", 0);
+  p.day.pokes = prefs.getUShort("d_pok", 0);
+  p.day.games = prefs.getUShort("d_gam", 0);
+  p.day.wins = prefs.getUShort("d_win", 0);
+  p.day.meals = prefs.getUShort("d_mea", 0);
+  p.day.pomodoros = prefs.getUShort("d_pom", 0);
   prefs.end();
   mood_clamp(p.needs);
   return true;
@@ -49,6 +59,13 @@ void store_save(const Persist &p) {
   prefs.putFloat("lat", p.lat);
   prefs.putFloat("lon", p.lon);
   prefs.putBool("hasp", p.has_place);
+  prefs.putULong("d_day", p.day.day);
+  prefs.putUShort("d_str", p.day.strokes);
+  prefs.putUShort("d_pok", p.day.pokes);
+  prefs.putUShort("d_gam", p.day.games);
+  prefs.putUShort("d_win", p.day.wins);
+  prefs.putUShort("d_mea", p.day.meals);
+  prefs.putUShort("d_pom", p.day.pomodoros);
   prefs.end();
 }
 

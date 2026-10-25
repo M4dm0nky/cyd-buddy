@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 5 – Sprechblasen und Rückblick (UI) – ERLEDIGT
+- Zeit: 2026-10-25 14:03 UTC
+- Gemacht: Step 3: `app.cpp` – Blase 4 s (ins Sprite), Gedanken/Gefühlswechsel über `speech_due`, Ereignis-Sätze (STROKE → verliebt 25 % mit 90-s-Abstand, POKE → genervt, High-Five → highfive, Gewitter-Schreck → gewitter, neues Wetter mit geändertem Himmel → hitze/kalt/regen/sonne), Rituale (Morgen: GREETING + „morgen“, 4 s später Tageswetter „Heute 14° und Regen“; Nacht 22 Uhr: YAWN + „nacht“; Rückblick 20 Uhr bzw. Nachholen bei Berührung bis 23 Uhr → Bildschirm `REVIEW`, Tippen schließt). Tageszähler (Streicheln, Stupsen, Spiele, Siege) in `Persist.day`, NVS-Schlüssel `d_*`, `kVersion` 2 (Stand 1 wird übernommen, fehlende Schlüssel → 0).
+- Dateien: src/app.cpp, src/hw/store.h, src/hw/store.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS, RAM 17,5 % (57 220 B, +224 B gegenüber Task 0), Flash 73,6 % (1 447 827 B). `pio test -e native` → 101 Tests, 0 Fehler
+- Gegenprobe: – (UI)
+- Nächster Schritt: Interaktion Task 6
+- Offen/Fragen: (1) `store_load` nimmt jetzt jede Version 1…kVersion an (vorher nur genau kVersion), damit Bedürfnisse/Helligkeit/Ort nach dem Update bleiben. (2) Ereignis-Blasen (POKE, High-Five, Gewitter, Wetter) ersetzen eine gerade sichtbare Blase. (3) „gestreichelt“ zählt STROKE-Gesten (alle 1,5 s beim Dauerstreicheln eine).
+- Am Gerät zu prüfen: Blase lesbar und Brauen nur kurz überdeckt, Morgengruß + Wettersatz, 22-Uhr-Gähnen, Rückblick um 20 Uhr, Zähler nach Neustart erhalten.
+
 ## Interaktion Task 5 – Sprechblasen und Rückblick (UI) – TEILWEISE
 - Zeit: 2026-10-25 14:01 UTC
 - Gemacht: Step 2: Bildschirm REVIEW `src/ui/review.*` („Dein Tag mit mir“, 5 Zeilen Symbol + Zahl: gestreichelt, gestupst, Spiele gewonnen/gesamt, gegessen, Pomodoros; unten kleines Augenpaar mit `daystats_mood`; 12 s). Neue Symbole `icon_heart`, `icon_bolt`, `icon_apple`, `icon_hourglass`.
