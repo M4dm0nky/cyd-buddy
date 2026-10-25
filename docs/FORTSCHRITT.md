@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 7 – Hardware-Schicht (LED, Licht, Speicher) – ERLEDIGT
+- Zeit: 2026-10-25 11:00 UTC
+- Gemacht: `led.*` (ledcAttach/ledcWrite, im Core-Header `esp32-hal-ledc.h` geprüft: `bool ledcAttach(uint8_t pin, uint32_t freq, uint8_t resolution)`, `bool ledcWrite(uint8_t pin, uint32_t duty)`), `light.*` (Ringpuffer 16, alle 60 ms, Hysterese), `store.*` (Preferences, Namensraum `buddy`, Versions-Schlüssel `ver`).
+- Dateien: src/hw/led.h, src/hw/led.cpp, src/hw/light.h, src/hw/light.cpp, src/hw/store.h, src/hw/store.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS, RAM 10,4 % (33 984 B), Flash 25,2 % (494 623 B) – Module noch nicht benutzt
+- Gegenprobe: – (keine Unit-Tests für Hardware vorgesehen)
+- Nächster Schritt: Task 8 Step 1
+- Offen/Fragen: `LDR_DARK_IS_HIGH` fehlt in config.h → in light.cpp Standard 1 mit Kommentar „am Gerät messen“. Sichere Variante: Solange `LDR_DARK_THRESHOLD` ≤ 0 (Platzhalter), meldet `light_update` nie „dunkel“, sonst würde der Buddy mit Schwelle 0 dauernd schlafen.
+
 ## Task 6 – OTA-Regeln portieren (ota_policy.h) – ERLEDIGT
 - Zeit: 2026-10-25 10:53 UTC
 - Gemacht: Vorlage kopiert, `OTA_CHIP_ESP32 = 0`, Kommentar auf `test/test_ota_policy`, neu `ota_redirect_ok(url)` (nur `https://`, Host `github.com` oder Endung `.githubusercontent.com`, Groß/Klein egal, Host nur aus Buchstaben/Ziffern/`-`/`.`).
