@@ -138,16 +138,67 @@ void test_needs_you_has_priority_over_other_sessions() {
   claude_event(L, "Stop", "", "", "bbbb2222", false, 1200);
   claude_event(L, "SessionEnd", "", "", "bbbb2222", false, 1250);
   TEST_ASSERT_EQUAL((int)ClaudeState::NEEDS_YOU, (int)claude_state(L, 1250));
-  claude_event(L, "PostToolUse", "Bash", "", "aaaa1111", false, 1300);   // dieselbe Sitzung -> frei
-  TEST_ASSERT_EQUAL((int)ClaudeState::THINKING, (int)claude_state(L, 1300));
-  claude_event(L, "PreToolUse", "Bash", "", "bbbb2222", false, 1400);
-  TEST_ASSERT_EQUAL((int)ClaudeState::RUNNING, (int)claude_state(L, 1400));
+  claude_event(L, "PostToolUse", "Bash", "", "aaaa1111", false, 1300);   // PostToolUse hebt NEEDS_YOU nicht auf (Fund 3)
+  TEST_ASSERT_EQUAL((int)ClaudeState::NEEDS_YOU, (int)claude_state(L, 1300));
+  claude_event(L, "PreToolUse", "Read", "", "aaaa1111", false, 2600);   // dieselbe Sitzung, >= 1500 ms -> frei
+  TEST_ASSERT_EQUAL((int)ClaudeState::READING, (int)claude_state(L, 2600));
+  claude_event(L, "PreToolUse", "Bash", "", "bbbb2222", false, 2700);
+  TEST_ASSERT_EQUAL((int)ClaudeState::RUNNING, (int)claude_state(L, 2700));
 }
 void test_needs_you_same_session_leaves_on_any_event() {
   ClaudeLogic L;
   claude_event(L, "Notification", "", "permission_prompt", "aaaa1111", false, 1000);
   claude_event(L, "Stop", "", "", "aaaa1111", false, 1100);
   TEST_ASSERT_EQUAL((int)ClaudeState::DONE, (int)claude_state(L, 1100));
+}
+// Fund 3: späte Ereignisse dürfen DONE / NEEDS_YOU nicht überschreiben
+void test_done_not_left_by_late_events() {
+  const char *late[] = {"PostToolUse", "SubagentStop", "SubagentStart", "PostToolUseFailure"};
+  for (const char *e : late) {
+    ClaudeLogic L;
+    claude_event(L, "Stop", "", "", "s1", false, 1000);
+    claude_event(L, e, "Bash", "", "s1", false, 1500);
+    TEST_ASSERT_EQUAL_MESSAGE((int)ClaudeState::DONE, (int)claude_state(L, 1600), e);
+  }
+}
+void test_done_left_by_real_starts() {
+  struct { const char *e, *tool, *n; ClaudeState want; } c[] = {
+      {"UserPromptSubmit", "", "", ClaudeState::LISTENING}, {"PreToolUse", "Edit", "", ClaudeState::CODING},
+      {"PermissionRequest", "Bash", "", ClaudeState::NEEDS_YOU}, {"Notification", "", "permission_prompt", ClaudeState::NEEDS_YOU},
+      {"SessionStart", "", "", ClaudeState::THINKING}};
+  for (auto &x : c) {
+    ClaudeLogic L;
+    claude_event(L, "Stop", "", "", "s1", false, 1000);
+    claude_event(L, x.e, x.tool, x.n, "s1", false, 1500);
+    TEST_ASSERT_EQUAL_MESSAGE((int)x.want, (int)claude_state(L, 1500), x.e);
+  }
+}
+void test_needs_you_not_lifted_by_post_events() {
+  const char *post[] = {"PostToolUse", "SubagentStop", "SubagentStart"};
+  for (const char *e : post) {
+    ClaudeLogic L;
+    claude_event(L, "PermissionRequest", "Bash", "", "s1", false, 1000);
+    claude_event(L, e, "Bash", "", "s1", false, 1100);
+    TEST_ASSERT_EQUAL_MESSAGE((int)ClaudeState::NEEDS_YOU, (int)claude_state(L, 1200), e);
+  }
+}
+void test_needs_you_pretooluse_only_after_1500ms() {
+  ClaudeLogic L;
+  claude_event(L, "PermissionRequest", "Bash", "", "s1", false, 1000);
+  claude_event(L, "PreToolUse", "Read", "", "s1", false, 2499);   // verspätetes Vor-Ereignis
+  TEST_ASSERT_EQUAL((int)ClaudeState::NEEDS_YOU, (int)claude_state(L, 2499));
+  claude_event(L, "PreToolUse", "Read", "", "s1", false, 2500);
+  TEST_ASSERT_EQUAL((int)ClaudeState::READING, (int)claude_state(L, 2500));
+}
+void test_helpers_reset_on_prompt_and_stop() {
+  ClaudeLogic L;
+  claude_event(L, "SubagentStart", "", "", "s1", false, 1000);
+  claude_event(L, "SubagentStart", "", "", "s1", false, 1100);
+  claude_event(L, "Stop", "", "", "s1", false, 1200);
+  TEST_ASSERT_EQUAL_UINT8(0, claude_helpers(L));
+  claude_event(L, "SubagentStart", "", "", "s1", false, 1300);
+  claude_event(L, "UserPromptSubmit", "", "", "s1", false, 1400);
+  TEST_ASSERT_EQUAL_UINT8(0, claude_helpers(L));
 }
 void test_other_sessions_events_keep_alive() {
   ClaudeLogic L;
@@ -232,6 +283,11 @@ int main(int, char **) {
   RUN_TEST(test_newest_event_wins);
   RUN_TEST(test_needs_you_has_priority_over_other_sessions);
   RUN_TEST(test_needs_you_same_session_leaves_on_any_event);
+  RUN_TEST(test_done_not_left_by_late_events);
+  RUN_TEST(test_done_left_by_real_starts);
+  RUN_TEST(test_needs_you_not_lifted_by_post_events);
+  RUN_TEST(test_needs_you_pretooluse_only_after_1500ms);
+  RUN_TEST(test_helpers_reset_on_prompt_and_stop);
   RUN_TEST(test_other_sessions_events_keep_alive);
   RUN_TEST(test_sid_compares_first_8_chars);
   RUN_TEST(test_unknown_event_ignored);

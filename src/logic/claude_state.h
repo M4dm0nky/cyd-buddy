@@ -11,6 +11,7 @@ constexpr uint32_t CLAUDE_NEEDS_MAX_MS = 30UL * 60UL * 1000UL;     // NEEDS_YOU 
 constexpr uint32_t CLAUDE_LISTENING_MS = 1200;                     // LISTENING -> THINKING
 constexpr uint32_t CLAUDE_FAILED_MS = 3000;                        // FAILED -> THINKING
 constexpr uint32_t CLAUDE_DONE_MS = 8000;                          // DONE -> IDLE
+constexpr uint32_t CLAUDE_NEEDS_PRE_IGNORE_MS = 1500;             // PreToolUse hebt NEEDS_YOU erst danach auf
 constexpr size_t CLAUDE_SID_LEN = 8;
 
 struct ClaudeLogic {
@@ -109,11 +110,22 @@ inline void claude_event(ClaudeLogic &L, const char *e, const char *tool, const 
 
   if (eq(e, "SubagentStart")) { if (L.helpers < 255) L.helpers++; }
   else if (eq(e, "SubagentStop")) { if (L.helpers > 0) L.helpers--; }
+  else if (eq(e, "UserPromptSubmit") || eq(e, "Stop")) L.helpers = 0;   // alle Helfer gehören zur Runde
 
   const bool other_needs = L.needs_open && L.base == ClaudeState::NEEDS_YOU && !same_sid(L.needs_sid, sid);
+  // Verspätete Ereignisse (Hooks laufen nicht streng der Reihe nach) dürfen DONE / NEEDS_YOU nicht überschreiben.
+  bool late = false;
+  if (claude_state(L, now) == ClaudeState::DONE) {
+    late = !(eq(e, "UserPromptSubmit") || eq(e, "PreToolUse") || eq(e, "PermissionRequest") || eq(e, "Notification") ||
+             eq(e, "SessionStart") || eq(e, "Stop") || eq(e, "SessionEnd"));
+  } else if (L.needs_open && L.base == ClaudeState::NEEDS_YOU && !other_needs) {
+    if (eq(e, "PostToolUse") || eq(e, "SubagentStop")) late = true;
+    else if (eq(e, "PreToolUse") && next != ClaudeState::NEEDS_YOU && now - L.since < CLAUDE_NEEDS_PRE_IGNORE_MS) late = true;
+  }
   L.last_event_ms = now;
   L.has_event = true;
   if (other_needs) return;   // NEEDS_YOU einer anderen Sitzung bleibt, bis von ihr ein Ereignis kommt
+  if (late) return;
   if (!set_state) return;   // SubagentStart: nur der Zaehler
   if (next == ClaudeState::OFF) { L = ClaudeLogic{}; return; }
   L.base = next;
