@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 7 – Füttern und Charakter (UI) – ERLEDIGT
+- Zeit: 2026-10-25 14:15 UTC
+- Gemacht: Step 5: Info-Zeile der Einstellungen mit zwei Charakter-Balken (Herz ↔ Blitz für `cuddly`, Ball ↔ Kissen für `playful`; Mitte = 0, Ausschlag zur jeweiligen Seite). Info-Text gekürzt auf Build-Datum + „Heap …k Licht …“.
+- Dateien: src/ui/settings.cpp, src/app.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS, RAM 17,5 % (57 292 B), Flash 73,9 % (1 452 891 B). `pio test -e native` → 119 Tests, 0 Fehler
+- Gegenprobe: – (UI)
+- Nächster Schritt: Interaktion Task 8
+- Offen/Fragen: –
+- Am Gerät zu prüfen: Menü 2×3 trifft (Touch-Kalibrierung), Fütter-Bildschirm, Flug + Kauen flüssig, Reaktionen (lecker / Lieblingsessen / satt), Hatschi bei Krankheit, Charakter-Balken.
+
 ## Interaktion Task 7 – Füttern und Charakter (UI) – TEILWEISE
 - Zeit: 2026-10-25 14:14 UTC
 - Gemacht: Step 4: `OV_SNEEZE = 2048` + Test; Tropfen an der Nase und Augen 600 ms zu, Blase „krank“. Füttern: Menü → FEED → Speise fliegt 600 ms von unten zum Mund (ins Sprite), Mund kaut 3× (mouth_open 0↔0,6 alle 200 ms), dann `food_feed` → Reaktion + Blase, `meals`-Zähler. Charakter: Streicheln/Stupsen/Spiel/High-Five/Langeweile ändern `cuddly`/`playful`, `mood_set_character` jedes Bild, Gedanken-Blasen nach `cuddly`. Krankheit, Charakter, Lieblingsessen (beim ersten Start ausgelost) werden gespeichert.

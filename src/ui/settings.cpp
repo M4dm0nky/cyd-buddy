@@ -49,15 +49,30 @@ static void draw_firmware(LGFX &d, uint32_t now_ms) {
   ui_text(d, buf, 62, cy, &fonts::FreeSans9pt7b, col, middle_left);
 }
 
-static void draw_info(LGFX &d) {
+// Charakter-Balken: Mitte = 0, Ausschlag nach links (Symbol links) bzw. rechts (Symbol rechts) bis ±100.
+static void char_bar(LGFX &d, int y, float v, void (*left)(LGFX &, int, int), void (*right)(LGFX &, int, int), uint32_t col) {
+  const int x0 = 214, x1 = 290, mid = (x0 + x1) / 2;
+  left(d, x0 - 12, y);
+  right(d, x1 + 12, y);
+  d.fillRoundRect(x0, y - 3, x1 - x0, 7, 3, d.color888(50, 50, 65));
+  const int px = mid + (int)((x1 - x0) / 2 * v / 100.0f);
+  if (px != mid) d.fillRect(px < mid ? px : mid, y - 3, px < mid ? mid - px : px - mid, 7, col);
+  d.drawFastVLine(mid, y - 5, 11, TFT_WHITE);
+}
+
+static void draw_info(LGFX &d, const Persist &p) {
   row_bg(d, 3);
   const int cy = row(3).y + kRowH / 2;
   icon_info(d, 30, cy, 30, d.color888(180, 180, 255));
   char buf[64];
-  snprintf(buf, sizeof buf, "%s  Heap %u", __DATE__, (unsigned)ESP.getFreeHeap());
-  ui_text(d, buf, 62, cy - 9, &fonts::Font2, d.color888(200, 200, 210), middle_left);
-  snprintf(buf, sizeof buf, "Licht %d", light_raw());
+  ui_text(d, __DATE__, 62, cy - 9, &fonts::Font2, d.color888(200, 200, 210), middle_left);
+  snprintf(buf, sizeof buf, "Heap %uk Licht %d", (unsigned)(ESP.getFreeHeap() / 1024), light_raw());
   ui_text(d, buf, 62, cy + 9, &fonts::Font2, d.color888(200, 200, 210), middle_left);
+  // Charakter: verschmust (Herz) gegen frech (Blitz), verspielt (Ball) gegen faul (Kissen); Wert -100..100
+  char_bar(d, cy - 10, -p.cuddly, [](LGFX &g, int x, int y) { icon_heart(g, x, y, 14, g.color888(255, 80, 170)); },
+           [](LGFX &g, int x, int y) { icon_bolt(g, x, y, 16, g.color888(255, 220, 0)); }, d.color888(255, 80, 170));
+  char_bar(d, cy + 12, -p.playful, [](LGFX &g, int x, int y) { icon_ball(g, x, y, 15, g.color888(80, 200, 255)); },
+           [](LGFX &g, int x, int y) { icon_pillow(g, x, y, 16, g.color888(200, 190, 230)); }, d.color888(80, 200, 255));
 }
 
 void settings_redraw(LGFX &lcd, const Persist &p) {
@@ -65,7 +80,7 @@ void settings_redraw(LGFX &lcd, const Persist &p) {
   draw_brightness(lcd, p);
   draw_wifi(lcd, p);
   draw_firmware(lcd, millis());
-  draw_info(lcd);
+  draw_info(lcd, p);
   lcd.endWrite();
 }
 
@@ -94,7 +109,7 @@ void settings_tick(LGFX &lcd, const Persist &p, uint32_t now_ms) {
   lcd.startWrite();
   draw_wifi(lcd, p);
   draw_firmware(lcd, now_ms);
-  draw_info(lcd);
+  draw_info(lcd, p);
   lcd.endWrite();
 }
 

@@ -242,6 +242,8 @@ static void mood_frame(uint32_t now, uint32_t dt) {
   mood_quirks(s_mood, hour, now);
   s_emotion = mood_emotion(s_mood, hour, now);
   if (s_emotion == Emotion::BORED) char_bored(s_char, dt);
+  s_persist.cuddly = s_char.cuddly;   // für die Anzeige in den Einstellungen
+  s_persist.playful = s_char.playful;
 }
 
 // Neues Wetter mit geändertem Himmel: einmal ein passender Satz.
