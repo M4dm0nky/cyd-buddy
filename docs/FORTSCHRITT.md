@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 0 – Werkzeuge und Branch (Cloud) – ERLEDIGT
+- Zeit: 2026-10-25 13:47 UTC
+- Gemacht: Basis `origin/buddy-umsetzung` (00ad726). Diese Cloud-Sitzung darf nur auf **`claude/dreamy-galileo-bvdw39`** pushen; der Branch wurde per Fast-Forward auf `buddy-umsetzung` gebracht und trägt ab hier die Interaktions-Commits. Werkzeuge wie unter „Task 0 – Werkzeuge (Cloud)“ (gleicher Container, noch eingerichtet).
+- Dateien: –
+- Prüfung: `pio test -e native` → 78 Tests, 0 Fehler; `pio run -e cyd2usb` → SUCCESS, RAM 17,4 % (56 964 B), Flash 73,1 % (1 436 759 B); `node --test tools/*.test.mjs` → 3/3
+- Gegenprobe: –
+- Nächster Schritt: Interaktion Task 1
+- Offen/Fragen: Lokal `claude/dreamy-galileo-bvdw39` nach `buddy-umsetzung` übernehmen (Fast-Forward möglich, solange `buddy-umsetzung` nicht weiterläuft).
+
 ## Lokal 2 – WLAN, Wetter, Touch, OTA am Gerät – ERLEDIGT
 - Zeit: 2026-10-25 (lokal, Opus)
 - Gemacht: WLAN-Portal eingerichtet (am Handy ging die Seite nicht auf, vom PC über dessen WLAN-Adapter ging sie: Gerät ok, Handy bleibt vermutlich auf mobilen Daten). Wetter repariert (`useHTTP10`, Open-Meteo antwortete chunked). Manuelles Update: Einstellungen → Firmware zeigt die Karte sofort. Tipps nutzen die letzte gültige Position statt (0,0). **Touch-Kalibrierung** mit 4 Eckpunkten beim ersten Start, im NVS (`touchcal`); Finger beim Einschalten = neu kalibrieren. Gemessen: Bildschirm-x aus Roh-x (umgekehrt), y aus Roh-y; Werte `3679,310 3672,3689 516,371 474,3703`. Die frühere Eck-Messung ohne gezeichnete Ziele war falsch, die Konstanten in config.h sind nur noch Startwerte.
