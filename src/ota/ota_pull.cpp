@@ -39,7 +39,8 @@ volatile bool g_consent = false;
 volatile bool g_check_now = false, g_fetching = false;   // Suche angefordert (Status-Seite) / läuft gerade
 uint32_t g_check_req_ms = 0;
 volatile bool g_ui_alive = false;
-bool g_marked = false;
+volatile bool g_marked = false;   // Gesundheitsnachweis erledigt bzw. nicht nötig (nur health_tick() setzt es nach begin())
+void (*g_restart_cb)() = nullptr;
 uint32_t g_next_poll = 0;
 char g_running_elf[65] = "";
 char g_slot[17] = "?", g_build[24] = "";
@@ -75,7 +76,7 @@ bool file_name_ok(const char *f) {
 
 void make_url(const char *file, char *out, size_t n) { snprintf(out, n, "%s/%s", kBase, file); }
 
-// 3. GET mit selbst verfolgten Umleitungen (höchstens 3 Sprünge). Jede Adresse, auch die erste, muss ota_redirect_ok()
+// GET mit selbst verfolgten Umleitungen (höchstens 3 Sprünge). Jede Adresse, auch die erste, muss ota_redirect_ok()
 // bestehen. true = Antwort liegt an (*code), http ist offen und muss mit http.end() geschlossen werden.
 bool open_follow(HTTPClient &http, NetworkClientSecure &tls, const char *url, int *code, char *reason, size_t rn) {
   String cur = url;
@@ -120,7 +121,7 @@ bool fetch_manifest(bool *newer) {
   char reason[40] = "";
   if (!open_follow(http, tls, url, &code, reason, sizeof reason)) { Serial.printf("ota: Manifest: %s\n", reason); return false; }
   if (code != 200) { Serial.printf("ota: Manifest HTTP %d\n", code); http.end(); return false; }
-  // 4. Standard-Allocator (kein PSRAM), Filter hält das Dokument klein
+  // Standard-Allocator (kein PSRAM), Filter hält das Dokument klein
   JsonDocument filter;
   for (const char *k : {"project", "elf", "sha256", "size", "file", "built"}) filter[k] = true;
   JsonDocument doc;
@@ -136,7 +137,7 @@ bool fetch_manifest(bool *newer) {
     Serial.println("ota: Manifest unbrauchbar");
     return false;
   }
-  if (size > kSlotSize) {   // 8.
+  if (size > kSlotSize) {
     Serial.println("ota: Manifest: zu gross fuer den Slot");
     return false;
   }
@@ -181,7 +182,7 @@ void download() {
   }
   if ((uint32_t)http.getSize() != g_man_size) { http.end(); set_error("Groesse passt nicht"); return; }
 
-  uint8_t *buf = (uint8_t *)malloc(kChunk);   // 5. kein PSRAM
+  uint8_t *buf = (uint8_t *)malloc(kChunk);   // kein PSRAM
   if (!buf) { http.end(); set_error("kein Speicher"); return; }
   NetworkClient *s = http.getStreamPtr();
 
@@ -205,7 +206,11 @@ void download() {
     if (want > (size_t)avail) want = avail;
     if (want > g_man_size - done) want = g_man_size - done;
     const int r = s->read(buf + have, want);
-    if (r <= 0) { vTaskDelay(pdMS_TO_TICKS(2)); continue; }
+    if (r <= 0) {   // Daten gemeldet, aber nichts gelesen: auch hier die Stall-Zeit überwachen
+      if (millis() - last_data > kStallMs) { strlcpy(reason, "Zeitueberschreitung", sizeof reason); fail = true; }
+      else vTaskDelay(pdMS_TO_TICKS(2));
+      continue;
+    }
     last_data = millis();
     have += r;
     if (!started) {
@@ -222,7 +227,7 @@ void download() {
     done += have;
     have = 0;
     portENTER_CRITICAL(&g_mux); g_info.pct = (uint8_t)ota_progress_pct(done, g_man_size); portEXIT_CRITICAL(&g_mux);
-    vTaskDelay(1);   // der Task läuft mit Idle-Priorität: dem Idle-Task Zeit lassen (Watchdog)
+    vTaskDelay(1);   // net_task läuft mit Priorität 1 (knapp über Idle): dem Idle-Task Zeit lassen (Watchdog)
   }
   http.end();
   free(buf);
@@ -250,6 +255,7 @@ void download() {
   set_state(RESTARTING);
   Serial.println("ota: ok, Neustart in 2 s");
   vTaskDelay(pdMS_TO_TICKS(2000));
+  if (g_restart_cb) g_restart_cb();   // Zustand sichern (läuft im net_task; der Rückruf muss selbst threadsicher sein)
   ESP.restart();
 }
 }  // namespace
@@ -265,18 +271,24 @@ void begin() {
   g_img_state = (int)st;
   snprintf(g_build, sizeof g_build, "%.11s %.11s", d->date, d->time);
   Serial.printf("ota: Partition %s, Zustand %d, ELF %.12s\n", run ? run->label : "?", (int)st, g_running_elf);
-  // Bleibt der Zustand PENDING_VERIFY (Bootloader mit Rollback), gilt das Image erst nach dem Gesundheitsnachweis in loop().
+  // Bleibt der Zustand PENDING_VERIFY (main.cpp: verifyRollbackLater() = true, der Core markiert also nicht selbst), gilt das
+  // Image erst nach dem Gesundheitsnachweis in health_tick(). Nach einem Kabel-Flash ist der Zustand UNDEFINED/VALID: nichts zu tun.
   g_marked = (st != ESP_OTA_IMG_PENDING_VERIFY);
 }
 
+// Gesundheitsnachweis nach einem Update: Augen-Schleife läuft (ui_alive) und Mindestlaufzeit. Unabhängig vom WLAN, im Haupt-Task.
+// Sonst bootet der Bootloader beim nächsten Reset zur vorigen Firmware zurück.
+void health_tick() {
+  if (g_marked || !g_ui_alive || millis() <= kHealthAfterMs) return;
+  g_marked = true;   // nur einmal versuchen
+  if (esp_ota_mark_app_valid_cancel_rollback() == ESP_OK) Serial.println("ota: neue Firmware als gut bestaetigt");
+  else Serial.println("ota: Bestaetigung der neuen Firmware fehlgeschlagen");
+}
+
+void on_restart(void (*fn)()) { g_restart_cb = fn; }
+
 void loop() {
   const uint32_t now = millis();
-
-  // Gesundheitsnachweis nach einem Update: Augen-Schleife läuft, Mindestlaufzeit. Sonst bootet der Bootloader beim nächsten Reset zurück.
-  if (!g_marked && g_ui_alive && now > kHealthAfterMs) {
-    if (esp_ota_mark_app_valid_cancel_rollback() == ESP_OK) Serial.println("ota: neue Firmware als gut bestaetigt");
-    g_marked = true;
-  }
 
   const State st = info().state;
   if (st == AVAILABLE && g_consent) {

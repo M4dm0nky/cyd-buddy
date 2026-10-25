@@ -42,7 +42,7 @@ GitHub leitet `…/latest/download/<Datei>` um (auf `…/releases/download/<Tag>
 
 | Datei | Aufgabe |
 |---|---|
-| `src/ota/ota_pull.*` | Manifest holen (im `net_task` über `net_task_hook`), Download, SHA-256, `Update`, Neustart, Gesundheitsnachweis |
+| `src/ota/ota_pull.*` | Manifest holen (im `net_task` über `net_task_hook`), Download, SHA-256, `Update`, Neustart; `health_tick()` (Gesundheitsnachweis, Hauptschleife), `on_restart()` |
 | `src/ui/ota_card.*` | Karte „Update bereit“ (Ja/Später), Fortschritt, „Prüfe …“, „Neustart …“, Fehlerkarte (Antippen schließt) |
 | `src/logic/ota_policy.h` | Image-Prüfung, Vergleich, Umleitungs-Regel, Schlummern, Fortschritt, Zeile „Firmware“ (Host-Test `test/test_ota_policy`) |
 | Einstellungen, Zeile „Firmware“ | Text aus `ota_status_line`; Tippen: `ota_pull::check_now()` |
@@ -72,10 +72,22 @@ Tests: `node --test tools/*.test.mjs` (Image-Erkennung) und `pio test -e native 
 
 ## Grenzen / offen
 
-- **Rollback ungeprüft.** `ota_pull` ruft `esp_ota_mark_app_valid_cancel_rollback()` erst, wenn die Augen-Schleife läuft und 20 s vergangen sind.
-  Ob der Bootloader Rollback kann (`CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE`), ist nicht geprüft; seriell steht beim Start `ota: Partition <app0|app1>, Zustand <n>`
-  (1 = PENDING_VERIFY heißt Rollback aktiv; 2 oder -1 nach einem Abruf-Update: kein Rollback). Ohne Rollback rettet ein gültiges, aber nicht startendes Image nur der Kabel-Flash.
+- **Rollback.** Die Core-Bibliotheken sind mit `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y` / `CONFIG_APP_ROLLBACK_ENABLE=y` gebaut, der Bootloader kann also zurückrollen.
+  Der Core markiert ein frisch geflashtes Image aber standardmäßig schon vor `setup()` als gut; die erste Messung am Gerät (`Zustand 2`, „kein Rollback“) war deshalb nur ein Beleg dafür.
+  Seit `main.cpp` `verifyRollbackLater()` mit `true` überschreibt, bleibt das Image im Zustand PENDING_VERIFY (seriell: `ota: Partition <app0|app1>, Zustand 1`),
+  bis `ota_pull::health_tick()` (Hauptschleife, **unabhängig vom WLAN**) es nach laufender Augen-Schleife (`ui_alive()`) und 20 s Laufzeit mit
+  `esp_ota_mark_app_valid_cancel_rollback()` bestätigt (`ota: neue Firmware als gut bestaetigt`). Ein Neustart/Absturz davor lässt den Bootloader auf den vorigen Slot zurückgehen.
+  Nach einem Kabel-Flash ist der Zustand UNDEFINED/VALID: nichts zu bestätigen, Verhalten wie zuvor. Am Gerät noch nicht Ende zu Ende geprüft (kaputtes Image absichtlich ausliefern).
+  Grenze: Die Bestätigung prüft nur „Augen laufen“, nicht WLAN oder Wetter; eine Firmware, die startet, aber das Netz nicht kann, bleibt.
+- **Keine Signatur.** Echtheit ruht allein auf HTTPS zu GitHub und dem Repo-/Release-Zugang des Besitzers; wer das Release ersetzen kann, kann Firmware einspielen.
+  Das SHA-256 im Manifest schützt nur vor Übertragungsfehlern, nicht vor einem manipulierten Release (Manifest und Datei liegen am selben Ort).
+- **Downgrade möglich.** Verglichen wird nur „andere ELF-SHA-256“, nicht „neuer“. Ein älteres Release als `latest` wird ebenso angeboten und eingespielt (Anti-Rollback ist aus).
+- **Projektkennung generisch.** Der Projektname im Image ist beim pioarduino-Core `arduino-lib-builder`, trifft also auch jedes andere Arduino-ESP32-Image desselben Cores.
+  Sicherheit bringt das nicht; es verhindert nur offensichtliche Verwechslungen (anderer Chip/Core).
 - **Erster Flash per Kabel**, danach ohne.
-- Der Download blockiert den `net_task` (Wetter pausiert so lange). Die Augen laufen weiter bzw. zeigen den Fortschritt.
-- Speicher: Der Manifest-Abruf (TLS, ~40–50 KB) läuft bei angelegtem Sprite. `min=` im seriellen Heap-Log nach dem ersten Abruf beobachten.
+- Der Download blockiert den `net_task` (Wetter pausiert so lange). Die Augen laufen weiter bzw. zeigen den Fortschritt. Bleibt der Datenstrom 15 s stehen
+  (auch wenn der Socket Daten meldet, aber nichts lesbar ist), bricht der Download mit „Zeitueberschreitung“ ab. Vor dem Neustart ruft `ota_pull` den mit `ota_pull::on_restart()` registrierten Rückruf (Speichern).
+- Speicher (gemessen am Gerät): Der Manifest-Abruf (TLS) läuft bei angelegtem Sprite; Heap-Minimum dabei 63 312 B, mit dem Claude-Webserver danach 49 776 B (`min=` im seriellen Heap-Log).
+  Firmware ca. 1,47 MB von 1 966 080 B Slot. Der Download selbst braucht nur den 4-KB-Puffer plus TLS.
+- Das Claude-API (`POST /claude`) prüft Schlüssel und Content-Length vor dem Lesen des Körpers (401/413, Verbindung wird geschlossen); siehe `src/net/claude_api.cpp`.
 - In der Cloud-Sitzung nicht Ende zu Ende geprüft (kein Gerät, kein Release).

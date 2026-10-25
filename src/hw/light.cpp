@@ -3,7 +3,7 @@
 #include "../config.h"
 
 #ifndef LDR_DARK_IS_HIGH
-#define LDR_DARK_IS_HIGH 1   // am Gerät messen: 1 = höherer Rohwert bedeutet dunkel
+#define LDR_DARK_IS_HIGH 1   // Vorgabe, falls config.h nichts setzt: 1 = höherer Rohwert bedeutet dunkel (config.h setzt es)
 #endif
 
 static constexpr uint8_t kSamples = 16;
@@ -37,7 +37,7 @@ bool light_update(uint32_t now_ms) {
   s_pos = (s_pos + 1) % kSamples;
   s_avg = (int)(s_sum / s_n);
 
-  // Schwelle 0 = noch nicht am Gerät gemessen: dann nie "dunkel", sonst schliefe der Buddy immer.
+  // Schwelle <= 0 = Sensor abgeschaltet: dann nie "dunkel", sonst schliefe der Buddy immer.
   if (LDR_DARK_THRESHOLD <= 0 || s_n < kSamples) return s_dark;
 #if LDR_DARK_IS_HIGH
   if (!s_dark && s_avg > LDR_DARK_THRESHOLD + LDR_HYSTERESIS) s_dark = true;
