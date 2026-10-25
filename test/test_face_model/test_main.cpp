@@ -97,6 +97,18 @@ void test_new_emotions_f3_f4() {
   TEST_ASSERT_EQUAL_UINT8(255, x.color.r); TEST_ASSERT_EQUAL_UINT8(90, x.color.g); TEST_ASSERT_EQUAL_UINT8(140, x.color.b);
 }
 
+void test_thinking_claude_mode() {
+  const FaceExpr x = face_expression(Emotion::THINKING);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, -10.0f, x.s.pupil_dx);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, -10.0f, x.s.pupil_dy);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 10.0f, x.s.brow_asym);
+  TEST_ASSERT_EQUAL((int)Mouth::CURVE, (int)x.s.mouth);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.1f, x.s.mouth_curve);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 30.0f, x.s.mouth_w);
+  TEST_ASSERT_EQUAL_UINT8(217, x.color.r); TEST_ASSERT_EQUAL_UINT8(119, x.color.g); TEST_ASSERT_EQUAL_UINT8(87, x.color.b);
+  TEST_ASSERT_TRUE((int)Emotion::THINKING < (int)Emotion::COUNT);
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_table_complete_for_all_emotions);
@@ -107,5 +119,6 @@ int main(int, char **) {
   RUN_TEST(test_discrete_fields_jump_in_second_half);
   RUN_TEST(test_eye_expression_matches_face);
   RUN_TEST(test_new_emotions_f3_f4);
+  RUN_TEST(test_thinking_claude_mode);
   return UNITY_END();
 }

@@ -39,6 +39,7 @@ constexpr Rgb CYAN{0, 220, 255}, RED{255, 50, 40}, PINK{255, 80, 170}, BLUE{60, 
 constexpr Rgb GREY{128, 110, 180}, DIM{0, 140, 170}, MINT{0, 255, 180}, SLEEPC{0, 90, 110};
 constexpr Rgb SURPC{120, 240, 255}, SCAREC{180, 200, 255}, WHITE{255, 255, 255};
 constexpr Rgb ORANGE{255, 150, 40}, FULLC{140, 200, 80}, SICKC{120, 170, 120}, TIMERC{255, 90, 140};   // Spec Interaktion
+constexpr Rgb CLAUDEC{217, 119, 87};   // Claude-Orange (Spec Claude-Modus)
 }  // namespace face_detail
 
 inline FaceExpr face_expression(Emotion e) {
@@ -70,8 +71,9 @@ inline FaceExpr face_expression(Emotion e) {
     case Emotion::FULL:      p.open = .6f; p.topCut = .3f; p.ms = Mouth::WAVE; return mk(FULLC, p);
     case Emotion::SICK:      p.open = .55f; p.tilt = .4f; p.mc = -.4f; return mk(SICKC, p);
     case Emotion::FOCUSED:   p.open = .7f; p.topCut = .25f; p.bt = -.3f; p.mc = 0; p.mw = 30; return mk(TIMERC, p);
+    case Emotion::THINKING:  p.pdx = -10; p.pdy = -10; p.bAsym = 10; p.mc = .1f; p.mw = 30; return mk(CLAUDEC, p);   // Claude-Modus
     case Emotion::CONTENT:
-    default:                 return mk(CYAN, p);
+    default:                return mk(CYAN, p);
   }
 }
 
