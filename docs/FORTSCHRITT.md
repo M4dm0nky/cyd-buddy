@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 6 – OTA-Regeln portieren (ota_policy.h) – ERLEDIGT
+- Zeit: 2026-10-25 10:53 UTC
+- Gemacht: Vorlage kopiert, `OTA_CHIP_ESP32 = 0`, Kommentar auf `test/test_ota_policy`, neu `ota_redirect_ok(url)` (nur `https://`, Host `github.com` oder Endung `.githubusercontent.com`, Groß/Klein egal, Host nur aus Buchstaben/Ziffern/`-`/`.`).
+- Dateien: src/logic/ota_policy.h, test/test_ota_policy/test_main.cpp
+- Prüfung: `pio test -e native -f test_ota_policy` vor Implementierung → ERRORED (Header fehlt); mit unveränderter Vorlage → SIGSEGV; nach Korrektur → 5 Tests, 0 Fehler
+- Gegenprobe: Chip-Konstante 0 → 9 → `test_image_ok_esp32: Expected 0 Was 3` und `test_image_rejects` FAILED; zurück → 5 PASS
+- Nächster Schritt: Task 7 Step 1
+- Offen/Fragen: **Abweichung von der Vorlage:** `OTA_IMG_CHECK_BYTES` war 176, `ota_image_check` liest die ELF-SHA aber aus Byte 176…207 (`32 + 144 + i`). Mit genau 176 Byte Puffer (wie im Test) liest es über das Ende hinaus → Absturz. Jetzt `32 + 176 = 208`. Dasselbe steckt in der Vorlage `ota-publish.mjs` (`CHECK_BYTES = 176`, liest bis 208) und betrifft vermutlich auch den HA-Buddy (dort harmlos, weil der Puffer größer ist). In Task 13 im Skript ebenfalls auf 208 gesetzt.
+
 ## Task 5 – Spiel-Logik (simon.h, catch_game.h) – ERLEDIGT
 - Zeit: 2026-10-25 10:46 UTC
 - Gemacht: Test aus dem Plan wörtlich; `src/logic/simon.h` und `src/logic/catch_game.h` nach den Interfaces im Plan (Zufall über `rng_range` aus eye_model.h).
