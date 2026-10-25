@@ -3,6 +3,15 @@
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
 ## Interaktion Task 5 – Sprechblasen und Rückblick (UI) – TEILWEISE
+- Zeit: 2026-10-25 14:01 UTC
+- Gemacht: Step 2: Bildschirm REVIEW `src/ui/review.*` („Dein Tag mit mir“, 5 Zeilen Symbol + Zahl: gestreichelt, gestupst, Spiele gewonnen/gesamt, gegessen, Pomodoros; unten kleines Augenpaar mit `daystats_mood`; 12 s). Neue Symbole `icon_heart`, `icon_bolt`, `icon_apple`, `icon_hourglass`.
+- Dateien: src/ui/review.h, src/ui/review.cpp, src/ui/icons.h, src/ui/icons.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS (vor der Verschiebung des Augenpaars nach unten; die Verschiebung ist eine Zahl)
+- Gegenprobe: – (UI)
+- Nächster Schritt: Interaktion Task 5 Step 3 (Verdrahtung in app.cpp: Blasen, Ereignis-Sätze, Rituale, Rückblick-Bildschirm, Tageszähler in Persist/NVS mit kVersion 2)
+- Offen/Fragen: –
+
+## Interaktion Task 5 – Sprechblasen und Rückblick (UI) – TEILWEISE
 - Zeit: 2026-10-25 13:58 UTC
 - Gemacht: Step 1: `src/ui/bubble.*` (abgerundete Blase oben mittig y 2..32, hellgrau, Zipfel nach unten, Text schwarz FreeSansBold9pt7b über ascii.h, Breite nach Text). `eyes_draw(..., const char *bubble = nullptr)` zeichnet sie ins Sprite.
 - Dateien: src/ui/bubble.h, src/ui/bubble.cpp, src/ui/eyes.h, src/ui/eyes.cpp

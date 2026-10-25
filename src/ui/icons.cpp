@@ -148,3 +148,36 @@ void icon_back(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
   d.drawWideLine(cx - h, cy, cx + h, cy, t, col);
   d.fillTriangle(cx - h - s / 10, cy, cx - h + s / 4, cy - s / 3, cx - h + s / 4, cy + s / 3, col);
 }
+
+void icon_heart(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
+  const int r = s / 4;
+  d.fillCircle(cx - r, cy - r / 2, r, col);
+  d.fillCircle(cx + r, cy - r / 2, r, col);
+  d.fillTriangle(cx - 2 * r, cy - r / 4, cx + 2 * r, cy - r / 4, cx, cy + s / 2, col);
+}
+
+void icon_bolt(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
+  const int h = s / 2;
+  d.fillTriangle(cx + s / 8, cy - h, cx - s / 4, cy + s / 10, cx + s / 20, cy + s / 10, col);
+  d.fillTriangle(cx - s / 20, cy - s / 10, cx + s / 4, cy - s / 10, cx - s / 8, cy + h, col);
+}
+
+void icon_apple(LovyanGFX &d, int cx, int cy, int s) {
+  const int r = s * 22 / 100;
+  const uint32_t red = lgfx::color888(230, 40, 40);
+  d.fillCircle(cx - r * 6 / 10, cy + s / 12, r, red);
+  d.fillCircle(cx + r * 6 / 10, cy + s / 12, r, red);
+  d.fillCircle(cx, cy + s / 5, r * 9 / 10, red);
+  d.drawWideLine(cx, cy - s / 8, cx + s / 16, cy - s * 3 / 8, s / 28.0f + 0.8f, lgfx::color888(120, 70, 30));
+  d.fillEllipse(cx + s / 7, cy - s * 3 / 10, s / 8, s / 16, lgfx::color888(60, 190, 70));
+}
+
+void icon_hourglass(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
+  const int w = s * 36 / 100, h = s * 44 / 100, t = s / 16 + 1;
+  d.fillRect(cx - w - t, cy - h - t, 2 * (w + t), t, col);   // Deckel
+  d.fillRect(cx - w - t, cy + h, 2 * (w + t), t, col);       // Boden
+  d.fillTriangle(cx - w, cy - h, cx + w, cy - h, cx, cy, col);
+  d.fillTriangle(cx - w * 6 / 10, cy + h, cx + w * 6 / 10, cy + h, cx, cy + h * 3 / 10, col);
+  d.drawLine(cx - w, cy + h, cx, cy, col);
+  d.drawLine(cx + w, cy + h, cx, cy, col);
+}

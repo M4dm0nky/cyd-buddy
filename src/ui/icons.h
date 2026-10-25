@@ -19,3 +19,8 @@ void icon_target(LovyanGFX &d, int cx, int cy, int s, uint32_t col);    // Kreis
 void icon_simon(LovyanGFX &d, int cx, int cy, int s);                   // vier farbige Viertel (Simon)
 void icon_brightness(LovyanGFX &d, int cx, int cy, int s, uint8_t level, uint32_t col);   // 3 Balken, level 0..2
 void icon_back(LovyanGFX &d, int cx, int cy, int s, uint32_t col);      // Pfeil nach links
+// Interaktion (Rückblick, Menü, Füttern, Timer, Charakter).
+void icon_heart(LovyanGFX &d, int cx, int cy, int s, uint32_t col);
+void icon_bolt(LovyanGFX &d, int cx, int cy, int s, uint32_t col);       // Blitz (Stupsen / frech)
+void icon_apple(LovyanGFX &d, int cx, int cy, int s);                    // roter Apfel mit Stiel und Blatt
+void icon_hourglass(LovyanGFX &d, int cx, int cy, int s, uint32_t col);  // Sanduhr (Timer)
