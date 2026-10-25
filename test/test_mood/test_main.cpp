@@ -105,6 +105,42 @@ void test_elapsed_counts_as_sleep() {
   TEST_ASSERT_FLOAT_WITHIN(0.05f, 50.0f, s.n.energy);
 }
 
+// Nachtschlaf: nachts (22-7 Uhr) nach 10 min ohne Berührung einschlafen (der Lichtsensor des CYD taugt dafür nicht)
+void test_night_idle_sleeps_after_10min() {
+  fresh(50, 50, 50);
+  mood_touch(s, 0);
+  mood_night_check(s, 23, 599999);
+  TEST_ASSERT_FALSE(mood_is_sleeping(s, 599999));
+  mood_night_check(s, 23, 600001);
+  TEST_ASSERT_TRUE(mood_is_sleeping(s, 600001));
+  TEST_ASSERT_EQUAL((int)Emotion::SLEEPING, (int)mood_emotion(s, 23, 600001));
+}
+void test_day_idle_stays_awake() {
+  fresh(50, 50, 50);
+  mood_touch(s, 0);
+  mood_night_check(s, 14, 7200000UL);
+  TEST_ASSERT_FALSE(mood_is_sleeping(s, 7200000UL));
+  mood_night_check(s, -1, 7200000UL);   // Uhrzeit unbekannt: nie Nachtschlaf
+  TEST_ASSERT_FALSE(mood_is_sleeping(s, 7200000UL));
+}
+void test_touch_wakes_from_night_sleep() {
+  fresh(50, 50, 50);
+  mood_night_check(s, 2, 700000);
+  TEST_ASSERT_TRUE(mood_is_sleeping(s, 700000));
+  mood_touch(s, 700100);
+  TEST_ASSERT_FALSE(mood_is_sleeping(s, 700100));
+  mood_night_check(s, 2, 700200);   // gerade berührt: bleibt wach
+  TEST_ASSERT_FALSE(mood_is_sleeping(s, 700200));
+}
+void test_morning_wakes_with_greeting() {
+  fresh(50, 50, 50);
+  mood_night_check(s, 6, 700000);
+  TEST_ASSERT_TRUE(mood_is_sleeping(s, 700000));
+  mood_night_check(s, 7, 800000);
+  TEST_ASSERT_FALSE(mood_is_sleeping(s, 800000));
+  TEST_ASSERT_EQUAL((int)Emotion::GREETING, (int)mood_emotion(s, 7, 801000));
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_decay_awake_one_hour);
@@ -120,5 +156,9 @@ int main(int, char **) {
   RUN_TEST(test_no_greeting_at_night);
   RUN_TEST(test_game_won);
   RUN_TEST(test_elapsed_counts_as_sleep);
+  RUN_TEST(test_night_idle_sleeps_after_10min);
+  RUN_TEST(test_day_idle_stays_awake);
+  RUN_TEST(test_touch_wakes_from_night_sleep);
+  RUN_TEST(test_morning_wakes_with_greeting);
   return UNITY_END();
 }

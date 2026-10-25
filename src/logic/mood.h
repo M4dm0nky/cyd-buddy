@@ -15,6 +15,8 @@ struct MoodState {
   bool napping;               // Nickerchen wegen Energie < 10
   bool dark;
   uint32_t dark_since;
+  bool night_sleep;           // Nachtschlaf: nachts nach MOOD_NIGHT_IDLE_MS ohne Berührung
+  uint32_t last_touch_ms;
 };
 
 constexpr float MOOD_AFFECTION_PER_MIN = -0.2f;
@@ -23,6 +25,7 @@ constexpr float MOOD_ENERGY_AWAKE_PER_MIN = -0.17f;
 constexpr float MOOD_ENERGY_SLEEP_PER_MIN = 1.0f;
 constexpr uint32_t MOOD_DARK_SLEEP_MS = 10000;
 constexpr uint32_t MOOD_STROKE_COOLDOWN_MS = 2000;
+constexpr uint32_t MOOD_NIGHT_IDLE_MS = 10UL * 60UL * 1000UL;
 
 inline void mood_clamp(Needs &n) {
   n.affection = clampf(n.affection, 0, 100);
@@ -37,7 +40,7 @@ inline void mood_init(MoodState &s, Needs start) {
 }
 inline bool mood_daytime(int hour) { return hour < 0 || (hour >= 7 && hour < 22); }
 inline bool mood_is_sleeping(const MoodState &s, uint32_t now_ms) {
-  return s.napping || (s.dark && now_ms - s.dark_since > MOOD_DARK_SLEEP_MS);
+  return s.napping || s.night_sleep || (s.dark && now_ms - s.dark_since > MOOD_DARK_SLEEP_MS);
 }
 inline void mood_set_transient(MoodState &s, Emotion e, uint32_t now_ms, uint32_t dur_ms) {
   s.transient = e;
@@ -49,6 +52,25 @@ inline void mood_set_dark(MoodState &s, bool dark, int hour, uint32_t now_ms) {
   s.dark = dark;
   if (dark) s.dark_since = now_ms;
   else if (was_sleeping && mood_daytime(hour)) mood_set_transient(s, Emotion::GREETING, now_ms, 3000);
+}
+// Jede Berührung (auch Menü, Spiele): weckt aus Nickerchen und Nachtschlaf und startet die Ruhezeit neu.
+inline void mood_touch(MoodState &s, uint32_t now_ms) {
+  s.napping = false;
+  s.night_sleep = false;
+  s.last_touch_ms = now_ms;
+}
+// Jedes Bild aufrufen. Nachts (22-7 Uhr) nach 10 min Ruhe einschlafen, morgens mit Begrüßung aufwachen.
+// Der Lichtsensor des CYD erkennt Dunkelheit kaum (Beschaltung, das Display leuchtet ihn an), darum zählt vor allem die Uhrzeit.
+inline void mood_night_check(MoodState &s, int hour, uint32_t now_ms) {
+  const bool night = hour >= 0 && (hour >= 22 || hour < 7);
+  if (!night) {
+    if (s.night_sleep) {
+      s.night_sleep = false;
+      if (!mood_is_sleeping(s, now_ms)) mood_set_transient(s, Emotion::GREETING, now_ms, 3000);
+    }
+    return;
+  }
+  if (!s.night_sleep && now_ms - s.last_touch_ms > MOOD_NIGHT_IDLE_MS) s.night_sleep = true;
 }
 inline void mood_tick(MoodState &s, uint32_t dt_ms, uint32_t now_ms) {
   const float min = dt_ms / 60000.0f;
@@ -64,7 +86,7 @@ inline void mood_tick(MoodState &s, uint32_t dt_ms, uint32_t now_ms) {
   else if (s.napping && s.n.energy > 60) s.napping = false;
 }
 inline void mood_event(MoodState &s, MoodEvent e, uint32_t now_ms) {
-  s.napping = false;   // jede Berührung weckt aus dem Nickerchen
+  mood_touch(s, now_ms);   // jede Berührung weckt
   switch (e) {
     case MoodEvent::TAP: s.n.fun += 1; mood_set_transient(s, Emotion::SURPRISED, now_ms, 1500); break;
     case MoodEvent::STROKE:

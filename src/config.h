@@ -26,8 +26,12 @@ constexpr int TOUCH_RAW_Y_MAX = 3700;
 
 // Lichtsensor
 constexpr int LDR_PIN = 34;
-constexpr int LDR_DARK_THRESHOLD = 0;  // Platzhalter: am Gerät messen (Task 1)
-constexpr int LDR_HYSTERESIS = 0;      // Platzhalter: am Gerät messen (Task 1)
+// Gemessen 2026-10-25: bei Raumlicht 0, nur in Dämmerung kurz ~200. Die Beschaltung des CYD ist bekannt schlecht
+// (Teiler für 1 V ausgelegt, das Display leuchtet den Sensor an). Darum vorsichtig: "dunkel" erst über 400, "hell" unter 250.
+// Geschlafen wird vor allem nach Uhrzeit + Ruhe (mood_night_check).
+#define LDR_DARK_IS_HIGH 1                // höherer Rohwert = dunkler
+constexpr int LDR_DARK_THRESHOLD = 325;
+constexpr int LDR_HYSTERESIS = 75;
 
 // RGB-LED (aktiv low)
 constexpr int LED_R = 4;

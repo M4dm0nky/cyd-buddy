@@ -2,6 +2,18 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Lokal 1 – Übernahme, erster Flash, Lichtsensor – ERLEDIGT
+- Zeit: 2026-10-25 (lokal, Opus)
+- Gemacht: Cloud-Branch `claude/dreamy-galileo-bvdw39` als `buddy-umsetzung` übernommen und lokal komplett nachgeprüft. Open-Meteo-URLs per curl geprüft (Geocoding HTTPS ok, Wetter über **http** ok, 200). Per Kabel geflasht. Lichtsensor gemessen und als unbrauchbar erkannt → Schlafen nach Uhrzeit + Ruhe (`mood_touch`, `mood_night_check`, 4 neue Tests). `ota-publish --release` setzt den Tag jetzt mit `--target <Commit>` und verweigert nicht gepushte Commits.
+- Dateien: src/logic/mood.h, test/test_mood/test_main.cpp, src/app.cpp, src/config.h, tools/ota-publish.mjs, docs/superpowers/specs/…design.md
+- Prüfung: `pio test -e native` → 51 Tests, 0 Fehler; `node --test tools/ota-publish.test.mjs` → 3/3; `pio run -e cyd2usb` → SUCCESS, Flash 1 431 499 B. Am Gerät (Seriell): Panel ST7789, `invert=0` richtig (Nutzer: Farben stimmen, türkise Augen), 29 fps, heap 123 732 / min 122 104 bei offenem Portal, OTA `app0 Zustand -1`. Touch: Rohwert in der Mitte (1880, 2450), Lang drücken öffnet das Menü (Nutzer).
+- Gegenprobe: Ruhezeit 10 → 20 min → 3 Tests FAIL; zurück → PASS.
+- Messung LDR (GPIO 34, Rohwert, Mittel über 16): Raumlicht/dämmrig 0, einmal 13 s lang ~200, Display nach unten 0. Bekannt: Spannungsteiler für ESP8266 (1 V) ausgelegt, Display leuchtet den Sensor an (Arduino-Forum „Cheap Yellow Display LDR Sensor“). Schwelle jetzt 325 ± 75, `LDR_DARK_IS_HIGH 1`.
+- Hardware: **Auto-Reset geht an diesem Board nicht** (DTR erreicht GPIO0 nicht, gemessen: `boot:0x13` auch bei DTR aktiv während EN). Kabel-Flash nur so: esptool mit `--connect-attempts 0` starten, dann BOOT ~15 s halten.
+- Nebenbei: `.pio` ist per `com.dropbox.ignored` von Dropbox ausgenommen (Dropbox sperrte Build-Dateien → ERRORED-Tests).
+- Nächster Schritt: WLAN-Portal am Handy einrichten, dann OTA Ende zu Ende mit erstem Release (spielt diesen Stand ohne Kabel auf).
+- Offen/Fragen: Touch-Kalibrierung der Ecken nur indirekt (Menü-Kacheln treffen) zu prüfen.
+
 ## Task 14 – Doku und Abschluss – ERLEDIGT
 - Zeit: 2026-10-25 10:48 UTC
 - Gemacht: `docs/ota.md` (GitHub-Release, keine Geheimnisse in der .bin, Ablauf, Prüfungen, Alltag, Grenzen: Rollback ungeprüft, erster Flash per Kabel) und `README.md` (Gesten, Menü, Portal „CYD-Buddy“, Ort, Entwicklung, Verweis auf docs/ota.md). Abschlussprüfung.

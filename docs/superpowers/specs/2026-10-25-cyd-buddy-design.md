@@ -43,7 +43,7 @@ Ereignisse:
 | Aufwachen aus Dunkelheit am Tag | *begrüßt* (3 s, fröhliches Zwinkern) |
 
 Gefühl (`Emotion`), Vorrang von oben nach unten:
-1. `SLEEPING` – dunkel seit > 10 s, oder Energie < 10 (Nickerchen bis Energie > 60 oder Berührung)
+1. `SLEEPING` – **nachts (22–7 Uhr) nach 10 min ohne Berührung** (Berührung weckt, um 7 Uhr wacht er mit Begrüßung auf), oder dunkel seit > 10 s (Lichtsensor, siehe §4: am CYD kaum brauchbar), oder Energie < 10 (Nickerchen bis Energie > 60 oder Berührung)
 2. kurzzeitige Gefühle, solange ihre Zeit läuft: `SURPRISED`, `LOVE`, `ANNOYED`, `EXCITED`, `GREETING`
 3. `SLEEPY` – Energie < 30 oder Uhrzeit 22–6 Uhr (wenn Zeit bekannt)
 4. `SAD` – Zuneigung < 20
@@ -67,7 +67,7 @@ Eingabe: Folge von (x, y, gedrückt, now_ms). Ausgabe-Ereignisse:
 - **Overlays:** Herzchen (verliebt), Sonnenbrille (sonnig + fröhlich/zufrieden, tagsüber), Schweißtropfen (> 28 °C), Träne (traurig), „zZz“ (schlafend), Zittern (Schnee/< 0 °C), kurzes Aufschrecken (Gewitter, alle paar Minuten).
 
 ### 4. Umgebung (`src/hw/`)
-- Lichtsensor: Mittelwert über 1 s, Schwelle mit Hysterese, Werte aus `config.h` (nach Messung). Dunkel → schlafen, Hintergrundlicht 10 %.
+- Lichtsensor: Mittelwert über 1 s, Schwelle mit Hysterese, Werte aus `config.h`. **Gemessen 2026-10-25:** bei Raumlicht 0, in Dämmerung kurz ~200; die Beschaltung des CYD ist bekannt schlecht, und das Display leuchtet den Sensor an. Darum nur als Zusatz mit vorsichtiger Schwelle (dunkel > 400, hell < 250); Schlafen läuft hauptsächlich über Uhrzeit + Ruhe (§1). Beim Schlafen Hintergrundlicht 10 %.
 - RGB-LED zeigt sanft die Farbe des Gefühls; aus beim Schlafen.
 
 ### 5. Netz (`src/net/`)

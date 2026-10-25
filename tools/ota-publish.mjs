@@ -128,8 +128,12 @@ function main() {
 
   if (flag('--release')) {
     const tag = `v${stamp()}`;
+    // Tag auf genau den gebauten Commit setzen (ohne --target nähme GitHub den Stand von main). Der Commit muss gepusht sein.
+    const full = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT }).toString().trim();
+    try { execFileSync('git', ['branch', '-r', '--contains', full], { cwd: ROOT }).toString().trim() || die('Commit ist nicht gepusht: erst git push.'); }
+    catch { die('Commit ist nicht gepusht: erst git push.'); }
     execFileSync('gh', ['release', 'create', tag, path.join(dest, FIRMWARE_NAME), path.join(dest, MANIFEST_NAME),
-      '--latest', '--repo', REPO, '--title', `Firmware ${built}`, '--notes', `Commit ${commit}`], { cwd: ROOT, stdio: 'inherit' });
+      '--latest', '--target', full, '--repo', REPO, '--title', `Firmware ${built}`, '--notes', `Commit ${commit}`], { cwd: ROOT, stdio: 'inherit' });
     console.log(`Release ${tag} veröffentlicht. Am Gerät erscheint innerhalb von ca. 10 min "Update bereit".`);
   }
 }

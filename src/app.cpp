@@ -109,6 +109,7 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
   const bool pressed = s_lcd.getTouch(&x, &y) > 0;
   tx = (int16_t)x;
   ty = (int16_t)y;
+  if (pressed) mood_touch(s_mood, now);   // jede Berührung hält ihn nachts wach bzw. weckt ihn
   return gesture_feed(s_gesture, pressed, tx, ty, now);
 }
 
@@ -125,6 +126,7 @@ static void touch_to_mood(Gesture g, uint32_t now) {
 static void mood_frame(uint32_t now, uint32_t dt) {
   const int hour = current_hour();
   mood_set_dark(s_mood, light_update(now), hour, now);
+  mood_night_check(s_mood, hour, now);
   mood_tick(s_mood, dt, now);
   s_emotion = mood_emotion(s_mood, hour, now);
 }
@@ -306,6 +308,10 @@ void app_loop() {
     s_last_save = now;
     save_now();
   }
+#if CYD_LOG_LDR   // Einmessen des Lichtsensors: Rohwert jede Sekunde (Build-Flag, danach wieder 0)
+  static uint32_t s_last_ldr = 0;
+  if (now - s_last_ldr >= 1000) { s_last_ldr = now; Serial.printf("ldr=%d\n", light_raw()); }
+#endif
   if (now - s_last_log >= kLogEveryMs) {
     const uint32_t fps = s_frames * 1000UL / (now - s_last_log);
     s_last_log = now;
