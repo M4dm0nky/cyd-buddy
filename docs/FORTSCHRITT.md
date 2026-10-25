@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 5 – Spiel-Logik (simon.h, catch_game.h) – ERLEDIGT
+- Zeit: 2026-10-25 10:46 UTC
+- Gemacht: Test aus dem Plan wörtlich; `src/logic/simon.h` und `src/logic/catch_game.h` nach den Interfaces im Plan (Zufall über `rng_range` aus eye_model.h).
+- Dateien: src/logic/simon.h, src/logic/catch_game.h, test/test_games/test_main.cpp
+- Prüfung: `pio test -e native -f test_games` vor Implementierung → ERRORED (Header fehlt); danach → 7 Tests, 0 Fehler
+- Gegenprobe: Gewinnprüfung in `simon_press` auf `len == 5` → `test_simon_win: Expected 0 Was 2 [FAILED]`; zurück → 7 PASS
+- Nächster Schritt: Task 6 Step 1
+- Offen/Fragen: –
+
 ## Task 4 – Wetter-Laune und Overlays (weather_mood.h) – ERLEDIGT
 - Zeit: 2026-10-25 10:42 UTC
 - Gemacht: Test aus dem Plan wörtlich; `src/logic/weather_mood.h` mit WMO-Zuordnung, Flags hot/cold, `weather_fresh` (< 3 h), `overlays_for`.
