@@ -99,3 +99,26 @@ void store_save_touch(const uint16_t cal[8]) {
   prefs.putBytes("touchcal", cal, 8 * sizeof(uint16_t));
   prefs.end();
 }
+
+// Claude-Modus-Schluessel: 12 Hex-Zeichen, eigener Schluessel "ckey" (bleibt bei Persist-Aenderungen erhalten).
+bool store_load_claude_key(char key[13]) {
+  Preferences prefs;
+  if (!prefs.begin(kNs, true)) return false;
+  char buf[13] = "";
+  prefs.getString("ckey", buf, sizeof buf);
+  prefs.end();
+  if (strlen(buf) != 12) return false;
+  for (int i = 0; i < 12; i++) {
+    const char c = buf[i];
+    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return false;
+  }
+  memcpy(key, buf, sizeof buf);
+  return true;
+}
+
+void store_save_claude_key(const char key[13]) {
+  Preferences prefs;
+  if (!prefs.begin(kNs, false)) return;
+  prefs.putString("ckey", key);
+  prefs.end();
+}

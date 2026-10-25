@@ -21,6 +21,7 @@
 #include "ui/eyes.h"
 #include "ui/status_bar.h"
 #include "net/net.h"
+#include "net/claude_api.h"
 #include "ui/menu.h"
 #include "ui/clock_view.h"
 #include "ui/settings.h"
@@ -47,6 +48,7 @@ static constexpr uint8_t kSleepBacklight = 26;        // 10 %
 static const uint8_t kBacklight[3] = {77, 153, 255};  // 30 / 60 / 100 %
 
 static Persist s_persist;
+static ClaudeLogic s_claude;                       // Claude-Modus: Zustand aus den Hook-Ereignissen (claude_api -> claude_event)
 static MoodState s_mood;
 static GestureState s_gesture;
 static Blinker s_blink;
@@ -478,7 +480,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
             save_now();
             settings_redraw(s_lcd, s_persist);
             break;
-          case SettingsAction::PORTAL: net_open_portal(); settings_redraw(s_lcd, s_persist); break;
+          case SettingsAction::PORTAL: claude_api_stop(); net_open_portal(); settings_redraw(s_lcd, s_persist); break;   // claude_api_stop: Port 80 frei für das Portal
           case SettingsAction::OTA_CHECK:
             // Manuelles Update: suchen (hebt auch "Später" auf); liegt eins bereit, kommt die Karte sofort (unten).
             ota_pull::check_now();
@@ -576,6 +578,7 @@ void app_setup() {
   net_task_hook(ota_pull::loop);   // OTA-Abruf läuft im net_task
   settings_firmware_source(firmware_line);
   net_begin(&s_persist);
+  claude_api_begin(&s_claude);
   gesture_init(s_gesture);
   const uint32_t now = millis();
   const uint32_t seed = esp_random();
@@ -606,6 +609,7 @@ void app_loop() {
   s_frames++;
 
   net_loop();
+  claude_api_loop();
   apply_elapsed_once();
 
   int16_t tx, ty;

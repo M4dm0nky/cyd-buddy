@@ -23,3 +23,6 @@ bool store_load(Persist &p);         // false = nichts gespeichert (dann default
 void store_save(const Persist &p);
 bool store_load_touch(uint16_t cal[8]);   // false = noch nicht kalibriert
 void store_save_touch(const uint16_t cal[8]);
+// Claude-Modus-Schluessel (12 Hex-Zeichen + '\0'), eigener NVS-Schluessel "ckey", unabhaengig von Persist.
+bool store_load_claude_key(char key[13]);   // false = noch keiner (oder ungueltig)
+void store_save_claude_key(const char key[13]);

@@ -5,6 +5,7 @@
 #include "ui_common.h"
 #include "../hw/light.h"
 #include "../net/net.h"
+#include "../net/claude_api.h"
 
 static constexpr uint32_t kTimeoutMs = 30000;
 static constexpr int kRowH = 52, kRowY0 = 32;
@@ -65,9 +66,14 @@ static void draw_info(LGFX &d, const Persist &p) {
   const int cy = row(3).y + kRowH / 2;
   icon_info(d, 30, cy, 30, d.color888(180, 180, 255));
   char buf[64];
-  ui_text(d, __DATE__, 62, cy - 9, &fonts::Font2, d.color888(200, 200, 210), middle_left);
+  ui_text(d, __DATE__, 62, cy - 17, &fonts::Font2, d.color888(200, 200, 210), middle_left);
   snprintf(buf, sizeof buf, "Heap %uk Licht %d", (unsigned)(ESP.getFreeHeap() / 1024), light_raw());
-  ui_text(d, buf, 62, cy + 9, &fonts::Font2, d.color888(200, 200, 210), middle_left);
+  ui_text(d, buf, 62, cy, &fonts::Font2, d.color888(200, 200, 210), middle_left);
+  // Claude-Modus-Schlüssel für die PC-Hooks; die Charakter-Balken beginnen bei x=202, darum bei Bedarf kleinere Schrift
+  snprintf(buf, sizeof buf, "Claude: %s", claude_api_key());
+  d.setFont(&fonts::Font2);
+  const lgfx::IFont *kf = (62 + d.textWidth(buf) > 198) ? (const lgfx::IFont *)&fonts::Font0 : (const lgfx::IFont *)&fonts::Font2;
+  ui_text(d, buf, 62, cy + 17, kf, d.color888(255, 160, 110), middle_left);
   // Charakter: verschmust (Herz) gegen frech (Blitz), verspielt (Ball) gegen faul (Kissen); Wert -100..100
   char_bar(d, cy - 10, -p.cuddly, [](LGFX &g, int x, int y) { icon_heart(g, x, y, 14, g.color888(255, 80, 170)); },
            [](LGFX &g, int x, int y) { icon_bolt(g, x, y, 16, g.color888(255, 220, 0)); }, d.color888(255, 80, 170));
