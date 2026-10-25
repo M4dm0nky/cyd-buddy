@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 13 – Veröffentlichungs-Skript (tools/ota-publish.mjs) – ERLEDIGT
+- Zeit: 2026-10-25 10:46 UTC
+- Gemacht: Skript aus der Vorlage portiert: `.pio/build/cyd2usb/firmware.bin`, Chip 0 („falscher Chip (erwartet ESP32)“), Slot-Grenze 1 966 080, `manifest.json`/`firmware.bin`, Git-Prüfpfade `src tools platformio.ini`, `--serve`/`--ha`/`uploadHa`/`secretToken` entfernt, `--release` ruft `gh release create v<YYYYMMDD-HHMM> … --latest --repo M4dm0nky/cyd-buddy` auf. CLI nur bei direktem Aufruf (`import.meta.url === pathToFileURL(...)`). `PROJECT = 'arduino-lib-builder'` (aus `--check`).
+- Dateien: tools/ota-publish.mjs, tools/ota-publish.test.mjs
+- Prüfung: vor dem Skript `node --test tools/*.test.mjs` → FAIL (ERR_MODULE_NOT_FOUND); danach → 3 Tests, 0 Fehler. `node tools/ota-publish.mjs --check` → `Projektname im Image: "arduino-lib-builder"`, ELF f31cbf477819e8eb…, Größe 1 459 792 B (74,2 % des Slots). Schreibmodus mit `--allow-dirty` → `ota-out/firmware.bin` + `manifest.json` korrekt (danach gelöscht). **`--release` nicht ausgeführt.**
+- Gegenprobe: `CHIP_ESP32` 0 → 9 → alle 3 Tests FAIL; zurück → 3 PASS
+- Nächster Schritt: Task 14 Step 1
+- Offen/Fragen: (1) `node --test tools/` (wie im Plan) geht mit Node 22 nicht: Node sucht ein Modul namens `tools` (MODULE_NOT_FOUND). Richtig ist `node --test tools/*.test.mjs` (auch in der Doku so). (2) `CHECK_BYTES` = 208 statt 176 (siehe Task 6). (3) Datum/Zeit in `esp_app_desc_t` kommen aus den vorgebauten Core-Bibliotheken („Sep 16 2026 21:15:45“), nicht vom eigenen Build; `built` im Manifest ist deshalb die Änderungszeit der .bin. (4) Zusätzlich exportiert: `imageProject(buf)`.
+
 ## Task 12 – OTA-Abruf portieren (ota_pull, ota_card) – ERLEDIGT
 - Zeit: 2026-10-25 10:44 UTC
 - Gemacht: `ota_pull.*` aus der Vorlage mit allen 9 Änderungen des Plans: Includes/diag entfernt (→ Serial), `kBase` GitHub-Release + `manifest.json`, neue `open_follow()` (Umleitungen selbst, ≤ 3 Sprünge, jede URL durch `ota_redirect_ok`, sonst „Umleitung abgelehnt“; TLS mit `useBuiltinCACertBundle()`), JsonDocument Standard-Allocator mit Filter, `malloc` statt PSRAM, Gesundheitsnachweis ohne HA, `project_name()` bleibt, `size > 1966080` → „zu gross fuer den Slot“, `loop()` über `net_task_hook`. `ota_card.*`: Karte „Update bereit“ (Ja/Später, Tipps < 1 s ignoriert), Fortschritt mit schmalen „konzentrierten“ Augen, Fehlerkarte. `app.cpp`: OTA-Bildschirm nur aus EYES bei wachem Display, `eyes_free()` bei DOWNLOADING, `eyes_begin()` danach, `ui_alive()` je Augenbild, Firmware-Zeile + „jetzt suchen“ in den Einstellungen, Update-Symbol im Statusstreifen.
