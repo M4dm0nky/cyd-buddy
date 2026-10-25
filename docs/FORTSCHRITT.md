@@ -3,6 +3,15 @@
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
 ## Interaktion Task 7 – Füttern und Charakter (UI) – TEILWEISE
+- Zeit: 2026-10-25 14:10 UTC
+- Gemacht: Step 2: Menü 2×3 (Kacheln 96×90, Abstand 8): Spielen grün, Füttern orange (Apfel), Timer rot-violett (Sanduhr), Uhr gelb, Einstellungen violett, Schließen rot; Spielen-Ebene: Fang mich, Simon, Zurück. `MenuChoice::FEED/TIMER` neu (in app.cpp noch ohne Wirkung).
+- Dateien: src/ui/menu.h, src/ui/menu.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS
+- Gegenprobe: –
+- Nächster Schritt: Interaktion Task 7 Step 3 (FEED-Bildschirm `src/ui/feed.*`)
+- Offen/Fragen: –
+
+## Interaktion Task 7 – Füttern und Charakter (UI) – TEILWEISE
 - Zeit: 2026-10-25 14:09 UTC
 - Gemacht: Step 1: `Persist` um `sick`, `cuddly`, `playful`, `favorite_food` erweitert (Sättigung in `needs.satiety`), NVS-Schlüssel `sat sick cud pla fav`, `kVersion` 3 mit Übernahme von 1/2.
 - Dateien: src/hw/store.h, src/hw/store.cpp
