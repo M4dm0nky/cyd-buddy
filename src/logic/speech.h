@@ -53,7 +53,9 @@ inline Say speech_for_base(Emotion e) {
     case Emotion::BORED: return Say::GELANGWEILT;
     case Emotion::SAD: return Say::TRAURIG;
     case Emotion::HAPPY: return Say::FROH;
-    default: return Say::COUNT;   // HUNGRY/SICK kommen mit F3 dazu
+    case Emotion::HUNGRY: return Say::HUNGRIG;
+    case Emotion::SICK: return Say::KRANK;
+    default: return Say::COUNT;
   }
 }
 // Jedes Bild aufrufen (Grundgefühl = mood_base_emotion). true = jetzt eine Blase mit *out zeigen (bereits als gezeigt gezählt).

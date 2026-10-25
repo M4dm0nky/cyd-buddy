@@ -38,6 +38,7 @@ inline FaceExpr mk(Rgb col, const P &p) {
 constexpr Rgb CYAN{0, 220, 255}, RED{255, 50, 40}, PINK{255, 80, 170}, BLUE{60, 120, 255}, YEL{255, 220, 0};
 constexpr Rgb GREY{128, 110, 180}, DIM{0, 140, 170}, MINT{0, 255, 180}, SLEEPC{0, 90, 110};
 constexpr Rgb SURPC{120, 240, 255}, SCAREC{180, 200, 255}, WHITE{255, 255, 255};
+constexpr Rgb ORANGE{255, 150, 40}, FULLC{140, 200, 80}, SICKC{120, 170, 120}, TIMERC{255, 90, 140};   // Spec Interaktion
 }  // namespace face_detail
 
 inline FaceExpr face_expression(Emotion e) {
@@ -65,6 +66,10 @@ inline FaceExpr face_expression(Emotion e) {
     case Emotion::KISS:      p.open = .25f; p.botCut = .5f; p.by = -14; p.ms = Mouth::KISS; return mk(PINK, p);
     case Emotion::CHEEKY:    p.wink = true; p.mc = .6f; p.mw = 50; p.ms = Mouth::TONGUE; return mk(CYAN, p);
     case Emotion::STARTLED:  p.pr = 6; p.by = -28; p.bt = .6f; p.bc = 1; p.ms = Mouth::O; p.mo = 1.2f; return mk(WHITE, p);
+    case Emotion::HUNGRY:    p.pdy = 8; p.ms = Mouth::WAVE; p.mw = 40; p.bt = .6f; return mk(ORANGE, p);
+    case Emotion::FULL:      p.open = .6f; p.topCut = .3f; p.ms = Mouth::WAVE; return mk(FULLC, p);
+    case Emotion::SICK:      p.open = .55f; p.tilt = .4f; p.mc = -.4f; return mk(SICKC, p);
+    case Emotion::FOCUSED:   p.open = .7f; p.topCut = .25f; p.bt = -.3f; p.mc = 0; p.mw = 30; return mk(TIMERC, p);
     case Emotion::CONTENT:
     default:                 return mk(CYAN, p);
   }

@@ -69,6 +69,34 @@ void test_eye_expression_matches_face() {
   }
 }
 
+void test_new_emotions_f3_f4() {
+  FaceExpr x = face_expression(Emotion::HUNGRY);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 8.0f, x.s.pupil_dy);
+  TEST_ASSERT_EQUAL((int)Mouth::WAVE, (int)x.s.mouth);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 40.0f, x.s.mouth_w);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.6f, x.s.brow_tilt);
+  TEST_ASSERT_EQUAL_UINT8(255, x.color.r); TEST_ASSERT_EQUAL_UINT8(150, x.color.g); TEST_ASSERT_EQUAL_UINT8(40, x.color.b);
+  x = face_expression(Emotion::FULL);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.6f, x.s.eye.open);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.3f, x.s.eye.lid_top_cut);
+  TEST_ASSERT_EQUAL((int)Mouth::WAVE, (int)x.s.mouth);
+  TEST_ASSERT_EQUAL_UINT8(140, x.color.r); TEST_ASSERT_EQUAL_UINT8(200, x.color.g); TEST_ASSERT_EQUAL_UINT8(80, x.color.b);
+  x = face_expression(Emotion::SICK);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.55f, x.s.eye.open);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.4f, x.s.eye.lid_top_tilt);
+  TEST_ASSERT_EQUAL((int)Mouth::CURVE, (int)x.s.mouth);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, -0.4f, x.s.mouth_curve);
+  TEST_ASSERT_EQUAL_UINT8(120, x.color.r); TEST_ASSERT_EQUAL_UINT8(170, x.color.g); TEST_ASSERT_EQUAL_UINT8(120, x.color.b);
+  x = face_expression(Emotion::FOCUSED);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.7f, x.s.eye.open);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.25f, x.s.eye.lid_top_cut);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, -0.3f, x.s.brow_tilt);
+  TEST_ASSERT_EQUAL((int)Mouth::CURVE, (int)x.s.mouth);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, x.s.mouth_curve);
+  TEST_ASSERT_FLOAT_WITHIN(0.001f, 30.0f, x.s.mouth_w);
+  TEST_ASSERT_EQUAL_UINT8(255, x.color.r); TEST_ASSERT_EQUAL_UINT8(90, x.color.g); TEST_ASSERT_EQUAL_UINT8(140, x.color.b);
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_table_complete_for_all_emotions);
@@ -78,5 +106,6 @@ int main(int, char **) {
   RUN_TEST(test_tween_dt0_and_converges);
   RUN_TEST(test_discrete_fields_jump_in_second_half);
   RUN_TEST(test_eye_expression_matches_face);
+  RUN_TEST(test_new_emotions_f3_f4);
   return UNITY_END();
 }

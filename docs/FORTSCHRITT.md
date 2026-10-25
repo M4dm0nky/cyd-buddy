@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 6 – Füttern, Krankheit, Charakter (Logik) – ERLEDIGT
+- Zeit: 2026-10-25 14:08 UTC
+- Gemacht: `mood.h`: `Needs.satiety` (Start 70, wach −0,12/min, schlafend −0,04/min, auch für die Aus-Zeit), Grundgefühl HUNGRY bei < 25 (nach SLEEPY, vor SAD), Krankheit nach 2 h ununterbrochen Sättigung < 15 und Zuneigung < 20 (SICK als erstes Grundgefühl, doppelter Energie-Abbau, `mood_sneeze_due` alle 1–3 min), Heilung bei Sättigung > 60 und danach 3× Streicheln → HAPPY 3 s. Neue Emotionen HUNGRY, FULL, SICK, FOCUSED mit Werten aus der Spec in `face_expression`. `food.h` (`food_effect`, `food_feed` → Say LECKER/LIEBLINGSESSEN/SATT, FULL bei > 95). `character.h` (`cuddly`/`playful` mit den Spec-Schritten, ±100, Wirkung über `mood_set_character`: Eigenarten-Abstand, CHEEKY-Wahrscheinlichkeit, LOVE-Dauer). `speech_for_base` kennt jetzt HUNGRY/SICK.
+- Dateien: src/logic/mood.h, src/logic/food.h, src/logic/character.h, src/logic/face_model.h, src/logic/speech.h, test/test_care/test_main.cpp, test/test_face_model/test_main.cpp
+- Prüfung: `pio test -e native -f test_care` vorher → ERRORED (`logic/food.h` fehlt); `test_face_model` vorher → `test_new_emotions_f3_f4: Expected 8 Was 0`. Danach `pio test -e native` → 119 Tests, 0 Fehler (alle bestehenden unverändert grün). `pio run -e cyd2usb` → SUCCESS
+- Gegenprobe: Hunger-Grenze 25 → 20 → `test_hungry_rank` FAIL; Krankheit nach 1 h → 2 Tests FAIL; Heilung nach 2× Streicheln → `test_heal…` FAIL; satt ab > 94 → `test_feed_full_strictly_above_95` FAIL; Eigenarten-Abstand ohne Charakter → 2 Tests FAIL; FOCUSED open .75 → `test_new_emotions_f3_f4` FAIL; alles zurück → 119 PASS
+- Nächster Schritt: Interaktion Task 7 Step 1
+- Offen/Fragen: (1) „SICK Rang direkt nach SLEEPING“ als *Grundgefühl* umgesetzt (vor SLEEPY), kurzzeitige Gefühle (z. B. Reaktion aufs Essen) gehen weiter vor. (2) Eigenarten wählen CHEEKY jetzt mit `cheeky_prob` (Start 0,5) statt Münzwurf über ein Bit – bestehender Test „beide kommen vor“ grün. (3) Heil-Streicheln zählen jede STROKE-Geste (auch im 2-s-Cooldown), sobald die Sättigung > 60 ist. (4) Kaffee gibt laut Spec nur Sättigung/Energie; Lieblingsessen kann auch Kaffee sein.
+
 ## Interaktion Task 5 – Sprechblasen und Rückblick (UI) – ERLEDIGT
 - Zeit: 2026-10-25 14:03 UTC
 - Gemacht: Step 3: `app.cpp` – Blase 4 s (ins Sprite), Gedanken/Gefühlswechsel über `speech_due`, Ereignis-Sätze (STROKE → verliebt 25 % mit 90-s-Abstand, POKE → genervt, High-Five → highfive, Gewitter-Schreck → gewitter, neues Wetter mit geändertem Himmel → hitze/kalt/regen/sonne), Rituale (Morgen: GREETING + „morgen“, 4 s später Tageswetter „Heute 14° und Regen“; Nacht 22 Uhr: YAWN + „nacht“; Rückblick 20 Uhr bzw. Nachholen bei Berührung bis 23 Uhr → Bildschirm `REVIEW`, Tippen schließt). Tageszähler (Streicheln, Stupsen, Spiele, Siege) in `Persist.day`, NVS-Schlüssel `d_*`, `kVersion` 2 (Stand 1 wird übernommen, fehlende Schlüssel → 0).

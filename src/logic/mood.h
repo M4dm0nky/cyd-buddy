@@ -5,9 +5,10 @@
 
 // Bedürfnisse und Gefühl des Buddys. Reine Logik, Zeit kommt als Parameter (Host-Test test/test_mood).
 enum class Emotion : uint8_t { CONTENT, HAPPY, BORED, SAD, SLEEPY, SLEEPING, SURPRISED, LOVE, ANNOYED, EXCITED, GREETING,
-                            CONFUSED, MISCHIEVOUS, SCARED, SKEPTICAL, PROUD, GIGGLE, YAWN, WHISTLE, KISS, CHEEKY, STARTLED, COUNT };
+                            CONFUSED, MISCHIEVOUS, SCARED, SKEPTICAL, PROUD, GIGGLE, YAWN, WHISTLE, KISS, CHEEKY, STARTLED,
+                            HUNGRY, FULL, SICK, FOCUSED, COUNT };
 enum class MoodEvent : uint8_t { TAP, STROKE, POKE, GAME_WON, GAME_LOST, HIGHFIVE };
-struct Needs { float affection, fun, energy; };
+struct Needs { float affection, fun, energy; float satiety = 70; };   // satiety = Sättigung (F3)
 struct MoodState {
   Needs n;
   Emotion transient;          // CONTENT = keins
@@ -32,6 +33,17 @@ struct MoodState {
   bool quirk_scheduled;
   bool quirk_base_known;
   Emotion quirk_base;
+  // Krankheit (F3)
+  bool sick;
+  bool sick_cond;             // Sättigung < 15 und Zuneigung < 20 ...
+  uint32_t sick_cond_since;   // ... seit diesem Zeitpunkt ununterbrochen
+  uint8_t heal_strokes;       // Streicheln, während Sättigung > 60
+  bool sneeze_scheduled;
+  uint32_t sneeze_next_ms;
+  // Charakter (F3, über mood_set_character)
+  float quirk_scale;          // Eigenarten-Abstand ×
+  float cheeky_prob;          // CHEEKY statt MISCHIEVOUS
+  float love_scale;           // LOVE-Dauer ×
 };
 
 constexpr float MOOD_AFFECTION_PER_MIN = -0.2f;
@@ -41,16 +53,28 @@ constexpr float MOOD_ENERGY_SLEEP_PER_MIN = 1.0f;
 constexpr uint32_t MOOD_DARK_SLEEP_MS = 10000;
 constexpr uint32_t MOOD_STROKE_COOLDOWN_MS = 2000;
 constexpr uint32_t MOOD_NIGHT_IDLE_MS = 10UL * 60UL * 1000UL;
+constexpr float MOOD_SATIETY_AWAKE_PER_MIN = -0.12f;
+constexpr float MOOD_SATIETY_SLEEP_PER_MIN = -0.04f;
+constexpr float MOOD_HUNGRY_BELOW = 25;
+constexpr float MOOD_SICK_SATIETY_BELOW = 15, MOOD_SICK_AFFECTION_BELOW = 20;
+constexpr uint32_t MOOD_SICK_AFTER_MS = 2UL * 3600UL * 1000UL;
+constexpr float MOOD_HEAL_SATIETY_ABOVE = 60;
+constexpr uint8_t MOOD_HEAL_STROKES = 3;
+constexpr uint32_t MOOD_SNEEZE_MIN_MS = 60000, MOOD_SNEEZE_MAX_MS = 180000;
 
 inline void mood_clamp(Needs &n) {
   n.affection = clampf(n.affection, 0, 100);
   n.fun = clampf(n.fun, 0, 100);
   n.energy = clampf(n.energy, 0, 100);
+  n.satiety = clampf(n.satiety, 0, 100);
 }
 inline void mood_init(MoodState &s, Needs start) {
   s = MoodState{};
   s.n = start;
   s.transient = Emotion::CONTENT;
+  s.quirk_scale = 1;
+  s.cheeky_prob = 0.5f;
+  s.love_scale = 1;
   mood_clamp(s.n);
 }
 inline bool mood_daytime(int hour) { return hour < 0 || (hour >= 7 && hour < 22); }
@@ -93,12 +117,19 @@ inline void mood_tick(MoodState &s, uint32_t dt_ms, uint32_t now_ms) {
   const float min = dt_ms / 60000.0f;
   if (mood_is_sleeping(s, now_ms)) {
     s.n.energy += MOOD_ENERGY_SLEEP_PER_MIN * min;   // im Schlaf nur Erholung, kein Abbau
+    s.n.satiety += MOOD_SATIETY_SLEEP_PER_MIN * min;
   } else {
     s.n.affection += MOOD_AFFECTION_PER_MIN * min;
     s.n.fun += MOOD_FUN_PER_MIN * min;
-    s.n.energy += MOOD_ENERGY_AWAKE_PER_MIN * min;
+    s.n.energy += MOOD_ENERGY_AWAKE_PER_MIN * min * (s.sick ? 2.0f : 1.0f);   // krank: doppelter Abbau
+    s.n.satiety += MOOD_SATIETY_AWAKE_PER_MIN * min;
   }
   mood_clamp(s.n);
+  // Krank wird er erst, wenn er 2 h lang ununterbrochen sehr hungrig und ungeliebt ist.
+  const bool cond = s.n.satiety < MOOD_SICK_SATIETY_BELOW && s.n.affection < MOOD_SICK_AFFECTION_BELOW;
+  if (!cond) s.sick_cond = false;
+  else if (!s.sick_cond) { s.sick_cond = true; s.sick_cond_since = now_ms; }
+  else if (!s.sick && now_ms - s.sick_cond_since >= MOOD_SICK_AFTER_MS) { s.sick = true; s.heal_strokes = 0; }
   if (s.n.energy < 10) s.napping = true;
   else if (s.napping && s.n.energy > 60) s.napping = false;
 }
@@ -107,7 +138,9 @@ constexpr uint32_t MOOD_DOUBLE_TAP_MS = 500;
 
 // Grundgefühl: aus den Bedürfnissen, ohne Schlaf und ohne kurzzeitige Gefühle.
 inline Emotion mood_base_emotion(const MoodState &s, int hour) {
+  if (s.sick) return Emotion::SICK;
   if (s.n.energy < 30 || (hour >= 0 && (hour >= 22 || hour < 6))) return Emotion::SLEEPY;
+  if (s.n.satiety < MOOD_HUNGRY_BELOW) return Emotion::HUNGRY;
   if (s.n.affection < 20) return Emotion::SAD;
   if (s.n.fun < 25) return Emotion::BORED;
   if (s.n.affection > 70 && s.n.fun > 60) return Emotion::HAPPY;
@@ -138,11 +171,19 @@ inline void mood_event(MoodState &s, MoodEvent e, uint32_t now_ms, int hour = -1
         s.stroked_once = true;
         s.last_stroke_ms = now_ms;
         s.n.affection += 8;
-        mood_set_transient(s, s.n.affection > 90 ? Emotion::KISS : Emotion::LOVE, now_ms, s.n.affection > 90 ? 3000 : 4000);
+        mood_set_transient(s, s.n.affection > 90 ? Emotion::KISS : Emotion::LOVE, now_ms,
+                           s.n.affection > 90 ? 3000 : (uint32_t)(4000 * s.love_scale));
       }
       if (giggle) {
         s.stroke_n = 0;
         mood_set_transient(s, Emotion::GIGGLE, now_ms, 3000);
+      }
+      // Heilung: Sättigung > 60 und danach 3× Streicheln
+      if (s.sick && s.n.satiety > MOOD_HEAL_SATIETY_ABOVE && ++s.heal_strokes >= MOOD_HEAL_STROKES) {
+        s.sick = false;
+        s.sick_cond = false;
+        s.heal_strokes = 0;
+        mood_set_transient(s, Emotion::HAPPY, now_ms, 3000);
       }
       break;
     }
@@ -189,6 +230,8 @@ inline void mood_quirks(MoodState &s, int hour, uint32_t now_ms) {
     case Emotion::HAPPY:  lo = 120000; hi = 360000; break;
     default: break;
   }
+  lo = (uint32_t)(lo * s.quirk_scale);   // Charakter: verspielt = häufiger
+  hi = (uint32_t)(hi * s.quirk_scale);
   if (!s.quirk_base_known || base != s.quirk_base) {
     s.quirk_base_known = true;
     s.quirk_base = base;
@@ -202,13 +245,27 @@ inline void mood_quirks(MoodState &s, int hour, uint32_t now_ms) {
     case Emotion::SLEEPY: mood_set_transient(s, Emotion::YAWN, now_ms, 3000); break;
     case Emotion::BORED:  mood_set_transient(s, Emotion::WHISTLE, now_ms, 5000); break;
     default:
-      mood_set_transient(s, (rng_next(s.quirk_seed) & 1) ? Emotion::MISCHIEVOUS : Emotion::CHEEKY, now_ms, 3000);
+      mood_set_transient(s, rng_range(s.quirk_seed, 0, 999) < (uint32_t)(s.cheeky_prob * 1000) ? Emotion::CHEEKY : Emotion::MISCHIEVOUS,
+                         now_ms, 3000);
       break;
   }
   s.quirk_next_ms = now_ms + rng_range(s.quirk_seed, lo, hi);
 }
-// Zeit, in der das Gerät aus war, zählt wie Schlaf: nur Energie steigt.
+// Krank: alle 1–3 min „Hatschi“ (true = jetzt niesen). Jedes Bild aufrufen.
+inline bool mood_sneeze_due(MoodState &s, uint32_t now_ms) {
+  if (!s.sick) { s.sneeze_scheduled = false; return false; }
+  if (!s.sneeze_scheduled) {
+    s.sneeze_scheduled = true;
+    s.sneeze_next_ms = now_ms + rng_range(s.quirk_seed, MOOD_SNEEZE_MIN_MS, MOOD_SNEEZE_MAX_MS);
+    return false;
+  }
+  if ((int32_t)(now_ms - s.sneeze_next_ms) < 0) return false;
+  s.sneeze_next_ms = now_ms + rng_range(s.quirk_seed, MOOD_SNEEZE_MIN_MS, MOOD_SNEEZE_MAX_MS);
+  return true;
+}
+// Zeit, in der das Gerät aus war, zählt wie Schlaf: Energie steigt, Sättigung sinkt langsam.
 inline void mood_apply_elapsed(MoodState &s, uint32_t seconds) {
   s.n.energy += MOOD_ENERGY_SLEEP_PER_MIN * (seconds / 60.0f);
+  s.n.satiety += MOOD_SATIETY_SLEEP_PER_MIN * (seconds / 60.0f);
   mood_clamp(s.n);
 }
