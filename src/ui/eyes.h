@@ -12,7 +12,8 @@ constexpr int EYES_H = 200;
 bool eyes_begin(LGFX &lcd);   // false = kein Speicher -> direkt zeichnen
 void eyes_free();             // für OTA
 bool eyes_ready();
-void eyes_draw(LGFX &lcd, const FaceShape &face, Rgb color, uint32_t overlays, uint32_t now_ms);
+// bubble: Text der Sprechblase (UTF-8) oder nullptr.
+void eyes_draw(LGFX &lcd, const FaceShape &face, Rgb color, uint32_t overlays, uint32_t now_ms, const char *bubble = nullptr);
 // High-Five-Hand (Overlay OV_HAND): Ecke (rechts/links) und Startzeit für das kurze Aufploppen.
 void eyes_set_hand(bool right, uint32_t since_ms);
 // Zeichnet ein Augenpaar ohne Overlays auf ein beliebiges Ziel (Spiele, OTA); (cx, cy) = Mitte zwischen den Augen.

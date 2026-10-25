@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 5 – Sprechblasen und Rückblick (UI) – TEILWEISE
+- Zeit: 2026-10-25 13:58 UTC
+- Gemacht: Step 1: `src/ui/bubble.*` (abgerundete Blase oben mittig y 2..32, hellgrau, Zipfel nach unten, Text schwarz FreeSansBold9pt7b über ascii.h, Breite nach Text). `eyes_draw(..., const char *bubble = nullptr)` zeichnet sie ins Sprite.
+- Dateien: src/ui/bubble.h, src/ui/bubble.cpp, src/ui/eyes.h, src/ui/eyes.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS
+- Gegenprobe: – (UI)
+- Nächster Schritt: Interaktion Task 5 Step 2 (Bildschirm REVIEW `src/ui/review.*`), dann Step 3 (Verdrahtung: Sätze, Rituale, Tageszähler in NVS)
+- Offen/Fragen: –
+
 ## Interaktion Task 4 – Sprechregeln, Rituale, Tageszähler – ERLEDIGT
 - Zeit: 2026-10-25 13:56 UTC
 - Gemacht: `speech.h` (`speech_init/pick/may/shown/due`: 90 s Abstand, 40 % beim Wechsel des Grundgefühls zu BORED/SAD/HAPPY, Gedanken alle 5–10 min, bei |cuddly| > 40 verschmust/frech, kein Satz zweimal hintereinander je Kategorie), `rituals.h` (Morgen 5–12 Uhr einmal pro Tag beim ersten Aufwachen, Nacht 22 Uhr einmal, Rückblick 20:00 bzw. Nachholen bei Berührung bis 23 Uhr, `weather_sentence` „Heute 14° und Regen“, `day_key`), `daystats.h` (Zähler, `daystats_roll` setzt bei neuem Tag zurück, `daystats_mood` für den Rückblick).

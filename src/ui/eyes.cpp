@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <math.h>
 #include "../logic/weather_mood.h"
+#include "bubble.h"
 
 static LGFX_Sprite s_spr;
 static bool s_ready = false;
@@ -329,13 +330,15 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
   }
 }
 
-void eyes_draw(LGFX &lcd, const FaceShape &face, Rgb color, uint32_t overlays, uint32_t now_ms) {
+void eyes_draw(LGFX &lcd, const FaceShape &face, Rgb color, uint32_t overlays, uint32_t now_ms, const char *bubble) {
   if (s_ready) {
     render(s_spr, face, color, overlays, now_ms);
+    if (bubble) bubble_draw(s_spr, bubble);
     s_spr.pushSprite(&lcd, 0, 0);
   } else {
     lcd.startWrite();
     render(lcd, face, color, overlays, now_ms);
+    if (bubble) bubble_draw(lcd, bubble);
     lcd.endWrite();
   }
 }
