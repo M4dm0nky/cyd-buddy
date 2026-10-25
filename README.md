@@ -34,6 +34,8 @@ Ein Wesen mit großen Augen auf dem ESP32-2432S028 (Cheap Yellow Display, Varian
 
 **Touch einrichten:** Beim ersten Start (oder Finger beim Einschalten auf dem Display) die vier Pfeile in den Ecken antippen; die Werte bleiben gespeichert.
 
+**Claude-Modus:** Mit Claude-Code-Hooks auf dem PC zeigt der Buddy, was Claude gerade tut – „Okay!“ beim Auftrag, nachdenklich (orange), Pupillen huschen beim Lesen, Tipp-Punkte beim Schreiben, drehender Ring bei Befehlen, „Mist!“ bei Fehlern, **Blick + gelbe LED „Hey, du!“, wenn Claude dich braucht**, High-Five „Fertig!“ am Ende. Oranger Funke im Statusstreifen = Sitzung aktiv (daneben die Zahl der Helfer). 15 min ohne Ereignis = wieder Haustier. Der Schlüssel steht unter Einstellungen → Info. Einrichtung: [`tools/claude-hooks/README.md`](tools/claude-hooks/README.md).
+
 ## Entwicklung
 
 - Bauen: `pio run -e cyd2usb`

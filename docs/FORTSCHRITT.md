@@ -2,6 +2,13 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Lokal 3 – Gesicht, F1–F4, Umlaute, Claude-Modus am Gerät – ERLEDIGT
+- Zeit: 2026-10-25 (lokal, Opus orchestriert; Sonnet/Haiku umgesetzt; Qwen Sätze-Entwurf)
+- Gemacht: Gesicht mit Brauen/Pupillen/Nase/Mund und 22 Ausdrücken; F1–F4 aus der Cloud übernommen und einzeln ausgeliefert (v20261025-1529/-1539/-1549/-1611); echte Umlaute mit U8g2 Latin-1 (v-1637); Claude-Modus (Zustandslogik, HTTP-Empfänger mit Schlüssel, Darstellung, Hook-Skript; v-1648/-1703), globale Hooks in `~/.claude/settings.json` (Sicherung `settings.json.bak-20261025-1703`).
+- Prüfung: `pio test -e native` → 153/153; `node --test` (ota-publish, gen-phrases, claude-hooks) → 18/18; `pio run -e cyd2usb` → Flash 1 473 891 B. Am Gerät: Endpunkte 200/401/413/400 gemessen; Hook-Ereignisse kommen an (`running` während Bash); Nutzer bestätigt drehenden Ring, „Mist!“ bei Fehler, Blick + gelbe LED bei Rückfrage; fps 24–26 (Ring kurz 24), Heap-Minimum 49 776 B (vorher 63 KB, Webserver).
+- Gefunden & behoben: Open-Meteo chunked → `useHTTP10`; Sonnenbrille zu hoch/blind → mittig + Schachbrett-Raster; erstes Hook-Ereignis ging verloren, weil Node `cyd-buddy.local` beim ersten Mal langsamer als 800 ms auflöst → Konfiguration zuerst per IP (192.168.2.137), Name als Ersatz; Sätze-Check CRLF unter Windows.
+- Offen: fps mit Ring knapp unter 25; Heap-Minimum 49,8 KB knapp für TLS (OTA-Abruf im Blick behalten, ggf. Sprite während Manifest-Abruf freigeben); feste IP im Router (Nutzer); Mitte-unten-Touch reagiert kaum (Panel).
+
 ## Interaktion Task 10 – Abschluss – ERLEDIGT
 - Zeit: 2026-10-25 14:22 UTC
 - Gemacht: README-Bedienung ergänzt (High-Five, Blick folgt, Menü 2×3, Füttern, Timer, Sprechblasen, Rituale, Rückblick, Hunger/Krankheit/Charakter); dabei die veralteten Abschnitte „Schlaf“ (jetzt Uhrzeit + Ruhe) und „Testbild“ (jetzt Touch-Einrichtung) an den lokalen Stand angepasst; Sätze-Generator unter Entwicklung. Abschlussprüfung.
