@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 1 – Stimmung (mood.h) – ERLEDIGT
+- Zeit: 2026-10-25 10:28 UTC
+- Gemacht: Test aus dem Plan wörtlich übernommen, `src/logic/mood.h` exakt nach Plan.
+- Dateien: src/logic/mood.h, test/test_mood/test_main.cpp
+- Prüfung: `pio test -e native -f test_mood` vor Implementierung → ERRORED (`logic/mood.h: No such file`); danach → 13 Tests, 0 Fehler
+- Gegenprobe: `+= 8` → `+= 7` in STROKE → `test_stroke_cooldown: Expected 58 Was 57 [FAILED]`; zurückgeändert → 13 PASS
+- Nächster Schritt: Task 2 Step 1
+- Offen/Fragen: –
+
 ## Task 0 – Werkzeuge (Cloud) – ERLEDIGT mit Umweg
 - Zeit: 2026-10-25 10:25 UTC
 - Gemacht: PlatformIO 6.2.0 per pip. Die PlatformIO-Registry (`api.registry.platformio.org`, `collector.platformio.org`) ist im Cloud-Netz gesperrt (403), GitHub geht. Umweg nur außerhalb des Repos: Proxy-CA an `~/.platformio/penv/.../certifi/cacert.pem` angehängt (pioarduino überschreibt `REQUESTS_CA_BUNDLE`), `tool-scons` 4.11.1 aus PyPI nach `~/.platformio/packages/tool-scons` gelegt, `platform-native` aus GitHub nach `~/.platformio/platforms/native`, Bibliotheken per `git clone` mit `.piopm` nach `.pio/libdeps/` (LovyanGFX 1.2.34, WiFiManager 2.0.17, ArduinoJson 7.4.3, Unity 2.6.1; bei Unity Kommentarzeilen aus `library.json` entfernt). `platformio.ini` unverändert.
