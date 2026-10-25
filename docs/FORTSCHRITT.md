@@ -2,6 +2,12 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Lokal 4 – Code-Review und Fixes – ERLEDIGT
+- Zeit: 2026-10-25 (Review: 3 Sonnet-Prüfer, Funde von Opus am Code/Core-Quellen bestätigt; Fixes: Sonnet in Paketen A/B/C + Nachtrag)
+- Behoben: 24,8-Tage-Fehler aller langlebigen Zeitpunkte (`logic/deadline.h`, `due_since`), Nickerchen weckbar, OTA-Umleitung lehnt `@`/fremde Ports ab, Claude-Reihenfolge (späte Ereignisse), Empfänger prüft Schlüssel/Länge vor dem Körper + Handler einmal + Multipart-Grenzen, **Rollback wirksam** (`verifyRollbackLater`, `health_tick` unabhängig vom WLAN), Stall-Lücke im Download, Start-Absicherung (Touch-Warten 10 s, Kalibrier-Plausibilität), 5. Tipp außerhalb der Augen, Simon-Zeitlimit 30 s, Rückblick ignoriert erste Sekunde, Sprite-Neuversuch, OTA-Karte nicht während Arbeit, Speichern vor OTA-Neustart (Haupt-Task), Einstellungen ohne Flackern, Animationen ohne Float-Drift, Aufräumen (testscreen, tote Felder, Kommentare, Doku).
+- Prüfung: 180/180 nativ, 18/18 Node, Build Flash 1 475 391 B. Am Gerät (v20261025-2011): `Zustand 1` nach OTA, nach 20 s „neue Firmware als gut bestaetigt“; curl: 100 KB ohne Schlüssel 401, falscher Schlüssel 401, 5 KB 413, Content-Length 1 MB gelogen 413 (alle < 0,35 s, danach Verbindungsabbruch wie vorgesehen), Multipart ohne Schlüssel 401, gültig 204, Ping 200; Heap danach 120 KB, Minimum 60 212 B (vorher 49 776 B); fps 24–26.
+- Offen (nicht im Paket): Bildrate (SPI 80 MHz testen, Ring-Spur, Brillen-Raster), Aufteilung von `app.cpp`, Projektkennung im Image generisch, keine Signatur.
+
 ## Lokal 3 – Gesicht, F1–F4, Umlaute, Claude-Modus am Gerät – ERLEDIGT
 - Zeit: 2026-10-25 (lokal, Opus orchestriert; Sonnet/Haiku umgesetzt; Qwen Sätze-Entwurf)
 - Gemacht: Gesicht mit Brauen/Pupillen/Nase/Mund und 22 Ausdrücken; F1–F4 aus der Cloud übernommen und einzeln ausgeliefert (v20261025-1529/-1539/-1549/-1611); echte Umlaute mit U8g2 Latin-1 (v-1637); Claude-Modus (Zustandslogik, HTTP-Empfänger mit Schlüssel, Darstellung, Hook-Skript; v-1648/-1703), globale Hooks in `~/.claude/settings.json` (Sicherung `settings.json.bak-20261025-1703`).
