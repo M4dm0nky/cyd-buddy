@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 4 – Wetter-Laune und Overlays (weather_mood.h) – ERLEDIGT
+- Zeit: 2026-10-25 10:42 UTC
+- Gemacht: Test aus dem Plan wörtlich; `src/logic/weather_mood.h` mit WMO-Zuordnung, Flags hot/cold, `weather_fresh` (< 3 h), `overlays_for`.
+- Dateien: src/logic/weather_mood.h, test/test_weather_mood/test_main.cpp
+- Prüfung: `pio test -e native -f test_weather_mood` vor Implementierung → ERRORED (Header fehlt); danach → 4 Tests, 0 Fehler
+- Gegenprobe: `> 28` → `>= 28` → `test_flags: Expected FALSE Was TRUE [FAILED]`; zurück → 4 PASS
+- Nächster Schritt: Task 5 Step 1
+- Offen/Fragen: –
+
 ## Task 3 – Augenmodell (eye_model.h) – ERLEDIGT
 - Zeit: 2026-10-25 10:38 UTC
 - Gemacht: Test aus dem Plan wörtlich; `src/logic/eye_model.h` mit Tabelle (switch), xorshift32, `eye_tween`/`rgb_tween` (k = 1 − e^(−dt/150)), Blinker und Gazer nach Plan.
