@@ -3,6 +3,15 @@
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
 ## Interaktion Task 7 – Füttern und Charakter (UI) – TEILWEISE
+- Zeit: 2026-10-25 14:12 UTC
+- Gemacht: Step 3: Bildschirm FEED `src/ui/feed.*` (Sättigungsbalken grün ≥ 60 / gelb ≥ 25 / rot, Thermometer bei Krankheit, Schließen oben rechts, 4 Kacheln Apfel/Pizza/Kuchen/Kaffee, 10 s Timeout). Neue Symbole `icon_food`, `icon_thermometer`, `icon_ball`, `icon_pillow`, `icon_stop`.
+- Dateien: src/ui/feed.h, src/ui/feed.cpp, src/ui/icons.h, src/ui/icons.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS
+- Gegenprobe: –
+- Nächster Schritt: Interaktion Task 7 Step 4 (Flug-/Kau-Animation, OV_SNEEZE, Verdrahtung Charakter/Krankheit/Füttern in app.cpp), Step 5 (Charakter-Balken in den Einstellungen)
+- Offen/Fragen: Schließen-Kreuz im FEED-Bildschirm ist eine Ergänzung (Spec nennt nur „Tipp → zurück zum Gesicht“ nach der Wahl).
+
+## Interaktion Task 7 – Füttern und Charakter (UI) – TEILWEISE
 - Zeit: 2026-10-25 14:10 UTC
 - Gemacht: Step 2: Menü 2×3 (Kacheln 96×90, Abstand 8): Spielen grün, Füttern orange (Apfel), Timer rot-violett (Sanduhr), Uhr gelb, Einstellungen violett, Schließen rot; Spielen-Ebene: Fang mich, Simon, Zurück. `MenuChoice::FEED/TIMER` neu (in app.cpp noch ohne Wirkung).
 - Dateien: src/ui/menu.h, src/ui/menu.cpp

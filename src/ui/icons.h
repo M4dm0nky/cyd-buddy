@@ -24,3 +24,8 @@ void icon_heart(LovyanGFX &d, int cx, int cy, int s, uint32_t col);
 void icon_bolt(LovyanGFX &d, int cx, int cy, int s, uint32_t col);       // Blitz (Stupsen / frech)
 void icon_apple(LovyanGFX &d, int cx, int cy, int s);                    // roter Apfel mit Stiel und Blatt
 void icon_hourglass(LovyanGFX &d, int cx, int cy, int s, uint32_t col);  // Sanduhr (Timer)
+void icon_food(LovyanGFX &d, int cx, int cy, int s, int food);         // 0 Apfel, 1 Pizza, 2 Kuchen, 3 Kaffee (logic/food.h)
+void icon_thermometer(LovyanGFX &d, int cx, int cy, int s);              // krank
+void icon_ball(LovyanGFX &d, int cx, int cy, int s, uint32_t col);       // verspielt
+void icon_pillow(LovyanGFX &d, int cx, int cy, int s, uint32_t col);     // faul
+void icon_stop(LovyanGFX &d, int cx, int cy, int s, uint32_t col);       // Quadrat (Timer stoppen)

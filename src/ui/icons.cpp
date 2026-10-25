@@ -181,3 +181,71 @@ void icon_hourglass(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
   d.drawLine(cx - w, cy + h, cx, cy, col);
   d.drawLine(cx + w, cy + h, cx, cy, col);
 }
+
+static void pizza(LovyanGFX &d, int cx, int cy, int s) {
+  const int h = s * 42 / 100;
+  d.fillTriangle(cx - h, cy - h * 7 / 10, cx + h, cy - h * 7 / 10, cx, cy + h, lgfx::color888(250, 200, 70));   // Käse
+  d.fillRoundRect(cx - h - 2, cy - h * 7 / 10 - s / 10, 2 * h + 4, s / 7, s / 16, lgfx::color888(190, 110, 40));  // Rand
+  const uint32_t pep = lgfx::color888(200, 40, 30);
+  d.fillCircle(cx - h / 3, cy - h / 5, s / 14, pep);
+  d.fillCircle(cx + h / 3, cy - h / 4, s / 14, pep);
+  d.fillCircle(cx, cy + h / 3, s / 16, pep);
+}
+
+static void cake(LovyanGFX &d, int cx, int cy, int s) {
+  const int w = s * 40 / 100, h = s * 30 / 100;
+  d.fillRect(cx - w, cy - h / 3, 2 * w, h + h / 3, lgfx::color888(240, 200, 150));            // Teig
+  d.fillRect(cx - w, cy + h / 6, 2 * w, h / 5, lgfx::color888(230, 90, 130));                   // Füllung
+  d.fillRoundRect(cx - w, cy - h * 2 / 3, 2 * w, h / 2, h / 5, lgfx::color888(255, 245, 250));  // Sahne
+  d.fillCircle(cx, cy - h * 3 / 4, s / 11, lgfx::color888(220, 30, 50));                       // Kirsche
+}
+
+static void coffee(LovyanGFX &d, int cx, int cy, int s) {
+  const int w = s * 30 / 100, h = s * 34 / 100;
+  const uint32_t cup = lgfx::color888(240, 240, 245);
+  d.fillRoundRect(cx - w, cy - h / 2, 2 * w, h + h / 3, s / 10, cup);
+  d.fillArc(cx + w, cy, s / 12, s / 6, 270, 450, cup);                       // Henkel
+  d.fillRect(cx - w + 3, cy - h / 2 + 2, 2 * w - 6, s / 12, lgfx::color888(110, 60, 30));   // Kaffee
+  for (int i = -1; i <= 1; i += 2)                                           // Dampf
+    d.drawWideLine(cx + i * s / 8, cy - h / 2 - s / 14, cx + i * s / 8 + s / 20, cy - h / 2 - s / 4, s / 40.0f + 0.7f,
+                   lgfx::color888(200, 200, 210));
+}
+
+void icon_food(LovyanGFX &d, int cx, int cy, int s, int food) {
+  switch (food) {
+    case 0: icon_apple(d, cx, cy, s); break;
+    case 1: pizza(d, cx, cy, s); break;
+    case 2: cake(d, cx, cy, s); break;
+    default: coffee(d, cx, cy, s); break;
+  }
+}
+
+void icon_thermometer(LovyanGFX &d, int cx, int cy, int s) {
+  const int w = s / 8 + 1, h = s * 36 / 100;
+  const uint32_t glass = lgfx::color888(230, 230, 240), red = lgfx::color888(230, 40, 40);
+  d.fillRoundRect(cx - w, cy - h, 2 * w, 2 * h, w, glass);
+  d.fillCircle(cx, cy + h, w * 2, glass);
+  d.fillRect(cx - w / 2, cy - h / 3, w, h + h / 3, red);
+  d.fillCircle(cx, cy + h, w * 3 / 2, red);
+}
+
+void icon_ball(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
+  const int r = s * 4 / 10;
+  d.fillCircle(cx, cy, r, col);
+  d.fillArc(cx, cy, r - 2, r - 2 + s / 14 + 1, 200, 340, TFT_BLACK);
+  d.fillArc(cx, cy, r - 2, r - 2 + s / 14 + 1, 20, 160, TFT_BLACK);
+}
+
+void icon_pillow(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
+  const int w = s * 44 / 100, h = s * 26 / 100;
+  d.fillRoundRect(cx - w, cy - h, 2 * w, 2 * h, h, col);
+  d.fillCircle(cx - w, cy - h, s / 12 + 1, col);
+  d.fillCircle(cx + w, cy - h, s / 12 + 1, col);
+  d.fillCircle(cx - w, cy + h, s / 12 + 1, col);
+  d.fillCircle(cx + w, cy + h, s / 12 + 1, col);
+}
+
+void icon_stop(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
+  const int h = s * 32 / 100;
+  d.fillRoundRect(cx - h, cy - h, 2 * h, 2 * h, s / 12, col);
+}
