@@ -73,7 +73,6 @@ void eyes_set_hand(bool right, uint32_t since_ms) {
 }
 
 static constexpr int kEyeDx = 70;   // Abstand der Augenmitten von der Bildmitte
-static constexpr int kEyeY = 100;
 
 bool eyes_begin(LGFX &lcd) {
   if (s_ready) return true;
@@ -352,7 +351,7 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
     d.drawWideLine(lx + lw / 2, ly + 8, rx - lw / 2, ly + 8, 2.0f, frame);
   }
   if (ov & OV_HEART) {
-    const int s = 22 + (int)(4 * sinf(now / 200.0f));
+    const int s = 22 + (int)(4 * sinf((now % 1257) / 200.0f));   // 1257 ms ~ Periode 2*pi*200; float ab 2^24 ms zu grob
     const uint32_t pink = lgfx::color888(255, 80, 170);
     heart(d, 160 + ox, 28 + oy, s, pink);
     if (f.mouth == Mouth::KISS) heart(d, 205 + ox, 158 + oy, 14, pink);
@@ -366,11 +365,11 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
     drop(d, lx - (int)f.eye.w / 4, ey + eh / 2 + 6 + (int)(ph * 30), 12, lgfx::color888(100, 170, 255));
   }
   if (ov & OV_QUESTION) {
-    const int bob = (int)(3 * sinf(now / 350.0f));
+    const int bob = (int)(3 * sinf((now % 2199) / 350.0f));   // 2199 ms ~ Periode 2*pi*350
     question_mark(d, 270, 34 + bob, 1.0f, col);
   }
   if (ov & OV_NOTE) {
-    const int dy = (int)(4 * sinf(now / 300.0f));
+    const int dy = (int)(4 * sinf((now % 1885) / 300.0f));   // 1885 ms ~ Periode 2*pi*300
     music_note(d, 212, 168 + dy, col);
   }
   if (s_ring >= 0 || s_spin) {   // Pomodoro-Bogen bzw. Claude-Segment: um das Gesicht, im Uhrzeigersinn ab oben
@@ -406,7 +405,7 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
   if (ov & OV_ZZZ) {
     const uint32_t zc = lgfx::color888(150, 170, 255);
     for (int i = 0; i < 3; i++) {
-      const float ph = fmodf(now / 3000.0f + i / 3.0f, 1.0f);   // jedes Z steigt in 3 s auf
+      const float ph = fmodf((now % 3000) / 3000.0f + i / 3.0f, 1.0f);   // jedes Z steigt in 3 s auf
       const int s = 10 + (int)(ph * 14);
       letter_z(d, 250 + (int)(ph * 30), 80 - (int)(ph * 70), s, zc);
     }
