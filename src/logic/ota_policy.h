@@ -101,11 +101,12 @@ static inline int ota_progress_pct(uint32_t done, uint32_t total) {
 // busy = eine Suche läuft oder ist angefordert. Rückgabe: 0 neutral (grau), 1 gut (grün), 2 Problem (rot).
 static inline int ota_status_line(int state, int pct, bool busy, uint32_t last_check_ms, bool last_failed, uint32_t now_ms, char *out, size_t n) {
   if (state == 2) { snprintf(out, n, "Lädt %d %%", pct); return 0; }
-  if (state == 3) { snprintf(out, n, "Prüft die Datei …"); return 0; }
-  if (state == 4) { snprintf(out, n, "Neustart …"); return 0; }
-  if (busy) { snprintf(out, n, "Prüfe …"); return 0; }
+  // Nur Latin-1-Zeichen (Schriften U8g2 _tf): "..." statt "…", "-" statt "–"
+  if (state == 3) { snprintf(out, n, "Prüft die Datei ..."); return 0; }
+  if (state == 4) { snprintf(out, n, "Neustart ..."); return 0; }
+  if (busy) { snprintf(out, n, "Prüfe ..."); return 0; }
   if (state == 5) { snprintf(out, n, "Update fehlgeschlagen"); return 2; }
-  if (state == 1) { snprintf(out, n, "Update bereit – tippen"); return 0; }
+  if (state == 1) { snprintf(out, n, "Update bereit - tippen"); return 0; }
   if (last_check_ms == 0) { snprintf(out, n, "Tippen: Update suchen"); return 0; }
   if (last_failed) { snprintf(out, n, "Abruf fehlgeschlagen"); return 2; }
   const uint32_t min = (now_ms - last_check_ms) / 60000UL;
