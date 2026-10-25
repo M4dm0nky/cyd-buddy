@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Lokal 2 – WLAN, Wetter, Touch, OTA am Gerät – ERLEDIGT
+- Zeit: 2026-10-25 (lokal, Opus)
+- Gemacht: WLAN-Portal eingerichtet (am Handy ging die Seite nicht auf, vom PC über dessen WLAN-Adapter ging sie: Gerät ok, Handy bleibt vermutlich auf mobilen Daten). Wetter repariert (`useHTTP10`, Open-Meteo antwortete chunked). Manuelles Update: Einstellungen → Firmware zeigt die Karte sofort. Tipps nutzen die letzte gültige Position statt (0,0). **Touch-Kalibrierung** mit 4 Eckpunkten beim ersten Start, im NVS (`touchcal`); Finger beim Einschalten = neu kalibrieren. Gemessen: Bildschirm-x aus Roh-x (umgekehrt), y aus Roh-y; Werte `3679,310 3672,3689 516,371 474,3703`. Die frühere Eck-Messung ohne gezeichnete Ziele war falsch, die Konstanten in config.h sind nur noch Startwerte.
+- Prüfung am Gerät: Menü → Uhr trifft (Seriell `geste 1 bei x=249 y=56 screen=1` → screen 2), Uhr zeigt Zeit, Datum, Wetter mit Temperatur (Nutzer). **OTA Ende zu Ende gemessen:** Release v20261025-1259 → „Update bereit“ → Ja → `ota: ok, Neustart` → `Partition app1, Zustand 2` (gültig, **kein Rollback**, wie beim HA-Buddy). Heap-Minimum beim HTTPS-Abruf 63 312 B.
+- Releases: v20261025-1240, -1259 (veraltet), **-1350 = aktueller Stand** (ELF 971f8741…, auch per Kabel aufgespielt).
+- Lehre: Nach jedem Kabel-Flash sofort ein Release mit genau diesem Stand, sonst „aktualisiert“ das Gerät auf ein älteres Release. Kabel-Flash, wenn das Gerät auf app1 läuft: `boot_app0.bin` an 0xe000 mitschreiben, nur die App an 0x10000 (nicht das Factory-Image, das löscht NVS/WLAN).
+- Nicht geprüft am Gerät: Streicheln/Stupsen, Nachtschlaf (22–7 Uhr), Spiele, Overlays (Sonnenbrille usw.), unterer Bildrand reagiert kaum auf Touch.
+- Nächster Schritt: Diagnose-Ausgaben (`touch`, `geste`, `touch verworfen`) wieder entfernen oder hinter ein Build-Flag, Rest am Gerät prüfen.
+
 ## Lokal 1 – Übernahme, erster Flash, Lichtsensor – ERLEDIGT
 - Zeit: 2026-10-25 (lokal, Opus)
 - Gemacht: Cloud-Branch `claude/dreamy-galileo-bvdw39` als `buddy-umsetzung` übernommen und lokal komplett nachgeprüft. Open-Meteo-URLs per curl geprüft (Geocoding HTTPS ok, Wetter über **http** ok, 200). Per Kabel geflasht. Lichtsensor gemessen und als unbrauchbar erkannt → Schlafen nach Uhrzeit + Ruhe (`mood_touch`, `mood_night_check`, 4 neue Tests). `ota-publish --release` setzt den Tag jetzt mit `--target <Commit>` und verweigert nicht gepushte Commits.
