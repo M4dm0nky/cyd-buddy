@@ -6,6 +6,7 @@
 #include "../logic/face_model.h"
 
 static constexpr uint32_t kShowMs = 12000;
+static constexpr uint32_t kIgnoreTapsMs = 1000;   // Tipps in der ersten Sekunde schließen nicht (wie bei der OTA-Karte)
 static uint32_t s_open_ms = 0;
 
 static void line(LGFX &d, int i, void (*icon)(LGFX &, int, int), const char *txt) {
@@ -35,6 +36,8 @@ void review_open(LGFX &lcd, const DayStats &st, uint32_t now_ms) {
   eyes_draw_pair(lcd, 160, 208, x.shape, x.color, 0.42f);
   lcd.endWrite();
 }
+
+bool review_tap_closes(uint32_t now_ms) { return now_ms - s_open_ms >= kIgnoreTapsMs; }
 
 bool review_update(LGFX &lcd, uint32_t now_ms) {
   (void)lcd;

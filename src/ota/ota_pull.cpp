@@ -40,7 +40,6 @@ volatile bool g_check_now = false, g_fetching = false;   // Suche angefordert (S
 uint32_t g_check_req_ms = 0;
 volatile bool g_ui_alive = false;
 volatile bool g_marked = false;   // Gesundheitsnachweis erledigt bzw. nicht nötig (nur health_tick() setzt es nach begin())
-void (*g_restart_cb)() = nullptr;
 uint32_t g_next_poll = 0;
 char g_running_elf[65] = "";
 char g_slot[17] = "?", g_build[24] = "";
@@ -254,8 +253,7 @@ void download() {
   }
   set_state(RESTARTING);
   Serial.println("ota: ok, Neustart in 2 s");
-  vTaskDelay(pdMS_TO_TICKS(2000));
-  if (g_restart_cb) g_restart_cb();   // Zustand sichern (läuft im net_task; der Rückruf muss selbst threadsicher sein)
+  vTaskDelay(pdMS_TO_TICKS(2000));   // in dieser Zeit sichert app_loop() den Zustand, sobald es RESTARTING sieht
   ESP.restart();
 }
 }  // namespace
@@ -284,8 +282,6 @@ void health_tick() {
   if (esp_ota_mark_app_valid_cancel_rollback() == ESP_OK) Serial.println("ota: neue Firmware als gut bestaetigt");
   else Serial.println("ota: Bestaetigung der neuen Firmware fehlgeschlagen");
 }
-
-void on_restart(void (*fn)()) { g_restart_cb = fn; }
 
 void loop() {
   const uint32_t now = millis();

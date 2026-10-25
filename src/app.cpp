@@ -33,6 +33,9 @@
 #include "logic/claude_face.h"
 #include "logic/deadline.h"
 
+#ifndef CYD_LOG_LDR
+#define CYD_LOG_LDR 0   // 1 = Rohwert des Lichtsensors jede Sekunde seriell ausgeben (Einmessen); per build_flags -DCYD_LOG_LDR=1
+#endif
 #ifndef CYD_DIAG_TOUCH
 #define CYD_DIAG_TOUCH 0   // 1 = Touch/Gesten seriell ausgeben (Kalibrierung prüfen); per build_flags -DCYD_DIAG_TOUCH=1
 #endif
@@ -275,7 +278,6 @@ static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
   }
 }
 
-// Stimmung läuft auf jedem Bildschirm weiter (Zeit vergeht), Licht und LED auch.
 // Claude-Blasen bei Zustandswechseln (Spec-Tabelle); läuft jedes Bild.
 static void claude_frame(ClaudeState cs, uint32_t now) {
   if (cs != s_prev_cs) {
@@ -306,6 +308,7 @@ static void claude_frame(ClaudeState cs, uint32_t now) {
   }
 }
 
+// Stimmung läuft auf jedem Bildschirm weiter (Zeit vergeht), Licht und LED auch.
 static void mood_frame(uint32_t now, uint32_t dt) {
   const int hour = current_hour();
   const bool work = focused_work();
@@ -465,7 +468,11 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
   set_backlight(sleeping ? kSleepBacklight : kBacklight[s_persist.brightness]);
 }
 
+static bool s_manual_ota = false;   // in den Einstellungen "Firmware" getippt: nach der Suche Karte sofort zeigen
+static uint32_t s_sprite_try = 0;   // letzter Versuch, das Augen-Sprite wieder anzulegen
+
 static void go_eyes() {
+  s_manual_ota = false;
   s_screen = Screen::EYES;
   status_invalidate();   // Statusstreifen sicher neu zeichnen
 }
@@ -477,11 +484,10 @@ static int firmware_line(char *out, size_t n, uint32_t now) {
 }
 
 static void open_settings(uint32_t now) {
+  s_manual_ota = false;
   s_screen = Screen::SETTINGS;
   settings_open(s_lcd, s_persist, now);
 }
-
-static bool s_manual_ota = false;   // in den Einstellungen "Firmware" getippt: nach der Suche Karte sofort zeigen
 
 static void open_ota_card(uint32_t now) {
   s_screen = Screen::OTA;
@@ -491,7 +497,7 @@ static void open_ota_card(uint32_t now) {
 }
 
 static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16_t ty) {
-  const bool tap = g == Gesture::TAP;
+  const bool tap = g == Gesture::TAP || (s_screen != Screen::EYES && g == Gesture::POKE);   // außerhalb der Augen zählt auch ein Stups (fünfter Tipp) als Tipp
   switch (s_screen) {
     case Screen::EYES:
       if (g == Gesture::LONG_PRESS && s_emotion != Emotion::SLEEPING) {
@@ -500,9 +506,14 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
         menu_open(s_lcd, now);
         return;
       }
-      if (ota_card_wanted(now, s_emotion != Emotion::SLEEPING)) {   // nur bei wachem Display
-        open_ota_card(now);
-        return;
+      // Karte nicht mitten in Pomodoro-Arbeit oder während Claude arbeitet (Einstellungen -> Firmware geht immer)
+      {
+        const ClaudeState cs_now = claude_state(s_claude, now);
+        const bool ota_ok_now = !focused_work() && (cs_now == ClaudeState::OFF || cs_now == ClaudeState::IDLE);
+        if (ota_ok_now && ota_card_wanted(now, s_emotion != Emotion::SLEEPING)) {   // nur bei wachem Display
+          open_ota_card(now);
+          return;
+        }
       }
       {
         struct tm t;
@@ -518,6 +529,10 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
       }
       if (s_pressed) look_at(s_look, tx, ty, now);   // bei Touch-Beginn und während des Streichelns
       touch_to_mood(g, tx, ty, now);
+      if (!eyes_ready() && now - s_sprite_try >= 5000) {   // kein Sprite (Speichermangel): alle 5 s neu versuchen
+        s_sprite_try = now;
+        eyes_begin(s_lcd);
+      }
       eyes_frame(now, dt);
       ota_pull::ui_alive();
       return;
@@ -627,7 +642,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
     }
 
     case Screen::REVIEW:
-      if (tap || !review_update(s_lcd, now)) go_eyes();
+      if ((tap && review_tap_closes(now)) || !review_update(s_lcd, now)) go_eyes();
       return;
 
     default:
@@ -650,6 +665,8 @@ void app_setup() {
   ota_pull::begin();
   net_task_hook(ota_pull::loop);   // OTA-Abruf läuft im net_task
   settings_firmware_source(firmware_line);
+  s_lcd.fillScreen(TFT_BLACK);
+  eyes_begin(s_lcd);   // Sprite vor dem WLAN anlegen, solange der Heap noch zusammenhängend ist
   net_begin(&s_persist);
   claude_api_begin(&s_claude);
   gesture_init(s_gesture);
@@ -663,8 +680,6 @@ void app_setup() {
   s_face = start.s;
   s_color = start.color;
 
-  s_lcd.fillScreen(TFT_BLACK);
-  eyes_begin(s_lcd);
   status_invalidate();
   set_backlight(kBacklight[s_persist.brightness]);
   s_last_frame = s_last_save = s_last_log = now;
@@ -680,6 +695,14 @@ void app_loop() {
   }
   s_last_frame = now;
   s_frames++;
+
+  // OTA-Neustart steht bevor (ota_pull wartet davor 2 s): einmal speichern, hier im Hauptthread (kein Datenrennen mit dem net_task)
+  static bool s_saved_for_restart = false;
+  if (ota_pull::info().state == ota_pull::RESTARTING) {
+    if (!s_saved_for_restart) { s_saved_for_restart = true; save_now(); }
+  } else {
+    s_saved_for_restart = false;
+  }
 
   net_loop();
   claude_api_loop();

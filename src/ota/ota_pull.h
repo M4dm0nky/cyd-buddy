@@ -29,7 +29,6 @@ void snooze();          // UI: "Später" oder Tipp daneben: eine Stunde Ruhe
 void dismiss_failure(); // UI: Fehlermeldung bestätigt
 void ui_alive();        // UI-Takt meldet sich: Teil des Gesundheitsnachweises nach einem Update
 void health_tick();     // Gesundheitsnachweis (Rollback abbrechen), aus der Hauptschleife, unabhängig vom WLAN; billig, mehrfach aufrufbar
-void on_restart(void (*fn)());   // Rückruf unmittelbar vor ESP.restart() nach einem Update (zum Speichern); läuft im net_task
 const char *slot();     // Label der laufenden Partition ("app0"/"app1")
 int image_state();      // esp_ota_img_states_t beim Start: -1 undefiniert, 1 PENDING_VERIFY (Rollback aktiv), 2 VALID, 3 INVALID, 4 ABORTED
 const char *elf12();    // erste 12 Hex-Zeichen der ELF-SHA-256 der laufenden Firmware
