@@ -20,6 +20,10 @@
 #include "ota/ota_pull.h"
 #include "logic/ota_policy.h"
 
+#ifndef CYD_DIAG_TOUCH
+#define CYD_DIAG_TOUCH 0   // 1 = Touch/Gesten seriell ausgeben (Kalibrierung prüfen); per build_flags -DCYD_DIAG_TOUCH=1
+#endif
+
 static LGFX s_lcd;
 LGFX &app_lcd() { return s_lcd; }
 
@@ -114,6 +118,7 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
   tx = s_last_x;
   ty = s_last_y;
   if (pressed) mood_touch(s_mood, now);   // jede Berührung hält ihn nachts wach bzw. weckt ihn
+#if CYD_DIAG_TOUCH
   static bool s_was_pressed = false;
   if (pressed && !s_was_pressed) {   // Beginn einer Berührung seriell ausgeben (Touch-Kalibrierung prüfen)
     lgfx::touch_point_t raw;
@@ -121,6 +126,8 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
     Serial.printf("touch x=%d y=%d raw=%d,%d\n", (int)x, (int)y, (int)raw.x, (int)raw.y);
   }
   s_was_pressed = pressed;
+#endif
+#if CYD_DIAG_TOUCH
   // Berührung, die der Chip meldet, die Bibliothek aber verwirft (außerhalb des Bereichs): einmal je Berührung melden
   static bool s_raw_only = false;
   if (!pressed) {
@@ -129,9 +136,12 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
     if (raw_down && !s_raw_only) Serial.printf("touch verworfen raw=%d,%d\n", (int)raw.x, (int)raw.y);
     s_raw_only = raw_down;
   }
+#endif
   const Gesture g = gesture_feed(s_gesture, pressed, tx, ty, now);
+#if CYD_DIAG_TOUCH
   if (g != Gesture::NONE)   // Diagnose: welche Geste mit welcher Position auf welchem Bildschirm
     Serial.printf("geste %d bei x=%d y=%d screen=%d\n", (int)g, (int)tx, (int)ty, (int)s_screen);
+#endif
   return g;
 }
 
