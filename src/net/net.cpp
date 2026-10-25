@@ -73,6 +73,7 @@ static bool geocode(const char *place, char *name, float *lat, float *lon) {
   NetworkClientSecure tls;
   tls.useBuiltinCACertBundle();
   HTTPClient http;
+  http.useHTTP10(true);   // sonst antwortet Open-Meteo chunked und getStream() liefert die Chunk-Längen mit an ArduinoJson
   http.setTimeout(kHttpTimeoutMs);
   if (!http.begin(tls, url)) return false;
   const int code = http.GET();
@@ -110,6 +111,7 @@ static bool fetch_weather(float lat, float lon, NetWeather *w) {
            lat, lon);
   WiFiClient tcp;
   HTTPClient http;
+  http.useHTTP10(true);   // wie beim Geocoding: keine chunked-Antwort
   http.setTimeout(kHttpTimeoutMs);
   if (!http.begin(tcp, url)) return false;
   const int code = http.GET();
