@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 8 – Augen zeichnen und Hauptschleife – ERLEDIGT
+- Zeit: 2026-10-25 11:20 UTC
+- Gemacht: Augen-Renderer mit 8-Bit-Sprite 320×200 (Fallback direkt), Overlays (Herz, Sonnenbrille, Schweiß, Träne, zZz, Zittern, Regen-Tönung), Symbole aus Primitiven, Statusstreifen (zeichnet nur bei Änderung), `app.cpp` mit Bildtakt 33 ms, Gesten → Stimmung, Licht → Schlaf, Blinzeln/Blick/Tween, LED 15 %, Hintergrundlicht, Speichern alle 10 min, Seriell-Log alle 60 s. Testbild nach `ui/testscreen.cpp` ausgelagert (beim Start gedrückt halten).
+- Dateien: src/ui/eyes.h, src/ui/eyes.cpp, src/ui/icons.h, src/ui/icons.cpp, src/ui/status_bar.h, src/ui/status_bar.cpp, src/ui/testscreen.h, src/ui/testscreen.cpp, src/app.h, src/app.cpp, src/main.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS, RAM 10,6 % (34 736 B statisch; Sprite 64 000 B kommt zur Laufzeit dazu), Flash 27,3 % (537 303 B). `pio test -e native` → 45 Tests, 0 Fehler (7 Gruppen)
+- Gegenprobe: – (Renderer nicht unit-getestet)
+- Nächster Schritt: Task 9 Step 1
+- Offen/Fragen: (1) Symbol-Funktionen nehmen `LovyanGFX &` statt `LGFX &` (Basisklasse; `LGFX` passt weiter, dazu gehen Sprites). Zusätzliche Symbole: `icon_target`, `icon_simon`, `icon_brightness`, `icon_back`. Zusätzlich `status_invalidate()` und `eyes_draw_pair()` (für Spiele/OTA). (2) Lid-Schnitte beziehen sich auf die *geöffnete* Höhe `h*open`, nicht auf `h` – sonst wäre SLEEPY (open 0,35, top_cut 0,5) ganz zu. (3) Sonnenbrillen-Rahmen grau statt schwarz, weil Schwarz auf schwarzem Grund unsichtbar wäre. (4) Mond-Symbol setzt schwarzen Hintergrund voraus.
+- Am Gerät zu prüfen: Augen flüssig (fps im Seriell-Log, Ziel ≥ 25), Gesten (Tippen/Streicheln/Stupsen/Lang drücken), LDR-Richtung/-Schwelle, Testbild beim Start gedrückt halten.
+
 ## Task 7 – Hardware-Schicht (LED, Licht, Speicher) – ERLEDIGT
 - Zeit: 2026-10-25 11:00 UTC
 - Gemacht: `led.*` (ledcAttach/ledcWrite, im Core-Header `esp32-hal-ledc.h` geprüft: `bool ledcAttach(uint8_t pin, uint32_t freq, uint8_t resolution)`, `bool ledcWrite(uint8_t pin, uint32_t duty)`), `light.*` (Ringpuffer 16, alle 60 ms, Hysterese), `store.*` (Preferences, Namensraum `buddy`, Versions-Schlüssel `ver`).

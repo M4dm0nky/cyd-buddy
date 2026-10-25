@@ -1,0 +1,21 @@
+#pragma once
+#include <stdint.h>
+#include "../hw/display.h"
+#include "../logic/weather_mood.h"
+
+// Symbole aus Primitiven; (cx, cy) = Mitte, s = Kantenlänge, col = RGB888 (lgfx::color888).
+// Ziel ist LovyanGFX (Basis von LGFX und LGFX_Sprite), damit sie auf Display und Sprite gehen.
+void icon_play(LovyanGFX &d, int cx, int cy, int s, uint32_t col);
+void icon_clock(LovyanGFX &d, int cx, int cy, int s, uint32_t col);
+void icon_gear(LovyanGFX &d, int cx, int cy, int s, uint32_t col);
+void icon_close(LovyanGFX &d, int cx, int cy, int s, uint32_t col);
+void icon_wifi(LovyanGFX &d, int cx, int cy, int s, uint32_t col);
+void icon_sky(LovyanGFX &d, int cx, int cy, int s, Sky sky, bool is_day);
+void icon_sun(LovyanGFX &d, int cx, int cy, int s, uint32_t col);
+void icon_update(LovyanGFX &d, int cx, int cy, int s, uint32_t col);   // Pfeil nach unten in Kreis
+void icon_info(LovyanGFX &d, int cx, int cy, int s, uint32_t col);
+// Zusätzliche Symbole für Menü und Spiele.
+void icon_target(LovyanGFX &d, int cx, int cy, int s, uint32_t col);    // Kreis mit Fadenkreuz (Fang mich)
+void icon_simon(LovyanGFX &d, int cx, int cy, int s);                   // vier farbige Viertel (Simon)
+void icon_brightness(LovyanGFX &d, int cx, int cy, int s, uint8_t level, uint32_t col);   // 3 Balken, level 0..2
+void icon_back(LovyanGFX &d, int cx, int cy, int s, uint32_t col);      // Pfeil nach links
