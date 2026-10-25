@@ -16,6 +16,9 @@
 #include "ui/settings.h"
 #include "ui/game_catch.h"
 #include "ui/game_simon.h"
+#include "ui/ota_card.h"
+#include "ota/ota_pull.h"
+#include "logic/ota_policy.h"
 
 static LGFX s_lcd;
 LGFX &app_lcd() { return s_lcd; }
@@ -83,7 +86,7 @@ static StatusInfo status_info(uint32_t now) {
   si.sky = si.weather_ok ? wm.sky : Sky::CLOUDY;
   si.is_day = si.weather_ok ? w.is_day : true;
   si.temp_c = si.weather_ok ? w.temp_c : 0;
-  si.update_ready = false;
+  si.update_ready = ota_pull::info().state == ota_pull::AVAILABLE;
   return si;
 }
 
@@ -155,6 +158,12 @@ static void go_eyes() {
   status_invalidate();   // Statusstreifen sicher neu zeichnen
 }
 
+// Zeile „Firmware“ in den Einstellungen.
+static int firmware_line(char *out, size_t n, uint32_t now) {
+  const ota_pull::Info i = ota_pull::info();
+  return ota_status_line((int)i.state, i.pct, ota_pull::check_busy(), i.last_check_ms, i.last_failed, now, out, n);
+}
+
 static void open_settings(uint32_t now) {
   s_screen = Screen::SETTINGS;
   settings_open(s_lcd, s_persist, now);
@@ -170,8 +179,16 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
         menu_open(s_lcd, now);
         return;
       }
+      if (ota_card_wanted(now, s_emotion != Emotion::SLEEPING)) {   // nur bei wachem Display
+        s_screen = Screen::OTA;
+        set_backlight(kBacklight[s_persist.brightness]);
+        ota_card_open(now);
+        ota_card_draw(s_lcd, now);
+        return;
+      }
       touch_to_mood(g, now);
       eyes_frame(now, dt);
+      ota_pull::ui_alive();
       return;
 
     case Screen::MENU: {
@@ -204,7 +221,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
             settings_redraw(s_lcd, s_persist);
             break;
           case SettingsAction::PORTAL: net_open_portal(); settings_redraw(s_lcd, s_persist); break;
-          case SettingsAction::OTA_CHECK: break;   // ab Task 12
+          case SettingsAction::OTA_CHECK: ota_pull::check_now(); settings_redraw(s_lcd, s_persist); break;
           default: break;
         }
       }
@@ -221,6 +238,20 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
       return;
     }
 
+    case Screen::OTA: {
+      // Beim Laden das Augen-Sprite freigeben (Puffer, TLS); nach Fehler/Schlummern wieder anlegen.
+      if (ota_pull::info().state == ota_pull::DOWNLOADING && eyes_ready()) eyes_free();
+      if (tap) ota_card_touch(tx, ty, now);
+      if (!ota_card_wanted(now, true)) {
+        if (!eyes_ready()) eyes_begin(s_lcd);
+        s_lcd.fillScreen(TFT_BLACK);
+        go_eyes();
+        return;
+      }
+      ota_card_draw(s_lcd, now);
+      return;
+    }
+
     default:
       go_eyes();
       return;
@@ -232,6 +263,9 @@ void app_setup() {
   light_begin();
   if (!store_load(s_persist)) Serial.println("store: nichts gespeichert, Startwerte");
   mood_init(s_mood, s_persist.needs);
+  ota_pull::begin();
+  net_task_hook(ota_pull::loop);   // OTA-Abruf läuft im net_task
+  settings_firmware_source(firmware_line);
   net_begin(&s_persist);
   gesture_init(s_gesture);
   const uint32_t now = millis();
