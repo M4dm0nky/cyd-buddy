@@ -33,6 +33,16 @@ void test_needs_update() {
   TEST_ASSERT_TRUE(ota_needs_update(a, b));
   TEST_ASSERT_FALSE(ota_needs_update(a, "kaputt"));
 }
+void test_redirect_authority_tricks() {
+  TEST_ASSERT_FALSE(ota_redirect_ok("https://github.com:@evil.com/x"));
+  TEST_ASSERT_FALSE(ota_redirect_ok("https://github.com:x@evil.com/"));
+  TEST_ASSERT_FALSE(ota_redirect_ok("https://github.com?@evil.com/"));
+  TEST_ASSERT_FALSE(ota_redirect_ok("https://github.com#@evil.com/"));
+  TEST_ASSERT_FALSE(ota_redirect_ok("https://user@github.com/"));
+  TEST_ASSERT_FALSE(ota_redirect_ok("https://github.com:44a3/x"));
+  TEST_ASSERT_TRUE(ota_redirect_ok("https://github.com:443/x"));
+  TEST_ASSERT_TRUE(ota_redirect_ok("https://github.com:/x"));   // leerer Port ist gültig
+}
 void test_redirect_ok() {
   TEST_ASSERT_TRUE(ota_redirect_ok("https://github.com/M4dm0nky/cyd-buddy/releases/latest/download/manifest.json"));
   TEST_ASSERT_TRUE(ota_redirect_ok("https://release-assets.githubusercontent.com/github-production-release-asset/1?x=1"));
@@ -60,6 +70,7 @@ int main(int, char **) {
   RUN_TEST(test_image_rejects);
   RUN_TEST(test_needs_update);
   RUN_TEST(test_redirect_ok);
+  RUN_TEST(test_redirect_authority_tricks);
   RUN_TEST(test_notice_and_progress);
   return UNITY_END();
 }

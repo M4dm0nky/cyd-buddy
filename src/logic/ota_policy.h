@@ -54,22 +54,31 @@ static inline const char *ota_image_error(OtaImg r) {
 static inline char ota_lower(char c) { return (c >= 'A' && c <= 'Z') ? (char)(c - 'A' + 'a') : c; }
 
 // Nur https:// und Host github.com oder Endung .githubusercontent.com (Umleitungen der Release-Downloads).
-// Host = Teil nach "https://" bis zum nächsten '/', '?', '#', ':' oder Ende; ohne Groß/Klein-Unterschied.
-// Hosts mit anderen Zeichen als Buchstaben, Ziffern, '-' und '.' (etwa "user@host") werden abgelehnt.
+// Authority = Teil nach "https://" bis zum nächsten '/', '?', '#' oder Ende; enthält sie '@', wird abgelehnt.
+// Host = Authority bis ':' (danach nur ein Port aus Ziffern); ohne Groß/Klein-Unterschied.
+// Hosts mit anderen Zeichen als Buchstaben, Ziffern, '-' und '.' werden abgelehnt.
 static inline bool ota_redirect_ok(const char *url) {
   if (!url) return false;
   static const char kScheme[] = "https://";
   for (size_t i = 0; i < sizeof kScheme - 1; i++) if (ota_lower(url[i]) != kScheme[i]) return false;
   const char *h = url + sizeof kScheme - 1;
+  // Authority = bis zum ersten '/', '?', '#' oder Ende; '@' darin (Benutzerangabe) wird abgelehnt.
+  // Vorsichtshalber wird '@' bis zum ersten '/' abgelehnt, auch hinter '?' oder '#' ("github.com?@evil.com/").
+  for (size_t i = 0; h[i] && h[i] != '/'; i++) if (h[i] == '@') return false;
+  size_t alen = 0;
+  while (h[alen] && h[alen] != '/' && h[alen] != '?' && h[alen] != '#') alen++;
   char host[128];
   size_t n = 0;
-  for (; h[n] && h[n] != '/' && h[n] != '?' && h[n] != '#' && h[n] != ':'; n++) {
+  for (; n < alen && h[n] != ':'; n++) {
     const char c = ota_lower(h[n]);
     if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '.')) return false;
     if (n + 1 >= sizeof host) return false;
     host[n] = c;
   }
   host[n] = '\0';
+  if (n < alen) {   // ":Port" nur mit Ziffern
+    for (size_t i = n + 1; i < alen; i++) if (h[i] < '0' || h[i] > '9') return false;
+  }
   if (n == 0) return false;
   if (strcmp(host, "github.com") == 0) return true;
   static const char kSuffix[] = ".githubusercontent.com";
