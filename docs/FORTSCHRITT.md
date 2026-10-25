@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 1 – Blick folgt und High-Five (Logik) – ERLEDIGT
+- Zeit: 2026-10-25 13:48 UTC
+- Gemacht: `src/logic/look.h` (`LookState`, `look_at` mit Abbildung (x−160)/160·30 und (y−100)/100·15, geklemmt, 3000 ms; `look_active`, `look_target`, `highfive_hit` für x<64 oder x>256 bei y<56). `MoodEvent::HIGHFIVE` in mood.h: Unterhaltung +5, Zuneigung +2, EXCITED 2 s.
+- Dateien: src/logic/look.h, test/test_look/test_main.cpp, src/logic/mood.h, test/test_mood/test_main.cpp (neuer Test `test_highfive`, bestehende unverändert)
+- Prüfung: `pio test -e native -f test_look` vor Implementierung → ERRORED (`logic/look.h` fehlt); danach 4 Tests, 0 Fehler. `pio test -e native -f test_mood` → 36 Tests, 0 Fehler
+- Gegenprobe: Ecken-Grenze y<56 → y<80 → `test_highfive_corners: Expected FALSE Was TRUE`; HIGHFIVE fun +5 → +4 → `test_highfive: Expected 55 Was 54`; beides zurück → PASS
+- Nächster Schritt: Interaktion Task 2 Step 1
+- Offen/Fragen: –
+
 ## Interaktion Task 0 – Werkzeuge und Branch (Cloud) – ERLEDIGT
 - Zeit: 2026-10-25 13:47 UTC
 - Gemacht: Basis `origin/buddy-umsetzung` (00ad726). Diese Cloud-Sitzung darf nur auf **`claude/dreamy-galileo-bvdw39`** pushen; der Branch wurde per Fast-Forward auf `buddy-umsetzung` gebracht und trägt ab hier die Interaktions-Commits. Werkzeuge wie unter „Task 0 – Werkzeuge (Cloud)“ (gleicher Container, noch eingerichtet).

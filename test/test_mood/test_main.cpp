@@ -301,6 +301,16 @@ void test_quirk_none_for_other_base_emotions() {
   }
 }
 
+void test_highfive() {
+  MoodState hs;
+  mood_init(hs, Needs{50, 50, 50});
+  mood_event(hs, MoodEvent::HIGHFIVE, 1000, 12);
+  TEST_ASSERT_FLOAT_WITHIN(0.01f, 55.0f, hs.n.fun);
+  TEST_ASSERT_FLOAT_WITHIN(0.01f, 52.0f, hs.n.affection);
+  TEST_ASSERT_EQUAL((int)Emotion::EXCITED, (int)mood_emotion(hs, 12, 2999));
+  TEST_ASSERT_EQUAL((int)Emotion::CONTENT, (int)mood_emotion(hs, 12, 3001));
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_giggle_third_stroke_in_20s);
@@ -338,5 +348,6 @@ int main(int, char **) {
   RUN_TEST(test_day_idle_stays_awake);
   RUN_TEST(test_touch_wakes_from_night_sleep);
   RUN_TEST(test_morning_wakes_with_greeting);
+  RUN_TEST(test_highfive);
   return UNITY_END();
 }

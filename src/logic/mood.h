@@ -6,7 +6,7 @@
 // Bedürfnisse und Gefühl des Buddys. Reine Logik, Zeit kommt als Parameter (Host-Test test/test_mood).
 enum class Emotion : uint8_t { CONTENT, HAPPY, BORED, SAD, SLEEPY, SLEEPING, SURPRISED, LOVE, ANNOYED, EXCITED, GREETING,
                             CONFUSED, MISCHIEVOUS, SCARED, SKEPTICAL, PROUD, GIGGLE, YAWN, WHISTLE, KISS, CHEEKY, STARTLED, COUNT };
-enum class MoodEvent : uint8_t { TAP, STROKE, POKE, GAME_WON, GAME_LOST };
+enum class MoodEvent : uint8_t { TAP, STROKE, POKE, GAME_WON, GAME_LOST, HIGHFIVE };
 struct Needs { float affection, fun, energy; };
 struct MoodState {
   Needs n;
@@ -161,6 +161,7 @@ inline void mood_event(MoodState &s, MoodEvent e, uint32_t now_ms, int hour = -1
       s.follow_ms = 4000;
       break;
     case MoodEvent::GAME_LOST: s.n.fun += 10; mood_set_transient(s, Emotion::SKEPTICAL, now_ms, 4000); break;
+    case MoodEvent::HIGHFIVE: s.n.fun += 5; s.n.affection += 2; mood_set_transient(s, Emotion::EXCITED, now_ms, 2000); break;
   }
   mood_clamp(s.n);
 }
