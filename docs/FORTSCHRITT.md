@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 3 – Sätze als Header – ERLEDIGT
+- Zeit: 2026-10-25 13:53 UTC
+- Gemacht: `tools/gen-phrases.mjs` erzeugt aus `saetze.json` den Header `src/logic/phrases.h` (`enum class Say` in JSON-Reihenfolge ohne `_quelle`, Tabellen `const char *const` UTF-8, `say_list(Say)` → {items, n}); `--check` meldet einen veralteten Header. Erzeugte Datei mit committet. Sätze unverändert.
+- Dateien: tools/gen-phrases.mjs, tools/gen-phrases.test.mjs, src/logic/phrases.h, test/test_phrases/test_main.cpp
+- Prüfung: `node --test tools/gen-phrases.test.mjs` vor dem Skript → ERR_MODULE_NOT_FOUND; vor dem Erzeugen 3/4 (Test „eingecheckte phrases.h ist aktuell“ FAIL); danach `node --test tools/*.test.mjs` → 7 Tests, 0 Fehler. `pio test -e native -f test_phrases` → 3 Tests, 0 Fehler (24 Kategorien, je ≥ 6, nach ASCII ≤ 28 Zeichen, kein unbekanntes Zeichen). `pio run -e cyd2usb` → SUCCESS
+- Gegenprobe: Grenze 28 → 20 → `test_ascii_max_28: Hallo du! Endlich wach. [FAILED]`; zurück → PASS
+- Nächster Schritt: Interaktion Task 4
+- Offen/Fragen: –
+
 ## Interaktion Task 2 – Blick folgt und High-Five (UI) – ERLEDIGT
 - Zeit: 2026-10-25 13:51 UTC
 - Gemacht: Step 2: Hand (Handfläche, 4 Finger, Daumen zur Mitte) in Augenfarbe in der getippten oberen Ecke, ploppt in 150 ms auf (`eyes_set_hand(right, since)`). Step 3: `app.cpp` – solange der Finger auf dem Augen-Bildschirm liegt (Touch-Beginn und Streicheln) `look_at`, aktives Blickziel ersetzt den Gazer; TAP in Ecke → `MoodEvent::HIGHFIVE` statt TAP, `OV_HAND` 1,5 s, LED 250 ms weiß.
