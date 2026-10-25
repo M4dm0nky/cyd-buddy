@@ -49,11 +49,22 @@ void test_highfive_corners() {
   TEST_ASSERT_FALSE(highfive_hit(300, 200));  // unten rechts
   TEST_ASSERT_FALSE(highfive_hit(160, 100));  // Mitte
 }
+void test_look_not_reactivated_after_2_31() {
+  LookState l{};
+  look_at(l, 10, 10, 5000);                            // bis 8000
+  TEST_ASSERT_FALSE(look_active(l, 8000UL + 0x80000000UL + 10));   // nie zwischendurch abgefragt
+  look_at(l, 10, 10, 5000);
+  TEST_ASSERT_TRUE(look_active(l, 6000));
+  TEST_ASSERT_FALSE(look_active(l, 8000));             // Ablauf bemerkt
+  TEST_ASSERT_FALSE(look_active(l, 8000UL + 0x80000000UL + 10));
+  TEST_ASSERT_FALSE(look_active(l, 5000UL + 0x100000000ULL + 100));   // 49,7 Tage: Alter wuerde wieder < 3 s
+}
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_center_maps_to_zero);
   RUN_TEST(test_corners_clamped);
   RUN_TEST(test_expires_after_3s);
   RUN_TEST(test_highfive_corners);
+  RUN_TEST(test_look_not_reactivated_after_2_31);
   return UNITY_END();
 }

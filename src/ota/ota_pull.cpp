@@ -303,7 +303,7 @@ void loop() {
     g_check_now = false;
     if (!net_wifi_ok()) { record_check(false); return; }
     portENTER_CRITICAL(&g_mux);
-    g_info.snooze_until = 0;
+    g_info.snooze_set_ms = 0;
     if (g_info.state == FAILED) { g_info.state = IDLE; g_info.error[0] = '\0'; }
     portEXIT_CRITICAL(&g_mux);
     g_fetching = true;
@@ -349,8 +349,8 @@ bool check_busy() { return g_fetching || (g_check_now && millis() - g_check_req_
 
 void snooze() {
   portENTER_CRITICAL(&g_mux);
-  g_info.snooze_until = millis() + OTA_NAG_MS;
-  if (!g_info.snooze_until) g_info.snooze_until = 1;
+  g_info.snooze_set_ms = millis();
+  if (!g_info.snooze_set_ms) g_info.snooze_set_ms = 1;
   portEXIT_CRITICAL(&g_mux);
 }
 

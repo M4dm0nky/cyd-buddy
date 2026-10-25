@@ -59,11 +59,17 @@ void test_redirect_ok() {
 void test_notice_and_progress() {
   TEST_ASSERT_FALSE(ota_notice_due(1000, 0, false));
   TEST_ASSERT_TRUE(ota_notice_due(1000, 0, true));
-  TEST_ASSERT_FALSE(ota_notice_due(1000, 2000, true));
+  TEST_ASSERT_FALSE(ota_notice_due(3000, 2000, true));
   TEST_ASSERT_EQUAL(50, ota_progress_pct(50, 100));
   TEST_ASSERT_EQUAL(0, ota_progress_pct(1, 0));
 }
 
+void test_notice_snooze_one_hour_and_2_31() {
+  TEST_ASSERT_FALSE(ota_notice_due(1000 + OTA_NAG_MS - 1, 1000, true));
+  TEST_ASSERT_TRUE(ota_notice_due(1000 + OTA_NAG_MS, 1000, true));
+  TEST_ASSERT_TRUE(ota_notice_due(1000UL + OTA_NAG_MS + 0x80000000UL + 5, 1000, true));   // vor 24,8 Tagen geschlummert
+  TEST_ASSERT_FALSE(ota_notice_due(1000UL + OTA_NAG_MS + 0x80000000UL + 5, 1000, false));
+}
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_image_ok_esp32);
@@ -72,5 +78,6 @@ int main(int, char **) {
   RUN_TEST(test_redirect_ok);
   RUN_TEST(test_redirect_authority_tricks);
   RUN_TEST(test_notice_and_progress);
+  RUN_TEST(test_notice_snooze_one_hour_and_2_31);
   return UNITY_END();
 }

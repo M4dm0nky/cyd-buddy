@@ -188,6 +188,11 @@ void test_daystats_mood() {
   TEST_ASSERT_EQUAL((int)Emotion::CONTENT, (int)daystats_mood(d));
 }
 
+void test_thought_set_long_ago_fires_after_2_31() {
+  SpeechState s; speech_init(s, 1000, 7);
+  Say say;
+  TEST_ASSERT_TRUE(speech_due(s, Emotion::CONTENT, 0x80000000UL + 11 * MIN, &say, 0));   // 24,8 Tage nie abgefragt
+}
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_pick_never_repeats);
@@ -204,5 +209,6 @@ int main(int, char **) {
   RUN_TEST(test_day_key);
   RUN_TEST(test_daystats_roll);
   RUN_TEST(test_daystats_mood);
+  RUN_TEST(test_thought_set_long_ago_fires_after_2_31);
   return UNITY_END();
 }

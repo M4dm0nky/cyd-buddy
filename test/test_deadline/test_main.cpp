@@ -56,6 +56,13 @@ void test_high_now_arm() {
   TEST_ASSERT_FALSE(d.active(0x90000000UL + 4000 + 0x80000000UL));
 }
 
+void test_due_since() {
+  TEST_ASSERT_FALSE(due_since(1499, 1000, 500));
+  TEST_ASSERT_TRUE(due_since(1500, 1000, 500));
+  TEST_ASSERT_TRUE(due_since(1000UL + 0x80000000UL + 5, 1000, 500));   // lange liegengeblieben: faellig, nicht 24,8 Tage warten
+  TEST_ASSERT_TRUE(due_since(0x00000100UL, 0xFFFFFF00UL, 0x100));      // millis()-Ueberlauf
+  TEST_ASSERT_FALSE(due_since(0x000000FFUL, 0xFFFFFF00UL, 0x200));
+}
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_never_armed_is_never_active);
@@ -65,5 +72,6 @@ int main(int, char **) {
   RUN_TEST(test_wraparound_of_millis);
   RUN_TEST(test_rearm_and_clear);
   RUN_TEST(test_high_now_arm);
+  RUN_TEST(test_due_since);
   return UNITY_END();
 }

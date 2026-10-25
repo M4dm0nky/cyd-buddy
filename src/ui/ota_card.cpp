@@ -18,7 +18,7 @@ static bool s_consented = false;
 bool ota_card_wanted(uint32_t now_ms, bool awake) {
   const ota_pull::Info i = ota_pull::info();
   switch (i.state) {
-    case ota_pull::AVAILABLE: return ota_notice_due(now_ms, i.snooze_until, awake);
+    case ota_pull::AVAILABLE: return ota_notice_due(now_ms, i.snooze_set_ms, awake);
     case ota_pull::DOWNLOADING:
     case ota_pull::VERIFYING:
     case ota_pull::RESTARTING:

@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "rng.h"
+#include "deadline.h"
 #include "mood.h"
 #include "phrases.h"
 
@@ -16,13 +17,15 @@ struct SpeechState {
   uint32_t rng;
   uint32_t last_ms;                // letzte Blase
   bool any;                        // überhaupt schon eine Blase
-  uint32_t next_thought_ms;
+  uint32_t thought_set_ms;         // Abstand seit dem Planen statt Zielzeitpunkt (24,8-Tage-sicher)
+  uint32_t thought_wait_ms;
   Emotion base;
   bool base_known;
 };
 
 inline void speech_schedule_thought(SpeechState &s, uint32_t now_ms) {
-  s.next_thought_ms = now_ms + rng_range(s.rng, SPEECH_THOUGHT_MIN_MS, SPEECH_THOUGHT_MAX_MS);
+  s.thought_set_ms = now_ms;
+  s.thought_wait_ms = rng_range(s.rng, SPEECH_THOUGHT_MIN_MS, SPEECH_THOUGHT_MAX_MS);
 }
 inline void speech_init(SpeechState &s, uint32_t now_ms, uint32_t seed) {
   s = SpeechState{};
@@ -72,7 +75,7 @@ inline bool speech_due(SpeechState &s, Emotion base, uint32_t now_ms, Say *out, 
       return true;
     }
   }
-  if ((int32_t)(now_ms - s.next_thought_ms) < 0) return false;
+  if (!due_since(now_ms, s.thought_set_ms, s.thought_wait_ms)) return false;
   if (!speech_may(s, now_ms)) { speech_schedule_thought(s, now_ms); return false; }
   *out = cuddly > SPEECH_CHARACTER_LIMIT ? Say::VERSCHMUST : (cuddly < -SPEECH_CHARACTER_LIMIT ? Say::FRECH : Say::GEDANKEN);
   speech_shown(s, now_ms);

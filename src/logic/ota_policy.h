@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
+#include "deadline.h"
 
 // Entscheidungen des Firmware-Updates per Abruf (src/ota/ota_pull.cpp). Reine Logik ohne Arduino-/LVGL-Includes (Host-Test test/test_ota_policy).
 // Das Gerät holt die Datei selbst, aber nur nach Zustimmung am Display; was es bootet, prüft es am Image selbst, nicht an den Angaben im Manifest.
@@ -94,9 +95,10 @@ static inline bool ota_needs_update(const char *running_elf, const char *manifes
 // Hinweis anzeigen? Nur wenn das Display wach ist (nicht dunkel/gedimmt: ein Tipp in ein dunkles Display darf nie zustimmen)
 // und die Schlummerzeit (nach "Später" eine Stunde) um ist.
 constexpr uint32_t OTA_NAG_MS = 3600000UL;
-static inline bool ota_notice_due(uint32_t now_ms, uint32_t snooze_until_ms, bool awake) {
+// snooze_set_ms = millis() beim Schlummern (0 = nicht geschlummert); Abstand statt Zielzeitpunkt (24,8-Tage-sicher).
+static inline bool ota_notice_due(uint32_t now_ms, uint32_t snooze_set_ms, bool awake) {
   if (!awake) return false;
-  return snooze_until_ms == 0 || (int32_t)(now_ms - snooze_until_ms) >= 0;
+  return snooze_set_ms == 0 || due_since(now_ms, snooze_set_ms, OTA_NAG_MS);
 }
 
 static inline int ota_progress_pct(uint32_t done, uint32_t total) {

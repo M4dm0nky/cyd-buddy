@@ -351,6 +351,39 @@ void test_highfive() {
   TEST_ASSERT_EQUAL((int)Emotion::CONTENT, (int)mood_emotion(hs, 12, 3001));
 }
 
+void test_transient_not_reactivated_after_2_31() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::TAP, 1000, 12);   // SURPRISED bis 2500
+  TEST_ASSERT_EQUAL((int)Emotion::SURPRISED, (int)mood_emotion(s, 12, 1200));
+  TEST_ASSERT_NOT_EQUAL((int)Emotion::SURPRISED, (int)mood_emotion(s, 12, 2500UL + 0x80000000UL + 10));
+}
+void test_follow_not_reactivated_after_2_31() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::GAME_WON, 1000, 12);   // EXCITED 6 s, PROUD 4 s
+  TEST_ASSERT_EQUAL((int)Emotion::PROUD, (int)mood_emotion(s, 12, 8000));
+  TEST_ASSERT_NOT_EQUAL((int)Emotion::PROUD, (int)mood_emotion(s, 12, 11000UL + 0x80000000UL + 10));
+  TEST_ASSERT_NOT_EQUAL((int)Emotion::EXCITED, (int)mood_emotion(s, 12, 7000UL + 0x80000000UL + 10));
+}
+void test_transient_cleared_by_tick_survives_49_days() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::TAP, 1000, 12);
+  mood_tick(s, 100, 3000);   // nach Ablauf
+  TEST_ASSERT_NOT_EQUAL((int)Emotion::SURPRISED, (int)mood_emotion(s, 12, 1000UL + 0x100000000ULL + 100));
+}
+void test_quirk_set_long_ago_fires_after_2_31() {
+  fresh(50, 50, 50);
+  mood_seed(s, 12345);
+  mood_quirks(s, 23, 1000);   // plant (SLEEPY, Nacht) 2-5 min
+  mood_quirks(s, 23, 0x80000000UL + 400000);   // nie abgefragt (Ziel hoechstens bei 301000): darf nicht 24,8 Tage warten
+  TEST_ASSERT_EQUAL((int)Emotion::YAWN, (int)mood_emotion(s, 23, 0x80000000UL + 400000));
+}
+void test_sneeze_set_long_ago_fires_after_2_31() {
+  fresh(50, 50, 50);
+  mood_seed(s, 777);
+  s.sick = true;
+  TEST_ASSERT_FALSE(mood_sneeze_due(s, 1000));   // plant
+  TEST_ASSERT_TRUE(mood_sneeze_due(s, 0x80000000UL + 200000));
+}
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_night_hours_shared);
@@ -393,5 +426,10 @@ int main(int, char **) {
   RUN_TEST(test_touch_wakes_from_night_sleep);
   RUN_TEST(test_morning_wakes_with_greeting);
   RUN_TEST(test_highfive);
+  RUN_TEST(test_transient_not_reactivated_after_2_31);
+  RUN_TEST(test_follow_not_reactivated_after_2_31);
+  RUN_TEST(test_transient_cleared_by_tick_survives_49_days);
+  RUN_TEST(test_quirk_set_long_ago_fires_after_2_31);
+  RUN_TEST(test_sneeze_set_long_ago_fires_after_2_31);
   return UNITY_END();
 }

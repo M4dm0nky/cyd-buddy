@@ -14,7 +14,7 @@ struct Info {
   uint32_t size;        // Bytes
   uint8_t pct;          // 0..100 beim Laden
   char error[40];       // bei FAILED: Grund
-  uint32_t snooze_until;// millis(), 0 = nicht geschlummert
+  uint32_t snooze_set_ms;// millis() beim Schlummern, 0 = nicht geschlummert
   uint32_t last_check_ms;// millis() der letzten beendeten Abfrage des Manifests, 0 = noch keine
   bool last_failed;     // die letzte Abfrage ist fehlgeschlagen (Manifest nicht erreichbar/lesbar)
 };

@@ -1,10 +1,14 @@
 #pragma once
 #include <stdint.h>
 
-// Zeitablauf für lange Lebenszeiten (Blase, Hand, LED-Blitz ...). Host-Test test/test_deadline.
+// Zeitablauf fÃ¼r lange Lebenszeiten (Blase, Hand, LED-Blitz ...). Host-Test test/test_deadline.
 // Das Muster (int32_t)(until - now) > 0 wird nach 2^31 ms (24,8 Tage) wieder wahr, wenn nie neu gesetzt wurde.
 // Darum: Start + Dauer + "an"-Flag; active() schaltet sich beim Ablauf selbst aus, und selbst ohne Abfrage
 // bleibt es bis 2^32 ms (49,7 Tage) nach dem Start aus. Ein nie bewaffnetes Deadline ist nie aktiv.
+// "Warte bis": Abstand seit dem Setzen statt Zielzeitpunkt. Ein lange liegengebliebener Zeitpunkt ist faellig (nach 24,8 Tagen
+// warnt (int32_t)(now - ziel) < 0 sonst faelschlich "noch nicht" und wuerde bis zu 24,8 Tage Wartezeit erzeugen).
+inline bool due_since(uint32_t now, uint32_t set_ms, uint32_t wait_ms) { return now - set_ms >= wait_ms; }
+
 struct Deadline {
   uint32_t start = 0;
   uint32_t dur = 0;
