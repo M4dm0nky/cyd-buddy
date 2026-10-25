@@ -10,9 +10,11 @@ auch wenn der Buddy nicht erreichbar ist.
 1. Skript kopieren: `buddy-status.mjs` nach `%USERPROFILE%\.claude\hooks\`.
 2. Konfiguration anlegen: `buddy-status.example.json` als
    `%USERPROFILE%\.claude\hooks\buddy-status.json` kopieren und ausfüllen:
-   - `host`: `cyd-buddy.local`
+   - `host`: **IP des Buddy** (z. B. `192.168.2.137`; im Router fest vergeben)
    - `key`: Schlüssel aus dem Buddy unter Einstellungen → Info
-   - `fallbackHost` (optional): IP des Buddy, falls `cyd-buddy.local` nicht auflöst
+   - `fallbackHost`: `cyd-buddy.local`
+   Gemessen 2026-10-25: Unter Windows braucht Node für die erste Auflösung von `cyd-buddy.local` länger als die
+   800 ms Zeitlimit – das erste Ereignis ging dann verloren. Darum zuerst die IP, der Name nur als Ersatz.
 3. Hooks in `%USERPROFILE%\.claude\settings.json` eintragen (vorher sichern),
    Block unten einfügen. Bestehende Einträge bleiben erhalten, nur die
    `hooks`-Abschnitte ergänzen.
