@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 3 – Augenmodell (eye_model.h) – ERLEDIGT
+- Zeit: 2026-10-25 10:38 UTC
+- Gemacht: Test aus dem Plan wörtlich; `src/logic/eye_model.h` mit Tabelle (switch), xorshift32, `eye_tween`/`rgb_tween` (k = 1 − e^(−dt/150)), Blinker und Gazer nach Plan.
+- Dateien: src/logic/eye_model.h, test/test_eye_model/test_main.cpp
+- Prüfung: `pio test -e native -f test_eye_model` vor Implementierung → ERRORED (Header fehlt); danach → 6 Tests, 0 Fehler
+- Gegenprobe: Blinzelabstand 2000–6000 → 7000–9000 → `test_blinker_closes_within_window` und `test_blinker_reopens` FAILED; zurück → 6 PASS
+- Nächster Schritt: Task 4 Step 1
+- Offen/Fragen: –
+
 ## Task 2 – Gesten (gesture.h) – ERLEDIGT
 - Zeit: 2026-10-25 10:33 UTC
 - Gemacht: Test aus dem Plan wörtlich, `src/logic/gesture.h` nach den Regeln im Plan (Tipp-Ringpuffer der letzten 5, Streichel-Fenster 1,5 s, Bewegungsschwelle 15 px).
