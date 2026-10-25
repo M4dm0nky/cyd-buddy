@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 4 – Sprechregeln, Rituale, Tageszähler – ERLEDIGT
+- Zeit: 2026-10-25 13:56 UTC
+- Gemacht: `speech.h` (`speech_init/pick/may/shown/due`: 90 s Abstand, 40 % beim Wechsel des Grundgefühls zu BORED/SAD/HAPPY, Gedanken alle 5–10 min, bei |cuddly| > 40 verschmust/frech, kein Satz zweimal hintereinander je Kategorie), `rituals.h` (Morgen 5–12 Uhr einmal pro Tag beim ersten Aufwachen, Nacht 22 Uhr einmal, Rückblick 20:00 bzw. Nachholen bei Berührung bis 23 Uhr, `weather_sentence` „Heute 14° und Regen“, `day_key`), `daystats.h` (Zähler, `daystats_roll` setzt bei neuem Tag zurück, `daystats_mood` für den Rückblick).
+- Dateien: src/logic/speech.h, src/logic/rituals.h, src/logic/daystats.h, test/test_speech/test_main.cpp
+- Prüfung: `pio test -e native -f test_speech` vorher → ERRORED (`logic/speech.h` fehlt); danach 14 Tests, 0 Fehler. `pio test -e native` → 101 Tests, 0 Fehler
+- Gegenprobe: Wiederholungs-Sperre aus → `test_pick_never_repeats` FAILED; 90 s → 60 s → `test_cooldown_90s` FAILED; Rückblick bis 23 → bis einschl. 23 → `test_review_20_or_catch_up_until_23` FAILED; `pokes > strokes` → `>=` zunächst **nicht** erkannt → Test ergänzt (gleich viel Streicheln wie Stupsen → CONTENT), dann FAILED; alles zurück → PASS
+- Nächster Schritt: Interaktion Task 5 Step 1
+- Offen/Fragen: (1) „frech bzw. verschmust“: Spec sagt nur „|Charakter| > 40“. Umgesetzt mit der Achse `cuddly`: > 40 → verschmust, < −40 → frech (passt zu „CHEEKY-Wahrscheinlichkeit 0,5 − cuddly/200“). (2) HUNGRY/SICK als Grundgefühl gibt es erst mit Task 6; `speech_for_base` bekommt sie dort. (3) Nacht-Ritual: „um 22:00“ als erstes wache Bild zwischen 22:00 und 22:59 (sonst ginge es verloren, wenn er genau um 22:00 in einem Menü ist). (4) Schwellen im Rückblick-Gefühl (≥ 10 Streicheln → HAPPY, ≥ 5 Stupsen und mehr als Streicheln → ANNOYED) sind meine Wahl, die Spec nennt keine Zahlen. (5) `speech_init` bekommt zusätzlich die Startzeit.
+
 ## Interaktion Task 3 – Sätze als Header – ERLEDIGT
 - Zeit: 2026-10-25 13:53 UTC
 - Gemacht: `tools/gen-phrases.mjs` erzeugt aus `saetze.json` den Header `src/logic/phrases.h` (`enum class Say` in JSON-Reihenfolge ohne `_quelle`, Tabellen `const char *const` UTF-8, `say_list(Say)` → {items, n}); `--check` meldet einen veralteten Header. Erzeugte Datei mit committet. Sätze unverändert.
