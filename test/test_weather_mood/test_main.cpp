@@ -60,6 +60,16 @@ void test_sunglasses_for_proud_and_cheeky() {
   TEST_ASSERT_FALSE(overlays_for(Emotion::PROUD, &rain, true) & OV_SUNGLASSES);
 }
 
+// OV_HAND (High-Five) setzt app.cpp selbst; overlays_for liefert es nie.
+void test_hand_bit() {
+  TEST_ASSERT_EQUAL_UINT32(1024u, (uint32_t)OV_HAND);
+  for (int i = 0; i < (int)Emotion::COUNT; i++) {
+    WeatherMood w = weather_mood(95, 30);
+    TEST_ASSERT_FALSE(overlays_for((Emotion)i, &w, true) & OV_HAND);
+    TEST_ASSERT_FALSE(overlays_for((Emotion)i, nullptr, true) & OV_HAND);
+  }
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_new_overlays);
@@ -68,5 +78,6 @@ int main(int, char **) {
   RUN_TEST(test_flags);
   RUN_TEST(test_fresh);
   RUN_TEST(test_overlays);
+  RUN_TEST(test_hand_bit);
   return UNITY_END();
 }

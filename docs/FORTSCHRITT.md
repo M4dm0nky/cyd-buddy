@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 2 – Blick folgt und High-Five (UI) – TEILWEISE
+- Zeit: 2026-10-25 13:49 UTC
+- Gemacht: Step 1: `OV_HAND = 1024` in weather_mood.h + Test `test_hand_bit` (Bit-Wert, `overlays_for` setzt es nie).
+- Dateien: src/logic/weather_mood.h, test/test_weather_mood/test_main.cpp
+- Prüfung: `pio test -e native -f test_weather_mood` vorher → ERRORED (`OV_HAND` nicht deklariert); danach 7 Tests, 0 Fehler
+- Gegenprobe: `OV_HAND = 2048` → `test_hand_bit` FAILED; zurück → 7 PASS
+- Nächster Schritt: Interaktion Task 2 Step 2 (Hand in eyes.cpp zeichnen), dann Step 3 (app.cpp: Blick folgt, High-Five, LED weiß), Build
+- Offen/Fragen: –
+
 ## Interaktion Task 1 – Blick folgt und High-Five (Logik) – ERLEDIGT
 - Zeit: 2026-10-25 13:48 UTC
 - Gemacht: `src/logic/look.h` (`LookState`, `look_at` mit Abbildung (x−160)/160·30 und (y−100)/100·15, geklemmt, 3000 ms; `look_active`, `look_target`, `highfive_hit` für x<64 oder x>256 bei y<56). `MoodEvent::HIGHFIVE` in mood.h: Unterhaltung +5, Zuneigung +2, EXCITED 2 s.

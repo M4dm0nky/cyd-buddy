@@ -32,7 +32,8 @@ inline bool weather_fresh(uint32_t now_ms, uint32_t fetched_ms) {
 enum Overlay : uint32_t {
   OV_HEART = 1, OV_SUNGLASSES = 2, OV_SWEAT = 4, OV_TEAR = 8,
   OV_ZZZ = 16, OV_SHIVER = 32, OV_RAIN_TINT = 64, OV_STORM = 128,
-  OV_QUESTION = 256, OV_NOTE = 512
+  OV_QUESTION = 256, OV_NOTE = 512,
+  OV_HAND = 1024   // High-Five: gesetzt von app.cpp, nicht von overlays_for
 };
 
 // w = nullptr: kein (frisches) Wetter.
