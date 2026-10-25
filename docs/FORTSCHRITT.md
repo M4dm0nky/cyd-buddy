@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 2 – Gesten (gesture.h) – ERLEDIGT
+- Zeit: 2026-10-25 10:33 UTC
+- Gemacht: Test aus dem Plan wörtlich, `src/logic/gesture.h` nach den Regeln im Plan (Tipp-Ringpuffer der letzten 5, Streichel-Fenster 1,5 s, Bewegungsschwelle 15 px).
+- Dateien: src/logic/gesture.h, test/test_gesture/test_main.cpp
+- Prüfung: `pio test -e native -f test_gesture` vor Implementierung → ERRORED (Header fehlt); danach → 7 Tests, 0 Fehler
+- Gegenprobe: `GESTURE_STROKE_PX` 60 → 200 → `test_stroke: Expected 2 Was 0 [FAILED]`; zurück → 7 PASS
+- Nächster Schritt: Task 3 Step 1
+- Offen/Fragen: –
+
 ## Task 1 – Stimmung (mood.h) – ERLEDIGT
 - Zeit: 2026-10-25 10:28 UTC
 - Gemacht: Test aus dem Plan wörtlich übernommen, `src/logic/mood.h` exakt nach Plan.
