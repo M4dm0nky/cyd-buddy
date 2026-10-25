@@ -8,7 +8,7 @@ static bool s_valid = false;
 
 static bool same(const StatusInfo &a, const StatusInfo &b) {
   if (a.time_ok != b.time_ok || a.wifi_ok != b.wifi_ok || a.portal != b.portal || a.weather_ok != b.weather_ok ||
-      a.update_ready != b.update_ready)
+      a.update_ready != b.update_ready || a.timer_s != b.timer_s || a.timer_break != b.timer_break)
     return false;
   if (a.time_ok && (a.hour != b.hour || a.minute != b.minute)) return false;
   if (a.weather_ok && (a.sky != b.sky || a.is_day != b.is_day || lroundf(a.temp_c) != lroundf(b.temp_c))) return false;
@@ -54,6 +54,12 @@ void status_draw(LGFX &lcd, const StatusInfo &s) {
     lcd.setTextColor(TFT_WHITE, TFT_BLACK);
     const int w = lcd.drawString(buf, 160, cy);
     lcd.drawCircle(160 + w + 4, cy - 7, 3, TFT_WHITE);   // Gradzeichen (nicht in der Schrift)
+  }
+  if (s.timer_s) {   // Pomodoro-Restzeit mm:ss
+    snprintf(buf, sizeof buf, "%u:%02u", (unsigned)(s.timer_s / 60), (unsigned)(s.timer_s % 60));
+    lcd.setFont(&fonts::FreeSansBold9pt7b);
+    lcd.setTextColor(s.timer_break ? lcd.color888(60, 220, 120) : lcd.color888(255, 90, 140), TFT_BLACK);
+    lcd.drawString(buf, 206, cy);
   }
   lcd.endWrite();
 }

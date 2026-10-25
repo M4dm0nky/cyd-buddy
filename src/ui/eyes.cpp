@@ -10,6 +10,13 @@ static bool s_ready = false;
 static bool s_hand_right = false;
 static uint32_t s_hand_since = 0;
 
+static float s_ring = -1;
+static Rgb s_ring_col{255, 90, 140};
+void eyes_set_ring(float progress, Rgb color) {
+  s_ring = progress;
+  s_ring_col = color;
+}
+
 static int s_food = -1, s_food_y = 0;
 void eyes_set_food(int food, int y) {
   s_food = food;
@@ -321,6 +328,12 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
   if (ov & OV_NOTE) {
     const int dy = (int)(4 * sinf(now / 300.0f));
     music_note(d, 212, 168 + dy, col);
+  }
+  if (s_ring >= 0) {   // Pomodoro: dünner Bogen um das Gesicht, im Uhrzeigersinn ab oben
+    const float p = s_ring > 1 ? 1 : s_ring;
+    // Ellipse am Rand (rx 153, ry 96), damit der Bogen Augen und Mund nicht schneidet
+    d.fillEllipseArc(160, 100, 152, 154, 95, 97, 0, 360, lgfx::color888(s_ring_col.r / 5, s_ring_col.g / 5, s_ring_col.b / 5));
+    if (p > 0.002f) d.fillEllipseArc(160, 100, 151, 155, 94, 98, 270, 270 + 360 * p, rgb(s_ring_col));
   }
   if (ov & OV_SNEEZE) {   // Hatschi: Tropfen an der Nase
     drop(d, 160 + ox + 8, kNoseY + oy + 14, 12, lgfx::color888(140, 210, 255));

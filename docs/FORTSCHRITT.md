@@ -3,6 +3,15 @@
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
 ## Interaktion Task 9 – Pomodoro (UI) – TEILWEISE
+- Zeit: 2026-10-25 14:19 UTC
+- Gemacht: Step 2: Fortschrittsring als dünne Ellipse am Sprite-Rand (rx ~153, ry ~96, dunkle Spur + Bogen im Uhrzeigersinn ab oben, `eyes_set_ring(progress, Farbe)`), Restzeit mm:ss im Statusstreifen (`StatusInfo.timer_s/timer_break`, Arbeit pink, Pause grün).
+- Dateien: src/ui/eyes.h, src/ui/eyes.cpp, src/ui/status_bar.h, src/ui/status_bar.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS
+- Gegenprobe: –
+- Nächster Schritt: Interaktion Task 9 Step 3 (Verdrahtung in app.cpp: TIMER-Bildschirm, FOCUSED, keine Eigenarten/Blasen außer Start, kein Schlaf während WORK, BREAK_START/END mit Blase und LED, Zähler)
+- Offen/Fragen: Ring als Ellipse statt Kreis: ein Kreis um die Mitte schnitte die äußeren Augenränder (x 58 bei Radius 98).
+
+## Interaktion Task 9 – Pomodoro (UI) – TEILWEISE
 - Zeit: 2026-10-25 14:18 UTC
 - Gemacht: Step 1: Bildschirm TIMER `src/ui/timer_view.*` (Kacheln 15/25/45 mit Sanduhr, Zurück; läuft ein Timer: Stopp-Kachel mit Quadrat + Zurück; 10 s Timeout).
 - Dateien: src/ui/timer_view.h, src/ui/timer_view.cpp
