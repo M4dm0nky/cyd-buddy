@@ -46,27 +46,17 @@ constexpr uint32_t BLINK_OPEN_MS = 120;
 constexpr uint32_t BLINK_GAP_MIN_MS = 2000;
 constexpr uint32_t BLINK_GAP_MAX_MS = 6000;
 
-struct Blinker { uint32_t seed, next_ms, start_ms; bool closing; };
+struct Blinker { uint32_t seed, next_ms; };
 inline void blinker_init(Blinker &b, uint32_t seed, uint32_t now_ms) {
   b.seed = seed ? seed : 1;
-  b.start_ms = now_ms;
-  b.closing = false;
   b.next_ms = now_ms + rng_range(b.seed, BLINK_GAP_MIN_MS, BLINK_GAP_MAX_MS);
 }
 // 1 = offen … 0 = zu. Ein Blinzeln: 80 ms zu, 120 ms auf, dann nächstes in 2–6 s.
 inline float blinker_open(Blinker &b, uint32_t now_ms) {
   const int32_t t = (int32_t)(now_ms - b.next_ms);
-  if (t < 0) { b.closing = false; return 1.0f; }
-  if (t < (int32_t)BLINK_CLOSE_MS) {
-    b.closing = true;
-    b.start_ms = b.next_ms;
-    return 1.0f - (float)t / BLINK_CLOSE_MS;
-  }
-  if (t < (int32_t)(BLINK_CLOSE_MS + BLINK_OPEN_MS)) {
-    b.closing = false;
-    return (float)(t - (int32_t)BLINK_CLOSE_MS) / BLINK_OPEN_MS;
-  }
-  b.closing = false;
+  if (t < 0) return 1.0f;
+  if (t < (int32_t)BLINK_CLOSE_MS) return 1.0f - (float)t / BLINK_CLOSE_MS;
+  if (t < (int32_t)(BLINK_CLOSE_MS + BLINK_OPEN_MS)) return (float)(t - (int32_t)BLINK_CLOSE_MS) / BLINK_OPEN_MS;
   b.next_ms = now_ms + rng_range(b.seed, BLINK_GAP_MIN_MS, BLINK_GAP_MAX_MS);
   return 1.0f;
 }

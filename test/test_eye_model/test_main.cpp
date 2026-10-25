@@ -27,6 +27,12 @@ void test_rng_deterministic() {
   uint32_t s = 7;
   for (int i = 0; i < 1000; i++) { uint32_t v = rng_range(s, 3, 9); TEST_ASSERT_TRUE(v >= 3 && v <= 9); }
 }
+void test_rng_range_full_span_no_div0() {
+  uint32_t s = 7;
+  (void)rng_range(s, 0, 0xFFFFFFFFu);   // hi-lo+1 == 0 darf nicht durch 0 teilen
+  TEST_ASSERT_EQUAL_UINT32(5, rng_range(s, 5, 5));
+  TEST_ASSERT_EQUAL_UINT32(9, rng_range(s, 9, 3));
+}
 void test_blinker_closes_within_window() {
   Blinker b; blinker_init(b, 1234, 0);
   TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, blinker_open(b, 0));
@@ -55,6 +61,7 @@ int main(int, char **) {
   RUN_TEST(test_table_complete);
   RUN_TEST(test_tween_converges_and_dt0_noop);
   RUN_TEST(test_rng_deterministic);
+  RUN_TEST(test_rng_range_full_span_no_div0);
   RUN_TEST(test_blinker_closes_within_window);
   RUN_TEST(test_blinker_reopens);
   RUN_TEST(test_gazer_ranges);

@@ -4,14 +4,13 @@
 // Pomodoro-Timer (F4): Arbeit 15/25/45 min, danach 5 min Pause, dann IDLE (nicht automatisch neu). Host-Test test/test_pomodoro.
 enum class PomoState : uint8_t { IDLE, WORK, BREAK };
 enum class PomoEvent : uint8_t { NONE, BREAK_START, BREAK_END };
-struct Pomo { PomoState state; uint32_t start_ms; uint32_t dur_ms; uint8_t minutes; };
+struct Pomo { PomoState state; uint32_t start_ms; uint32_t dur_ms; };
 
 constexpr uint32_t POMO_BREAK_MS = 5UL * 60000UL;
 
 inline bool pomo_start(Pomo &p, uint8_t minutes, uint32_t now_ms) {
   if (minutes != 15 && minutes != 25 && minutes != 45) return false;
   p.state = PomoState::WORK;
-  p.minutes = minutes;
   p.start_ms = now_ms;
   p.dur_ms = (uint32_t)minutes * 60000UL;
   return true;

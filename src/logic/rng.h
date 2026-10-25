@@ -12,5 +12,7 @@ inline uint32_t rng_next(uint32_t &s) {
 // Gleichverteilt (bis auf Modulo-Rest) in [lo, hi].
 inline uint32_t rng_range(uint32_t &s, uint32_t lo, uint32_t hi) {
   if (hi <= lo) return lo;
-  return lo + rng_next(s) % (hi - lo + 1);
+  const uint32_t span = hi - lo + 1;
+  if (span == 0) return rng_next(s);   // voller 32-Bit-Bereich: kein Modulo (wäre Division durch 0)
+  return lo + rng_next(s) % span;
 }
