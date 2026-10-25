@@ -171,6 +171,15 @@ static void open_settings(uint32_t now) {
   settings_open(s_lcd, s_persist, now);
 }
 
+static bool s_manual_ota = false;   // in den Einstellungen "Firmware" getippt: nach der Suche Karte sofort zeigen
+
+static void open_ota_card(uint32_t now) {
+  s_screen = Screen::OTA;
+  set_backlight(kBacklight[s_persist.brightness]);
+  ota_card_open(now);
+  ota_card_draw(s_lcd, now);
+}
+
 static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16_t ty) {
   const bool tap = g == Gesture::TAP;
   switch (s_screen) {
@@ -182,10 +191,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
         return;
       }
       if (ota_card_wanted(now, s_emotion != Emotion::SLEEPING)) {   // nur bei wachem Display
-        s_screen = Screen::OTA;
-        set_backlight(kBacklight[s_persist.brightness]);
-        ota_card_open(now);
-        ota_card_draw(s_lcd, now);
+        open_ota_card(now);
         return;
       }
       touch_to_mood(g, now);
@@ -223,9 +229,18 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
             settings_redraw(s_lcd, s_persist);
             break;
           case SettingsAction::PORTAL: net_open_portal(); settings_redraw(s_lcd, s_persist); break;
-          case SettingsAction::OTA_CHECK: ota_pull::check_now(); settings_redraw(s_lcd, s_persist); break;
+          case SettingsAction::OTA_CHECK:
+            // Manuelles Update: suchen (hebt auch "Später" auf); liegt eins bereit, kommt die Karte sofort (unten).
+            ota_pull::check_now();
+            s_manual_ota = true;
+            settings_redraw(s_lcd, s_persist);
+            break;
           default: break;
         }
+      }
+      if (s_manual_ota && !ota_pull::check_busy()) {
+        s_manual_ota = false;
+        if (ota_pull::info().state == ota_pull::AVAILABLE) { open_ota_card(now); return; }
       }
       settings_tick(s_lcd, s_persist, now);
       return;
