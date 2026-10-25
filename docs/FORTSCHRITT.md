@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 14 – Doku und Abschluss – ERLEDIGT
+- Zeit: 2026-10-25 10:48 UTC
+- Gemacht: `docs/ota.md` (GitHub-Release, keine Geheimnisse in der .bin, Ablauf, Prüfungen, Alltag, Grenzen: Rollback ungeprüft, erster Flash per Kabel) und `README.md` (Gesten, Menü, Portal „CYD-Buddy“, Ort, Entwicklung, Verweis auf docs/ota.md). Abschlussprüfung.
+- Dateien: docs/ota.md, README.md
+- Prüfung: `pio test -e native` → 47 Tests, 0 Fehler (8 Gruppen: mood 13, gesture 7, eye_model 6, weather_mood 4, games 7, ota_policy 5, ascii 2, smoke 3). `node --test tools/*.test.mjs` → 3 Tests, 0 Fehler. `pio run -e cyd2usb` → SUCCESS, RAM 17,4 % (56 860 B von 327 680 B, statisch), Flash 72,8 % (1 431 027 B); `firmware.bin` 1 459 792 B < 1 966 080 B
+- Gegenprobe: je Testgruppe in Task 1–6, 10, 13 gemacht (siehe dort)
+- Nächster Schritt: **Lokaler Claude übernimmt** den Branch `claude/dreamy-galileo-bvdw39` (siehe Task 0: die Cloud-Sitzung durfte nicht auf `buddy-umsetzung` pushen). Am Gerät messen und prüfen (Liste unten), Messwerte in `src/config.h`, dann erstes Release.
+- Offen/Fragen (Sammlung): (1) Branch-Name, s. o. (2) `OTA_IMG_CHECK_BYTES`/`CHECK_BYTES` 176 → 208 (Fehler der Vorlage, Task 6). (3) `SimonState::INPUT` → `AWAIT_INPUT` (Arduino-Makro, Task 11). (4) Open-Meteo-URLs in der Cloud nicht prüfbar (Task 9). (5) `node --test tools/` geht mit Node 22 nicht → `node --test tools/*.test.mjs` (Task 13). (6) Lichtsensor meldet nie „dunkel“, solange `LDR_DARK_THRESHOLD` ≤ 0; `LDR_DARK_IS_HIGH` fehlt in config.h (Task 7). (7) WiFiManager-Upload-Seite per Neustart gesperrt (Task 9). (8) Kein Release, kein Flash, kein PR (wie verlangt).
+- Am Gerät zu prüfen (aus Spec „Prüfung“): Testbild/Farben (Panel ST7789 vs. ILI9341, `CYD_INVERT`), Touch-Kalibrierung; Augen flüssig (fps ≥ 25 im Seriell-Log); Gesten (Tippen, Streicheln, Stupsen, Lang drücken); Lichtsensor (Richtung, Schwelle, Hysterese → config.h); Portal „CYD-Buddy“ mit Ort; Wetter im Statusstreifen und als Overlays; Uhr (Zeit, Datum, Wetter, Augen von unten); Spiele Fang mich und Simon; Einstellungen (Helligkeit, Portal, Firmware, Info); OTA Ende zu Ende mit zweitem Release (Karte, Später, Ja, Fortschritt, Neustart, Zustand im Seriell-Log `ota: Partition … Zustand …`); Heap-Minimum nach Manifest-Abruf.
+
 ## Task 13 – Veröffentlichungs-Skript (tools/ota-publish.mjs) – ERLEDIGT
 - Zeit: 2026-10-25 10:46 UTC
 - Gemacht: Skript aus der Vorlage portiert: `.pio/build/cyd2usb/firmware.bin`, Chip 0 („falscher Chip (erwartet ESP32)“), Slot-Grenze 1 966 080, `manifest.json`/`firmware.bin`, Git-Prüfpfade `src tools platformio.ini`, `--serve`/`--ha`/`uploadHa`/`secretToken` entfernt, `--release` ruft `gh release create v<YYYYMMDD-HHMM> … --latest --repo M4dm0nky/cyd-buddy` auf. CLI nur bei direktem Aufruf (`import.meta.url === pathToFileURL(...)`). `PROJECT = 'arduino-lib-builder'` (aus `--check`).
