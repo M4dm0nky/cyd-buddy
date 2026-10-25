@@ -110,6 +110,21 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
   tx = (int16_t)x;
   ty = (int16_t)y;
   if (pressed) mood_touch(s_mood, now);   // jede Berührung hält ihn nachts wach bzw. weckt ihn
+  static bool s_was_pressed = false;
+  if (pressed && !s_was_pressed) {   // Beginn einer Berührung seriell ausgeben (Touch-Kalibrierung prüfen)
+    lgfx::touch_point_t raw;
+    s_lcd.getTouchRaw(&raw, 1);
+    Serial.printf("touch x=%d y=%d raw=%d,%d\n", (int)x, (int)y, (int)raw.x, (int)raw.y);
+  }
+  s_was_pressed = pressed;
+  // Berührung, die der Chip meldet, die Bibliothek aber verwirft (außerhalb des Bereichs): einmal je Berührung melden
+  static bool s_raw_only = false;
+  if (!pressed) {
+    lgfx::touch_point_t raw;
+    const bool raw_down = s_lcd.getTouchRaw(&raw, 1) > 0;
+    if (raw_down && !s_raw_only) Serial.printf("touch verworfen raw=%d,%d\n", (int)raw.x, (int)raw.y);
+    s_raw_only = raw_down;
+  }
   return gesture_feed(s_gesture, pressed, tx, ty, now);
 }
 

@@ -18,11 +18,13 @@ constexpr int TOUCH_MISO = 39;
 constexpr int TOUCH_CS   = 33;
 constexpr int TOUCH_IRQ  = 36;
 
-// Touch-Kalibrierung (Startwerte, am Gerät prüfen)
-constexpr int TOUCH_RAW_X_MIN = 200;
+// Touch-Kalibrierung. Gemessen 2026-10-25 (Querformat, setRotation(1)): Bildschirm-x kommt aus Roh-y und war gespiegelt
+// (oben links meldete x=316, Roh-y 3668; oben rechts x=25, Roh-y 482) -> Roh-y-Bereich umgedreht.
+// Bildschirm-y kommt aus Roh-x (oben ~3640, Mitte ~1870); unten lag Roh-x unter 200 und wurde verworfen -> X_MIN 0.
+constexpr int TOUCH_RAW_X_MIN = 0;
 constexpr int TOUCH_RAW_X_MAX = 3700;
-constexpr int TOUCH_RAW_Y_MIN = 200;
-constexpr int TOUCH_RAW_Y_MAX = 3700;
+constexpr int TOUCH_RAW_Y_MIN = 3700;
+constexpr int TOUCH_RAW_Y_MAX = 200;
 
 // Lichtsensor
 constexpr int LDR_PIN = 34;
