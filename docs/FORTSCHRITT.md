@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 7 – Füttern und Charakter (UI) – TEILWEISE
+- Zeit: 2026-10-25 14:09 UTC
+- Gemacht: Step 1: `Persist` um `sick`, `cuddly`, `playful`, `favorite_food` erweitert (Sättigung in `needs.satiety`), NVS-Schlüssel `sat sick cud pla fav`, `kVersion` 3 mit Übernahme von 1/2.
+- Dateien: src/hw/store.h, src/hw/store.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS
+- Gegenprobe: –
+- Nächster Schritt: Interaktion Task 7 Step 2 (Menü 2×3 mit Füttern/Timer), Step 3 (FEED-Bildschirm), Step 4 (Flug-/Kau-Animation, OV_SNEEZE, Verdrahtung), Step 5 (Charakter-Balken in den Einstellungen)
+- Offen/Fragen: –
+
 ## Interaktion Task 6 – Füttern, Krankheit, Charakter (Logik) – ERLEDIGT
 - Zeit: 2026-10-25 14:08 UTC
 - Gemacht: `mood.h`: `Needs.satiety` (Start 70, wach −0,12/min, schlafend −0,04/min, auch für die Aus-Zeit), Grundgefühl HUNGRY bei < 25 (nach SLEEPY, vor SAD), Krankheit nach 2 h ununterbrochen Sättigung < 15 und Zuneigung < 20 (SICK als erstes Grundgefühl, doppelter Energie-Abbau, `mood_sneeze_due` alle 1–3 min), Heilung bei Sättigung > 60 und danach 3× Streicheln → HAPPY 3 s. Neue Emotionen HUNGRY, FULL, SICK, FOCUSED mit Werten aus der Spec in `face_expression`. `food.h` (`food_effect`, `food_feed` → Say LECKER/LIEBLINGSESSEN/SATT, FULL bei > 95). `character.h` (`cuddly`/`playful` mit den Spec-Schritten, ±100, Wirkung über `mood_set_character`: Eigenarten-Abstand, CHEEKY-Wahrscheinlichkeit, LOVE-Dauer). `speech_for_base` kennt jetzt HUNGRY/SICK.
