@@ -11,6 +11,9 @@
 #include "ui/eyes.h"
 #include "ui/status_bar.h"
 #include "net/net.h"
+#include "ui/menu.h"
+#include "ui/clock_view.h"
+#include "ui/settings.h"
 
 static LGFX s_lcd;
 LGFX &app_lcd() { return s_lcd; }
@@ -37,6 +40,9 @@ static uint8_t s_backlight = 0;
 static Emotion s_emotion = Emotion::CONTENT;
 
 static bool s_elapsed_applied = false;
+
+enum class Screen { EYES, MENU, CLOCK, SETTINGS, GAME_CATCH, GAME_SIMON, OTA };
+static Screen s_screen = Screen::EYES;
 
 static int current_hour() { return net_hour(); }
 
@@ -101,21 +107,25 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
   return gesture_feed(s_gesture, pressed, tx, ty, now);
 }
 
-static void eyes_frame(uint32_t now, uint32_t dt, Gesture g) {
+static void touch_to_mood(Gesture g, uint32_t now) {
   switch (g) {
     case Gesture::TAP: mood_event(s_mood, MoodEvent::TAP, now); break;
     case Gesture::STROKE: mood_event(s_mood, MoodEvent::STROKE, now); break;
     case Gesture::POKE: mood_event(s_mood, MoodEvent::POKE, now); break;
-    case Gesture::LONG_PRESS: break;   // Menü ab Task 10
     default: break;
   }
+}
 
+// Stimmung läuft auf jedem Bildschirm weiter (Zeit vergeht), Licht und LED auch.
+static void mood_frame(uint32_t now, uint32_t dt) {
   const int hour = current_hour();
   mood_set_dark(s_mood, light_update(now), hour, now);
   mood_tick(s_mood, dt, now);
   s_emotion = mood_emotion(s_mood, hour, now);
-  const bool sleeping = s_emotion == Emotion::SLEEPING;
+}
 
+static void eyes_frame(uint32_t now, uint32_t dt) {
+  const bool sleeping = s_emotion == Emotion::SLEEPING;
   WeatherMood wm;
   NetWeather w;
   const bool have_weather = fresh_weather(now, &wm, &w);
@@ -136,6 +146,73 @@ static void eyes_frame(uint32_t now, uint32_t dt, Gesture g) {
 
   led_set(sleeping ? Rgb{0, 0, 0} : s_color, kLedPct);
   set_backlight(sleeping ? kSleepBacklight : kBacklight[s_persist.brightness]);
+}
+
+static void go_eyes() {
+  s_screen = Screen::EYES;
+  status_invalidate();   // Statusstreifen sicher neu zeichnen
+}
+
+static void open_settings(uint32_t now) {
+  s_screen = Screen::SETTINGS;
+  settings_open(s_lcd, s_persist, now);
+}
+
+static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16_t ty) {
+  const bool tap = g == Gesture::TAP;
+  switch (s_screen) {
+    case Screen::EYES:
+      if (g == Gesture::LONG_PRESS && s_emotion != Emotion::SLEEPING) {
+        s_screen = Screen::MENU;
+        set_backlight(kBacklight[s_persist.brightness]);
+        menu_open(s_lcd, now);
+        return;
+      }
+      touch_to_mood(g, now);
+      eyes_frame(now, dt);
+      return;
+
+    case Screen::MENU: {
+      if (menu_timed_out(now)) { go_eyes(); return; }
+      if (!tap) return;
+      switch (menu_touch(tx, ty, now)) {
+        case MenuChoice::CLOCK: s_screen = Screen::CLOCK; clock_open(s_lcd, now); break;
+        case MenuChoice::SETTINGS: open_settings(now); break;
+        case MenuChoice::CLOSE: go_eyes(); break;
+        case MenuChoice::PLAY_CATCH:   // Spiele ab Task 11
+        case MenuChoice::PLAY_SIMON: go_eyes(); break;
+        default: break;
+      }
+      return;
+    }
+
+    case Screen::CLOCK:
+      if (tap || !clock_update(s_lcd, now)) go_eyes();
+      return;
+
+    case Screen::SETTINGS:
+      if (settings_timed_out(now)) { go_eyes(); return; }
+      if (tap) {
+        switch (settings_touch(tx, ty, now)) {
+          case SettingsAction::CLOSE: go_eyes(); return;
+          case SettingsAction::BRIGHTNESS:
+            s_persist.brightness = (uint8_t)((s_persist.brightness + 1) % 3);
+            set_backlight(kBacklight[s_persist.brightness]);
+            save_now();
+            settings_redraw(s_lcd, s_persist);
+            break;
+          case SettingsAction::PORTAL: net_open_portal(); settings_redraw(s_lcd, s_persist); break;
+          case SettingsAction::OTA_CHECK: break;   // ab Task 12
+          default: break;
+        }
+      }
+      settings_tick(s_lcd, s_persist, now);
+      return;
+
+    default:
+      go_eyes();
+      return;
+  }
 }
 
 void app_setup() {
@@ -176,7 +253,8 @@ void app_loop() {
 
   int16_t tx, ty;
   const Gesture g = handle_touch(now, tx, ty);
-  eyes_frame(now, dt, g);
+  mood_frame(now, dt);
+  screen_frame(now, dt, g, tx, ty);
 
   if (now - s_last_save >= kSaveEveryMs) {
     s_last_save = now;

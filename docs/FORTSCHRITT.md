@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 10 – Menü, Uhr, Einstellungen – ERLEDIGT
+- Zeit: 2026-10-25 12:00 UTC
+- Gemacht: Menü 2×2 Kacheln (Spielen grün, Uhr gelb, Einstellungen violett, Schließen rot; 2. Ebene Fang-mich/Simon + Zurück), Uhr 15 s (Font7, Datum „So 25.10.“, Wetter, Augen schauen von unten herein; ohne Zeit „--:--“ + rotes WLAN), Einstellungen (Helligkeit 0→1→2→0, WLAN/Ort → Portal, Firmware-Zeile über Quelle ab Task 12, Info: Build-Datum, Heap, LDR). `app.cpp` mit `enum class Screen`; Stimmung/Licht laufen auf allen Bildschirmen weiter. Neu `logic/ascii.h` (UTF-8 → ASCII, die eingebauten Schriften haben keine Umlaute) mit Test.
+- Dateien: src/ui/menu.*, src/ui/clock_view.*, src/ui/settings.*, src/ui/ui_common.*, src/logic/ascii.h, test/test_ascii/test_main.cpp, src/app.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS, RAM 17,2 % (56 340 B), Flash 72,1 % (1 417 923 B). `pio test -e native -f test_ascii` → 2 Tests, 0 Fehler
+- Gegenprobe: `ü → "u"` statt `"ue"` → `test_umlauts` und `test_truncates` FAILED; zurück → 2 PASS
+- Nächster Schritt: Task 11 Step 1
+- Offen/Fragen: Abweichungen: `menu_touch(x, y, now_ms)` und `settings_touch(x, y, now_ms)` bekommen die Zeit (für den 10-s-Timeout). Zusätzlich `settings_tick`, `settings_timed_out` (30 s, nicht im Plan) und `settings_firmware_source`. Langes Drücken öffnet das Menü nicht, solange der Buddy schläft (dunkles Display, sichere Variante).
+- Am Gerät zu prüfen: Kachel-Treffer (Touch-Kalibrierung), Lesbarkeit der Uhr, Helligkeitsstufen.
+
 ## Task 9 – Netz (net.*) – ERLEDIGT
 - Zeit: 2026-10-25 11:40 UTC
 - Gemacht: WiFiManager nicht blockierend (AP „CYD-Buddy“, Feld „Ort“ id `place`, 47 Zeichen), Portal beim ersten Start bzw. nach 30 s ohne WLAN; NTP mit `configTzTime`; Geocoding per HTTPS (`NetworkClientSecure::useBuiltinCACertBundle()` – im Core-Header `NetworkClientSecure.h` nachgesehen; Bundle ist laut sdkconfig `CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_FULL`); Wetter alle 30 min per HTTP, Fehler → 5 min; JSON mit Filter. Abrufe im `net_task` (Kern 0, Prio 1, Stack 8192); nur der Haupt-Task schreibt `Persist`/NVS. `app.cpp`: Stunde an mood, Statusstreifen aus net, Wetter-Overlays (nur frisch < 3 h), Aus-Zeit einmalig nachgerechnet, Epoche beim Speichern.
