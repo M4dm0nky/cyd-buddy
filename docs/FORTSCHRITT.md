@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 9 – Pomodoro (UI) – ERLEDIGT
+- Zeit: 2026-10-25 14:21 UTC
+- Gemacht: Step 3: `app.cpp` – Menü → TIMER (15/25/45 starten mit Blase „pomodoro_start“, Stopp, Zurück). Während WORK: Gefühl FOCUSED (außer Schlaf), keine Eigenarten, keine Blasen außer Start, keine Rituale, Tippen ohne Überraschung (nur Blick folgt), kein Nacht-/Nickerchen-/Dunkel-Schlaf. Ring im Sprite (Arbeit pink, Pause grün), Restzeit im Statusstreifen. BREAK_START: EXCITED 3 s, „pomodoro_pause“, LED 5× grün, `pomodoros` +1. BREAK_END: „pomodoro_fertig“, LED 2× blau, danach IDLE. Pomodoro läuft auf allen Bildschirmen weiter.
+- Dateien: src/app.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS, RAM 17,5 % (57 340 B), Flash 74,5 % (1 464 019 B). `pio test -e native` → 124 Tests, 0 Fehler
+- Gegenprobe: – (UI)
+- Nächster Schritt: Interaktion Task 10
+- Offen/Fragen: (1) Streicheln/Stupsen ändern während der Arbeit weiter Werte und Zähler, nur ohne Blase. (2) Läuft beim Pausenbeginn ein anderer Bildschirm, ist die Blase nach 4 s weg; die LED blinkt trotzdem.
+- Am Gerät zu prüfen: Timer-Kacheln treffen, Ring flüssig (fps ≥ 25), Restzeit läuft, LED-Signale, FOCUSED-Gesicht.
+
 ## Interaktion Task 9 – Pomodoro (UI) – TEILWEISE
 - Zeit: 2026-10-25 14:19 UTC
 - Gemacht: Step 2: Fortschrittsring als dünne Ellipse am Sprite-Rand (rx ~153, ry ~96, dunkle Spur + Bogen im Uhrzeigersinn ab oben, `eyes_set_ring(progress, Farbe)`), Restzeit mm:ss im Statusstreifen (`StatusInfo.timer_s/timer_break`, Arbeit pink, Pause grün).

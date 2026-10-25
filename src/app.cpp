@@ -12,6 +12,8 @@
 #include "logic/food.h"
 #include "logic/character.h"
 #include "ui/feed.h"
+#include "logic/pomodoro.h"
+#include "ui/timer_view.h"
 #include "ui/review.h"
 #include "hw/led.h"
 #include "hw/light.h"
@@ -88,7 +90,17 @@ static int s_feed_food = -1;           // gerade gefütterte Speise (Animation),
 static uint32_t s_feed_start = 0;
 static uint32_t s_sneeze_until = 0;
 
-enum class Screen { EYES, MENU, CLOCK, SETTINGS, GAME_CATCH, GAME_SIMON, OTA, REVIEW, FEED };
+// F4: Pomodoro
+static constexpr Rgb kTimerCol{255, 90, 140}, kBreakCol{60, 220, 120};
+static constexpr uint32_t kBlinkStepMs = 150;
+static Pomo s_pomo{};
+static Rgb s_blink_col{0, 0, 0};       // LED-Signal: Farbe, Anzahl, Start
+static uint8_t s_blink_n = 0;
+static uint32_t s_blink_start = 0;
+static bool focused_work() { return s_pomo.state == PomoState::WORK; }
+static void led_blink(Rgb c, uint8_t n, uint32_t now) { s_blink_col = c; s_blink_n = n; s_blink_start = now; }
+
+enum class Screen { EYES, MENU, CLOCK, SETTINGS, GAME_CATCH, GAME_SIMON, OTA, REVIEW, FEED, TIMER };
 static Screen s_screen = Screen::EYES;
 
 static int current_hour() { return net_hour(); }
@@ -132,6 +144,8 @@ static StatusInfo status_info(uint32_t now) {
   si.is_day = si.weather_ok ? w.is_day : true;
   si.temp_c = si.weather_ok ? w.temp_c : 0;
   si.update_ready = ota_pull::info().state == ota_pull::AVAILABLE;
+  si.timer_s = (uint16_t)pomo_remaining_s(s_pomo, now);
+  si.timer_break = s_pomo.state == PomoState::BREAK;
   return si;
 }
 
@@ -153,7 +167,10 @@ static void show_bubble(const char *txt, uint32_t now) {
   s_bubble_until = now + kBubbleMs;
   speech_shown(s_speech, now);
 }
-static void say(Say what, uint32_t now) { show_bubble(speech_pick(s_speech, what, esp_random()), now); }
+static void say(Say what, uint32_t now) {
+  if (focused_work() && what != Say::POMODORO_START) return;   // während der Arbeit still (außer beim Start)
+  show_bubble(speech_pick(s_speech, what, esp_random()), now);
+}
 
 // Heutiges Datum als YYYYMMDD, 0 wenn die Zeit unbekannt ist.
 static uint32_t today(struct tm *t) {
@@ -205,6 +222,7 @@ static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
   const int hour = current_hour();
   switch (g) {
     case Gesture::TAP:
+      if (focused_work()) break;   // während der Arbeit: kein Überraschen, nur der Blick folgt
       if (highfive_hit(tx, ty)) {   // obere Ecke: High-Five statt Tippen
         mood_event(s_mood, MoodEvent::HIGHFIVE, now, hour);
         char_highfive(s_char);
@@ -235,12 +253,28 @@ static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
 // Stimmung läuft auf jedem Bildschirm weiter (Zeit vergeht), Licht und LED auch.
 static void mood_frame(uint32_t now, uint32_t dt) {
   const int hour = current_hour();
-  mood_set_dark(s_mood, light_update(now), hour, now);
+  const bool work = focused_work();
+  if (work) mood_touch(s_mood, now);   // während der Arbeit kein Schlaf
+  mood_set_dark(s_mood, work ? false : light_update(now), hour, now);
   mood_night_check(s_mood, hour, now);
   mood_set_character(s_mood, s_char);
   mood_tick(s_mood, dt, now);
-  mood_quirks(s_mood, hour, now);
+  if (!work) mood_quirks(s_mood, hour, now);
+  switch (pomo_tick(s_pomo, now)) {
+    case PomoEvent::BREAK_START:
+      mood_set_transient(s_mood, Emotion::EXCITED, now, 3000);
+      say(Say::POMODORO_PAUSE, now);
+      led_blink(Rgb{0, 255, 0}, 5, now);
+      s_persist.day.pomodoros++;
+      break;
+    case PomoEvent::BREAK_END:
+      say(Say::POMODORO_FERTIG, now);
+      led_blink(Rgb{0, 0, 255}, 2, now);
+      break;
+    default: break;
+  }
   s_emotion = mood_emotion(s_mood, hour, now);
+  if (focused_work() && s_emotion != Emotion::SLEEPING) s_emotion = Emotion::FOCUSED;   // überschreibt alles außer Schlaf
   if (s_emotion == Emotion::BORED) char_bored(s_char, dt);
   s_persist.cuddly = s_char.cuddly;   // für die Anzeige in den Einstellungen
   s_persist.playful = s_char.playful;
@@ -270,6 +304,7 @@ static void speech_frame(uint32_t now, bool sleeping) {
   struct tm t;
   const uint32_t day = today(&t);
   daystats_roll(s_persist.day, day);
+  if (focused_work()) return;   // keine Rituale, Gedanken, Hatschi-Blasen während der Arbeit
   const int hour = day ? t.tm_hour : -1, minute = day ? t.tm_min : 0;
   if (ritual_morning(s_rituals, woke, hour, day)) {
     mood_set_transient(s_mood, Emotion::GREETING, now, 3000);
@@ -321,6 +356,9 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
   target.s.eye.gaze_y = gy / GAZE_Y_MAX * 4.0f;
   s_face = face_tween(s_face, target.s, dt);   // switch_acc läuft im s_face mit
   s_color = rgb_tween(s_color, target.color, dt);
+
+  if (s_pomo.state == PomoState::IDLE) eyes_set_ring(-1, kTimerCol);
+  else eyes_set_ring(pomo_progress(s_pomo, now), s_pomo.state == PomoState::WORK ? kTimerCol : kBreakCol);
 
   FaceShape draw = s_face;
   if (!sleeping) draw.eye.open *= blinker_open(s_blink, now);
@@ -395,7 +433,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
         struct tm t;
         const uint32_t day = today(&t);
         const bool awake = s_emotion != Emotion::SLEEPING;
-        if (ritual_review(s_rituals, awake, s_touch_began, day ? t.tm_hour : -1, day ? t.tm_min : 0, day)) {
+        if (!focused_work() && ritual_review(s_rituals, awake, s_touch_began, day ? t.tm_hour : -1, day ? t.tm_min : 0, day)) {
           daystats_roll(s_persist.day, day);
           s_screen = Screen::REVIEW;
           set_backlight(kBacklight[s_persist.brightness]);
@@ -418,6 +456,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
         case MenuChoice::CLOSE: go_eyes(); break;
         case MenuChoice::PLAY_CATCH: s_screen = Screen::GAME_CATCH; game_catch_open(s_lcd, now); break;
         case MenuChoice::PLAY_SIMON: s_screen = Screen::GAME_SIMON; game_simon_open(s_lcd, now); break;
+        case MenuChoice::TIMER: s_screen = Screen::TIMER; timer_open(s_lcd, s_pomo.state != PomoState::IDLE, now); break;
         case MenuChoice::FEED: s_screen = Screen::FEED; feed_open(s_lcd, s_mood.n.satiety, s_mood.sick, now); break;
         default: break;
       }
@@ -496,6 +535,22 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
       return;
     }
 
+    case Screen::TIMER: {
+      if (timer_timed_out(now)) { go_eyes(); return; }
+      if (!tap) return;
+      const int r = timer_touch(tx, ty, now);
+      if (r > 0) {
+        if (pomo_start(s_pomo, (uint8_t)r, now)) say(Say::POMODORO_START, now);
+        go_eyes();
+      } else if (r == TIMER_STOP) {
+        pomo_stop(s_pomo);
+        go_eyes();
+      } else if (r == TIMER_BACK) {
+        go_eyes();
+      }
+      return;
+    }
+
     case Screen::REVIEW:
       if (tap || !review_update(s_lcd, now)) go_eyes();
       return;
@@ -557,6 +612,11 @@ void app_loop() {
   const Gesture g = handle_touch(now, tx, ty);
   mood_frame(now, dt);
   screen_frame(now, dt, g, tx, ty);
+  if (s_blink_n) {   // LED-Signal (Pomodoro) überschreibt die Gefühlsfarbe: n× an/aus je 150 ms
+    const uint32_t step = (now - s_blink_start) / kBlinkStepMs;
+    if (step >= 2u * s_blink_n) s_blink_n = 0;
+    else led_set((step & 1) ? Rgb{0, 0, 0} : s_blink_col, kLedPct);
+  }
 
   if (now - s_last_save >= kSaveEveryMs) {
     s_last_save = now;
