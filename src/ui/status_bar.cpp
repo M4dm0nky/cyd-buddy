@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include "icons.h"
+#include "fonts.h"
 
 static StatusInfo s_last;
 static bool s_valid = false;
@@ -34,7 +35,7 @@ void status_draw(LGFX &lcd, const StatusInfo &s) {
 
   lcd.setTextDatum(middle_left);
   if (s.portal && !s.wifi_ok) {
-    lcd.setFont(&fonts::FreeSans9pt7b);
+    lcd.setFont(&FONT_S);
     lcd.setTextColor(lcd.color888(255, 200, 0), TFT_BLACK);
     lcd.drawString("WLAN einrichten: CYD-Buddy", 8, cy);
     lcd.endWrite();
@@ -42,7 +43,7 @@ void status_draw(LGFX &lcd, const StatusInfo &s) {
   }
 
   char buf[16];
-  lcd.setFont(&fonts::FreeSansBold12pt7b);
+  lcd.setFont(&FONT_M);
   lcd.setTextColor(lcd.color888(200, 220, 255), TFT_BLACK);
   if (s.time_ok) snprintf(buf, sizeof buf, "%02d:%02d", s.hour, s.minute);
   else snprintf(buf, sizeof buf, "--:--");
@@ -50,14 +51,13 @@ void status_draw(LGFX &lcd, const StatusInfo &s) {
 
   if (s.weather_ok) {
     icon_sky(lcd, 138, cy, 30, s.sky, s.is_day);
-    snprintf(buf, sizeof buf, "%ld", lroundf(s.temp_c));
+    snprintf(buf, sizeof buf, "%ld°", lroundf(s.temp_c));
     lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-    const int w = lcd.drawString(buf, 160, cy);
-    lcd.drawCircle(160 + w + 4, cy - 7, 3, TFT_WHITE);   // Gradzeichen (nicht in der Schrift)
+    lcd.drawString(buf, 160, cy);
   }
   if (s.timer_s) {   // Pomodoro-Restzeit mm:ss
     snprintf(buf, sizeof buf, "%u:%02u", (unsigned)(s.timer_s / 60), (unsigned)(s.timer_s % 60));
-    lcd.setFont(&fonts::FreeSansBold9pt7b);
+    lcd.setFont(&FONT_S);
     lcd.setTextColor(s.timer_break ? lcd.color888(60, 220, 120) : lcd.color888(255, 90, 140), TFT_BLACK);
     lcd.drawString(buf, 206, cy);
   }

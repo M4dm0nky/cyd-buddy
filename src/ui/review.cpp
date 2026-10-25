@@ -11,7 +11,7 @@ static uint32_t s_open_ms = 0;
 static void line(LGFX &d, int i, void (*icon)(LGFX &, int, int), const char *txt) {
   const int y = 58 + i * 28;
   icon(d, 40, y);
-  ui_text(d, txt, 66, y, &fonts::FreeSansBold9pt7b, TFT_WHITE, middle_left);
+  ui_text(d, txt, 66, y, &FONT_M, TFT_WHITE, middle_left);
 }
 
 void review_open(LGFX &lcd, const DayStats &st, uint32_t now_ms) {
@@ -19,7 +19,7 @@ void review_open(LGFX &lcd, const DayStats &st, uint32_t now_ms) {
   char b[32];
   lcd.startWrite();
   lcd.fillScreen(TFT_BLACK);
-  ui_text(lcd, "Dein Tag mit mir", 160, 20, &fonts::FreeSansBold12pt7b, lcd.color888(255, 210, 120), middle_center);
+  ui_text(lcd, "Dein Tag mit mir", 160, 20, &FONT_L, lcd.color888(255, 210, 120), middle_center);
   snprintf(b, sizeof b, "%u gestreichelt", (unsigned)st.strokes);
   line(lcd, 0, [](LGFX &d, int x, int y) { icon_heart(d, x, y, 20, d.color888(255, 80, 170)); }, b);
   snprintf(b, sizeof b, "%u gestupst", (unsigned)st.pokes);

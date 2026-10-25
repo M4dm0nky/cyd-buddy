@@ -25,7 +25,7 @@ void timer_open(LGFX &d, bool running, uint32_t now_ms) {
     for (int i = 0; i < 3; i++) {
       ui_tile(d, kMin[i], col);
       snprintf(b, sizeof b, "%u", kMinutes[i]);   // Zahlen sind hier erlaubt (Spec)
-      ui_text(d, b, kMin[i].x + kMin[i].w / 2, kMin[i].y + 46, &fonts::FreeSansBold24pt7b, TFT_WHITE, middle_center);
+      ui_text(d, b, kMin[i].x + kMin[i].w / 2, kMin[i].y + 46, &FONT_L, TFT_WHITE, middle_center);
       icon_hourglass(d, kMin[i].x + kMin[i].w / 2, kMin[i].y + 100, 34, TFT_WHITE);
     }
   }

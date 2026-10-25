@@ -35,18 +35,18 @@ static void draw_wifi(LGFX &d, const Persist &p) {
   const uint32_t col = net_wifi_ok() ? d.color888(60, 220, 120) : d.color888(255, 60, 60);
   icon_wifi(d, 30, cy, 30, col);
   const char *txt = net_portal_active() ? "Portal offen: CYD-Buddy" : (p.place[0] ? p.place : "WLAN / Ort einrichten");
-  ui_text(d, txt, 62, cy, &fonts::FreeSans9pt7b, TFT_WHITE, middle_left);
+  ui_text(d, txt, 62, cy, &FONT_M, TFT_WHITE, middle_left);
 }
 
 static void draw_firmware(LGFX &d, uint32_t now_ms) {
   row_bg(d, 2);
   const int cy = row(2).y + kRowH / 2;
-  char buf[48] = "\xE2\x80\x93";   // „–“ bis OTA da ist
+  char buf[48] = "-";   // Strich bis OTA da ist
   int tone = 0;
   if (s_fw) tone = s_fw(buf, sizeof buf, now_ms);
   const uint32_t col = tone == 1 ? d.color888(60, 220, 120) : (tone == 2 ? d.color888(255, 80, 80) : d.color888(200, 200, 210));
   icon_update(d, 30, cy, 30, d.color888(80, 200, 255));
-  ui_text(d, buf, 62, cy, &fonts::FreeSans9pt7b, col, middle_left);
+  ui_text(d, buf, 62, cy, &FONT_M, col, middle_left);
 }
 
 // Charakter-Balken: Mitte = 0, Ausschlag nach links (Symbol links) bzw. rechts (Symbol rechts) bis ±100.

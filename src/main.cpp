@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include "app.h"
 #include "hw/store.h"
+#include "ui/fonts.h"
 
 // Vier Pfeile nacheinander in den Ecken antippen (LovyanGFX). Vorher warten, bis kein Finger mehr liegt.
 static void touch_calibrate(LGFX &lcd, uint16_t cal[8]) {
@@ -10,9 +11,9 @@ static void touch_calibrate(LGFX &lcd, uint16_t cal[8]) {
   lcd.fillScreen(TFT_BLACK);
   lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   lcd.setTextDatum(middle_center);
-  lcd.setFont(&fonts::FreeSansBold12pt7b);
+  lcd.setFont(&FONT_L);
   lcd.drawString("Touch einrichten", 160, 95);
-  lcd.setFont(&fonts::FreeSans9pt7b);
+  lcd.setFont(&FONT_M);
   lcd.drawString("Finger loslassen, dann", 160, 130);
   lcd.drawString("die Pfeile in den Ecken antippen", 160, 152);
   while (lcd.getTouch(&x, &y)) delay(20);

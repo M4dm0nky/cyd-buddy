@@ -43,14 +43,14 @@ static void card_frame(LGFX &d, uint32_t border) {
 static void draw_available(LGFX &d, const ota_pull::Info &i) {
   card_frame(d, d.color888(80, 200, 255));
   icon_update(d, 160, 50, 46, d.color888(80, 200, 255));
-  ui_text(d, "Update bereit", 160, 94, &fonts::FreeSansBold12pt7b, TFT_WHITE, middle_center);
+  ui_text(d, "Update bereit", 160, 94, &FONT_L, TFT_WHITE, middle_center);
   char buf[48];
   snprintf(buf, sizeof buf, "%s  (%u kB)", i.built, (unsigned)(i.size / 1024));
   ui_text(d, buf, 160, 122, &fonts::Font2, d.color888(190, 200, 220), middle_center);
   ui_tile(d, kYes, d.color888(30, 160, 70));
-  ui_text(d, "Ja", kYes.x + kYes.w / 2, kYes.y + kYes.h / 2, &fonts::FreeSansBold12pt7b, TFT_WHITE, middle_center);
+  ui_text(d, "Ja", kYes.x + kYes.w / 2, kYes.y + kYes.h / 2, &FONT_L, TFT_WHITE, middle_center);
   ui_tile(d, kLater, d.color888(80, 80, 100));
-  ui_text(d, "Später", kLater.x + kLater.w / 2, kLater.y + kLater.h / 2, &fonts::FreeSansBold12pt7b, TFT_WHITE, middle_center);
+  ui_text(d, "Später", kLater.x + kLater.w / 2, kLater.y + kLater.h / 2, &FONT_L, TFT_WHITE, middle_center);
 }
 
 static void draw_waiting(LGFX &d, const char *txt) {
@@ -60,7 +60,7 @@ static void draw_waiting(LGFX &d, const char *txt) {
   e.radius = 12;
   e.lid_top_cut = 0.25f;
   eyes_draw_pair(d, 160, 80, e, Rgb{0, 220, 255}, 1.0f);
-  ui_text(d, txt, 160, 150, &fonts::FreeSansBold12pt7b, TFT_WHITE, middle_center);
+  ui_text(d, txt, 160, 150, &FONT_L, TFT_WHITE, middle_center);
 }
 
 static void draw_progress(LGFX &d, int pct) {
@@ -69,16 +69,16 @@ static void draw_progress(LGFX &d, int pct) {
   d.fillRect(33, 183, 254 * pct / 100, 20, d.color888(0, 200, 255));
   char buf[16];
   snprintf(buf, sizeof buf, "%d %%", pct);
-  d.fillRect(100, 136, 120, 30, TFT_BLACK);
-  ui_text(d, buf, 160, 150, &fonts::FreeSansBold12pt7b, TFT_WHITE, middle_center);
+  d.fillRect(100, 130, 120, 40, TFT_BLACK);
+  ui_text(d, buf, 160, 150, &FONT_L, TFT_WHITE, middle_center);
 }
 
 static void draw_failed(LGFX &d, const ota_pull::Info &i) {
   card_frame(d, d.color888(255, 70, 70));
   icon_close(d, 160, 54, 46, d.color888(255, 70, 70));
-  ui_text(d, "Update fehlgeschlagen", 160, 104, &fonts::FreeSansBold12pt7b, TFT_WHITE, middle_center);
-  ui_text(d, i.error, 160, 140, &fonts::FreeSans9pt7b, d.color888(255, 180, 180), middle_center);
-  ui_text(d, "Antippen schließt", 160, 196, &fonts::Font2, d.color888(170, 170, 190), middle_center);
+  ui_text(d, "Update fehlgeschlagen", 160, 104, &FONT_M, TFT_WHITE, middle_center);
+  ui_text(d, i.error, 160, 140, &FONT_S, d.color888(255, 180, 180), middle_center);
+  ui_text(d, "Antippen schließt", 160, 196, &FONT_S, d.color888(170, 170, 190), middle_center);
 }
 
 void ota_card_draw(LGFX &lcd, uint32_t now_ms) {

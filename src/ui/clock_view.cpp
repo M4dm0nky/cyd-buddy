@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include "icons.h"
+#include "fonts.h"
 #include "eyes.h"
 #include "ui_common.h"
 #include "../net/net.h"
@@ -29,7 +30,7 @@ static void draw_time_block(LGFX &d) {
   if (ok) {
     static const char *kDays[] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
     snprintf(buf, sizeof buf, "%s %d.%d.", kDays[t.tm_wday % 7], t.tm_mday, t.tm_mon + 1);
-    ui_text(d, buf, 160, 128, &fonts::FreeSansBold12pt7b, TFT_WHITE, middle_center);
+    ui_text(d, buf, 160, 128, &FONT_L, TFT_WHITE, middle_center);
   } else {
     icon_wifi(d, 160, 128, 34, d.color888(255, 60, 60));
   }
@@ -37,10 +38,8 @@ static void draw_time_block(LGFX &d) {
   if (w.valid && weather_fresh(millis(), w.fetched_ms)) {
     const WeatherMood wm = weather_mood(w.code, w.temp_c);
     icon_sky(d, 130, 170, 40, wm.sky, w.is_day);
-    snprintf(buf, sizeof buf, "%ld", lroundf(w.temp_c));
-    ui_text(d, buf, 158, 170, &fonts::FreeSansBold12pt7b, TFT_WHITE, middle_left);
-    d.setFont(&fonts::FreeSansBold12pt7b);
-    d.drawCircle(158 + d.textWidth(buf) + 5, 162, 3, TFT_WHITE);
+    snprintf(buf, sizeof buf, "%ld°", lroundf(w.temp_c));
+    ui_text(d, buf, 158, 170, &FONT_L, TFT_WHITE, middle_left);
   }
 }
 
