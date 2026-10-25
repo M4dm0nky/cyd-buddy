@@ -255,8 +255,9 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
 
   if (ov & OV_SUNGLASSES) {
     const uint32_t lens = lgfx::color888(40, 40, 48), frame = lgfx::color888(120, 120, 130);
-    const int lw = (int)f.eye.w + 16, lh = (int)(f.eye.h * 0.62f);
-    const int ly = ey - (int)(f.eye.h / 2) - 6;
+    // Gläser mittig auf dem Auge (vorher saßen sie über der Augenoberkante und wirkten zu hoch, Nutzer am Gerät)
+    const int lw = (int)f.eye.w + 16, lh = (int)(f.eye.h * 0.7f);
+    const int ly = ey - lh / 2 + 2;
     for (int x : {lx, rx}) {
       d.fillRoundRect(x - lw / 2, ly, lw, lh, 10, lens);
       d.drawRoundRect(x - lw / 2, ly, lw, lh, 10, frame);
