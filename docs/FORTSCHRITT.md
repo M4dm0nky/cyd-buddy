@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 10 – Abschluss – ERLEDIGT
+- Zeit: 2026-10-25 14:22 UTC
+- Gemacht: README-Bedienung ergänzt (High-Five, Blick folgt, Menü 2×3, Füttern, Timer, Sprechblasen, Rituale, Rückblick, Hunger/Krankheit/Charakter); dabei die veralteten Abschnitte „Schlaf“ (jetzt Uhrzeit + Ruhe) und „Testbild“ (jetzt Touch-Einrichtung) an den lokalen Stand angepasst; Sätze-Generator unter Entwicklung. Abschlussprüfung.
+- Dateien: README.md
+- Prüfung: `pio test -e native` → 124 Tests, 0 Fehler (14 Gruppen; 78 alte + 46 neue: look 4, phrases 3, speech 14, care 17, pomodoro 5, je 1 neu in mood, face_model, weather_mood). `node --test tools/*.test.mjs` → 7 Tests, 0 Fehler. `node tools/gen-phrases.mjs --check` → aktuell. `pio run -e cyd2usb` → SUCCESS, RAM 17,5 % (57 340 B, +376 B gegenüber 56 964 B vor F1), Flash 74,5 % (1 464 019 B); `firmware.bin` 1 493 696 B < 1 966 080 B
+- Gegenprobe: je Logik-Gruppe in Task 1, 2, 3, 4, 6, 7, 8 (siehe dort)
+- Nächster Schritt: **Lokaler Claude** übernimmt `claude/dreamy-galileo-bvdw39` nach `buddy-umsetzung` (Fast-Forward), prüft am Gerät und veröffentlicht je Funktion ein Release (Spec: F1–F4 einzeln). Hinweis: Alle vier Funktionen liegen in einem Branch; für getrennte Releases die Commits von Task 1–2 (F1), 3–5 (F2), 6–7 (F3), 8–9 (F4) nacheinander bauen.
+- Offen/Fragen (Sammlung): (1) Branch `claude/dreamy-galileo-bvdw39` statt `buddy-umsetzung` (Sitzungsvorgabe). (2) frech/verschmust über die Achse `cuddly` (Task 4). (3) SICK als erstes *Grundgefühl* (Task 6). (4) Rückblick-Schwellen, Nacht-Ritual 22:00–22:59 (Task 4). (5) Ring als Ellipse (Task 9). (6) FEED-Bildschirm mit Schließen-Kreuz (Task 7). (7) `store_load` übernimmt alle Versionen 1…3. Keine Sätze ergänzt, `saetze.json` unverändert; `src/ota/*`, `ota_policy.h`, `ota-publish.mjs`, `display.h`, `config.h`, `main.cpp` unverändert. Kein Release, kein Flash, kein PR.
+- Am Gerät zu prüfen: **F1** Pupillen folgen dem Finger, High-Five in beiden oberen Ecken (Hand, LED weiß), Mitte oben = normales Tippen. **F2** Blasen lesbar (Breite, Umlaute als ae/oe/ue), höchstens alle 90 s, Morgengruß + „Heute …° und …“, 22-Uhr-Gähnen, Rückblick um 20 Uhr und Nachholen per Berührung bis 23 Uhr, Zähler nach Neustart erhalten (NVS v3). **F3** Menü 2×3 trifft, Fütter-Bildschirm, Flug + Kauen, lecker/Lieblingsessen/satt, Hunger-Gesicht, Krankheit + Hatschi (zum Testen Werte im NVS senken), Heilung, Charakter-Balken. **F4** Timer starten/stoppen, FOCUSED-Gesicht, Ring, Restzeit, LED 5× grün / 2× blau, Pomodoro-Zähler im Rückblick. Überall: fps ≥ 25, Heap-Minimum.
+
 ## Interaktion Task 9 – Pomodoro (UI) – ERLEDIGT
 - Zeit: 2026-10-25 14:21 UTC
 - Gemacht: Step 3: `app.cpp` – Menü → TIMER (15/25/45 starten mit Blase „pomodoro_start“, Stopp, Zurück). Während WORK: Gefühl FOCUSED (außer Schlaf), keine Eigenarten, keine Blasen außer Start, keine Rituale, Tippen ohne Überraschung (nur Blick folgt), kein Nacht-/Nickerchen-/Dunkel-Schlaf. Ring im Sprite (Arbeit pink, Pause grün), Restzeit im Statusstreifen. BREAK_START: EXCITED 3 s, „pomodoro_pause“, LED 5× grün, `pomodoros` +1. BREAK_END: „pomodoro_fertig“, LED 2× blau, danach IDLE. Pomodoro läuft auf allen Bildschirmen weiter.

@@ -9,28 +9,37 @@ Ein Wesen mit großen Augen auf dem ESP32-2432S028 (Cheap Yellow Display, Varian
 | **Tippen** | kurz überrascht, ein bisschen Unterhaltung |
 | **Streicheln** (Finger über das Display ziehen) | verliebt, Herzchen; mehr Zuneigung (höchstens alle 2 s) |
 | **Stupsen** (5 Tipps in 3 s) | genervt, 20 s rote, böse Augen |
+| **High-Five** (Tipp in eine obere Ecke) | Hand in der Ecke, LED blitzt weiß, er freut sich |
+| **Finger auflegen / ziehen** | die Augen folgen dem Finger (3 s) |
 | **Lang drücken** (> 1,2 s) | Menü |
 
-**Menü** (schließt nach 10 s ohne Eingabe): ▶ Spielen (Fang mich, Simon) · Uhr · Zahnrad (Einstellungen) · ✕ Zurück.
+**Menü** (2×3 Kacheln, schließt nach 10 s ohne Eingabe): ▶ Spielen (Fang mich, Simon) · Apfel (Füttern) · Sanduhr (Timer) · Uhr · Zahnrad (Einstellungen) · ✕ Zurück.
 
 - **Uhr:** große Uhrzeit, Datum, Wetter für 15 s; Antippen schließt.
 - **Fang mich:** ein kleines Auge springt herum, 20 s; ab 8 Treffern gewonnen.
 - **Simon:** Folge der vier Farbfelder nachtippen; Länge 6 = gewonnen.
-- **Einstellungen:** Helligkeit (3 Stufen), WLAN/Ort (öffnet das Portal), Firmware (Stand; Tippen sucht nach einem Update), Info (Version, freier Speicher, Lichtsensor).
+- **Füttern:** Apfel, Pizza, Kuchen, Kaffee; oben der Sättigungsbalken. Die Speise fliegt zum Mund, er kaut und sagt, wie es war. Er hat ein (zufälliges) Lieblingsessen; zu viel macht Bauchweh.
+- **Timer (Pomodoro):** 15, 25 oder 45 min Arbeit, dann 5 min Pause. Während der Arbeit schaut er konzentriert und ist still, ein Ring am Rand zeigt den Fortschritt, die Restzeit steht im Statusstreifen. Pause: LED blinkt 5× grün, Ende: 2× blau.
+- **Einstellungen:** Helligkeit (3 Stufen), WLAN/Ort (öffnet das Portal), Firmware (Stand; Tippen sucht nach einem Update), Info (Version, freier Speicher, Lichtsensor, Charakter-Balken).
+
+**Sprechblasen:** Ab und zu sagt er etwas (höchstens alle 90 s): Gedanken, wie es ihm geht, zum Wetter, beim Streicheln oder Stupsen. Morgens begrüßt er dich mit dem Tageswetter, um 22 Uhr gähnt er „Gute Nacht“, um 20 Uhr zeigt er den **Tagesrückblick** (gestreichelt, gestupst, Spiele, gegessen, Pomodoros; Tippen schließt).
+
+**Hunger, Krankheit, Charakter:** Wird er nicht gefüttert, wird er hungrig. Ist er 2 Stunden lang sehr hungrig und ungeliebt, wird er krank (blass, „Hatschi“). Heilen: satt füttern, dann 3× streicheln. Sterben kann er nicht. Wie du mit ihm umgehst, prägt seinen Charakter: viel Streicheln macht ihn verschmust, Stupsen frech, Spielen verspielt.
 
 **WLAN und Ort:** Beim ersten Start (und wenn 30 s kein WLAN da ist) öffnet der Buddy den Access-Point **„CYD-Buddy“**. Mit dem Handy verbinden, WLAN wählen, im Feld **„Ort“** den Wohnort eintragen (z. B. „Berlin“), speichern. Der Buddy lebt währenddessen weiter; der Statusstreifen zeigt „WLAN einrichten: CYD-Buddy“. Aus dem Ort werden die Koordinaten für das Wetter (Open-Meteo) bestimmt.
 
-**Schlaf:** Ist es länger als 10 s dunkel, schläft er (zZz, Hintergrundlicht 10 %). Wird es tagsüber wieder hell, begrüßt er dich.
+**Schlaf:** Nachts (22–7 Uhr) schläft er nach 10 min ohne Berührung ein (zZz, Hintergrundlicht 10 %) und begrüßt dich morgens. Ist seine Energie fast leer, macht er ein Nickerchen; eine Berührung weckt ihn.
 
 **Online-Update:** Liegt eine neue Firmware im GitHub-Release, erscheint die Karte „Update bereit“. *Ja* lädt und startet neu, *Später* fragt in einer Stunde wieder. Details: [`docs/ota.md`](docs/ota.md).
 
-**Testbild:** Beim Einschalten den Bildschirm gedrückt halten (Farbbalken, Touch-Punkte, Rohwerte von Touch und Lichtsensor seriell).
+**Touch einrichten:** Beim ersten Start (oder Finger beim Einschalten auf dem Display) die vier Pfeile in den Ecken antippen; die Werte bleiben gespeichert.
 
 ## Entwicklung
 
 - Bauen: `pio run -e cyd2usb`
 - Flashen (erstes Mal per Kabel): `pio run -e cyd2usb -t upload`
 - Tests (am PC): `pio test -e native` (Logik unter `src/logic/`) und `node --test tools/*.test.mjs`
+- Sätze: `docs/superpowers/specs/2026-10-25-saetze.json` → `node tools/gen-phrases.mjs` erzeugt `src/logic/phrases.h` (mit committen; `--check` prüft, ob er aktuell ist)
 - Veröffentlichen (nur lokal): `pio run -e cyd2usb && node tools/ota-publish.mjs --release`
 - Seriell (115200): alle 60 s `heap=… min=… fps=… emo=…`
 
