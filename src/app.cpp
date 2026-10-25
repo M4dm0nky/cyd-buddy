@@ -107,8 +107,12 @@ static void apply_elapsed_once() {
 static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
   int32_t x = 0, y = 0;
   const bool pressed = s_lcd.getTouch(&x, &y) > 0;
-  tx = (int16_t)x;
-  ty = (int16_t)y;
+  // Ein Tipp wird erst beim Loslassen gemeldet; dann liefert getTouch keine Position mehr.
+  // Darum gilt beim Loslassen die letzte gültige Position (vorher kam (0,0) an: Menü traf nichts, "Ja" zählte als "daneben").
+  static int16_t s_last_x = 0, s_last_y = 0;
+  if (pressed) { s_last_x = (int16_t)x; s_last_y = (int16_t)y; }
+  tx = s_last_x;
+  ty = s_last_y;
   if (pressed) mood_touch(s_mood, now);   // jede Berührung hält ihn nachts wach bzw. weckt ihn
   static bool s_was_pressed = false;
   if (pressed && !s_was_pressed) {   // Beginn einer Berührung seriell ausgeben (Touch-Kalibrierung prüfen)
