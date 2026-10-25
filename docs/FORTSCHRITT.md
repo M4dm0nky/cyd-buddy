@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 9 – Pomodoro (UI) – TEILWEISE
+- Zeit: 2026-10-25 14:18 UTC
+- Gemacht: Step 1: Bildschirm TIMER `src/ui/timer_view.*` (Kacheln 15/25/45 mit Sanduhr, Zurück; läuft ein Timer: Stopp-Kachel mit Quadrat + Zurück; 10 s Timeout).
+- Dateien: src/ui/timer_view.h, src/ui/timer_view.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS
+- Gegenprobe: –
+- Nächster Schritt: Interaktion Task 9 Step 2 (Fortschrittsring im Sprite, Restzeit im Statusstreifen), Step 3 (Verdrahtung: FOCUSED, LED-Signale, Zähler)
+- Offen/Fragen: –
+
 ## Interaktion Task 8 – Pomodoro (Logik) – ERLEDIGT
 - Zeit: 2026-10-25 14:16 UTC
 - Gemacht: `src/logic/pomodoro.h`: Zustände IDLE/WORK/BREAK, `pomo_start` (nur 15/25/45 min), Pause fest 5 min, `pomo_tick` → NONE/BREAK_START/BREAK_END (nächste Phase beginnt am Ende der vorigen), nach BREAK_END IDLE, `pomo_stop`, `pomo_progress` 0..1, `pomo_remaining_s` aufgerundet.
