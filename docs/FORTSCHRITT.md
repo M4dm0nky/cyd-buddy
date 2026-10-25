@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 9 – Netz (net.*) – ERLEDIGT
+- Zeit: 2026-10-25 11:40 UTC
+- Gemacht: WiFiManager nicht blockierend (AP „CYD-Buddy“, Feld „Ort“ id `place`, 47 Zeichen), Portal beim ersten Start bzw. nach 30 s ohne WLAN; NTP mit `configTzTime`; Geocoding per HTTPS (`NetworkClientSecure::useBuiltinCACertBundle()` – im Core-Header `NetworkClientSecure.h` nachgesehen; Bundle ist laut sdkconfig `CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_FULL`); Wetter alle 30 min per HTTP, Fehler → 5 min; JSON mit Filter. Abrufe im `net_task` (Kern 0, Prio 1, Stack 8192); nur der Haupt-Task schreibt `Persist`/NVS. `app.cpp`: Stunde an mood, Statusstreifen aus net, Wetter-Overlays (nur frisch < 3 h), Aus-Zeit einmalig nachgerechnet, Epoche beim Speichern.
+- Dateien: src/net/net.h, src/net/net.cpp, src/app.cpp
+- Prüfung: Step 1 `curl` → **nicht geprüft, weil** das Cloud-Netz `geocoding-api.open-meteo.com` sperrt (403 vom Proxy) und `api.open-meteo.com` nicht auflöst. `pio run -e cyd2usb` → SUCCESS, RAM 17,2 % (56 292 B), Flash 71,6 % (1 407 107 B von 1 966 080 B)
+- Gegenprobe: –
+- Nächster Schritt: Task 10 Step 1
+- Offen/Fragen: (1) URLs ungeprüft – lokal mit den beiden `curl`-Befehlen aus Plan Task 9 Step 1 gegenprüfen (Wetter bleibt wie in der Spec auf `http://`). (2) Sicherheit: WiFiManager registriert die Upload-Seite `/update` immer, auch wenn sie im Menü fehlt; das Portal-AP ist offen. Deshalb Menü nur „wifi, exit“, Info-Update aus und `setPreOtaUpdateCallback` → `ESP.restart()`, damit niemand über das Portal Firmware aufspielen kann. (3) Von Hand geöffnetes Portal schließt nach 5 min wieder, wenn WLAN verbunden ist (nicht im Plan, damit das AP nicht ewig offen bleibt). (4) Der Ort wird nach dem Geocoding durch den Namen aus der Antwort ersetzt (z. B. „Berlin“).
+- Am Gerät zu prüfen: Portal „CYD-Buddy“ erscheint, Ort-Feld, Verbindung, Uhrzeit, Wetter im Statusstreifen.
+
 ## Task 8 – Augen zeichnen und Hauptschleife – ERLEDIGT
 - Zeit: 2026-10-25 11:20 UTC
 - Gemacht: Augen-Renderer mit 8-Bit-Sprite 320×200 (Fallback direkt), Overlays (Herz, Sonnenbrille, Schweiß, Träne, zZz, Zittern, Regen-Tönung), Symbole aus Primitiven, Statusstreifen (zeichnet nur bei Änderung), `app.cpp` mit Bildtakt 33 ms, Gesten → Stimmung, Licht → Schlaf, Blinzeln/Blick/Tween, LED 15 %, Hintergrundlicht, Speichern alle 10 min, Seriell-Log alle 60 s. Testbild nach `ui/testscreen.cpp` ausgelagert (beim Start gedrückt halten).

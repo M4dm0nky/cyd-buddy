@@ -10,6 +10,7 @@
 #include "hw/store.h"
 #include "ui/eyes.h"
 #include "ui/status_bar.h"
+#include "net/net.h"
 
 static LGFX s_lcd;
 LGFX &app_lcd() { return s_lcd; }
@@ -35,7 +36,9 @@ static uint32_t s_frames = 0;
 static uint8_t s_backlight = 0;
 static Emotion s_emotion = Emotion::CONTENT;
 
-static int current_hour() { return -1; }   // ab Task 9 aus dem Netz
+static bool s_elapsed_applied = false;
+
+static int current_hour() { return net_hour(); }
 
 static void set_backlight(uint8_t v) {
   if (v == s_backlight) return;
@@ -45,21 +48,48 @@ static void set_backlight(uint8_t v) {
 
 static void save_now() {
   s_persist.needs = s_mood.n;
+  const uint32_t epoch = net_epoch();
+  if (epoch) s_persist.epoch = epoch;
   store_save(s_persist);
 }
 
-static StatusInfo status_info() {
+// Frisches Wetter (höchstens 3 h alt) oder false.
+static bool fresh_weather(uint32_t now, WeatherMood *wm, NetWeather *w) {
+  *w = net_weather();
+  if (!w->valid || !weather_fresh(now, w->fetched_ms)) return false;
+  *wm = weather_mood(w->code, w->temp_c);
+  return true;
+}
+
+static StatusInfo status_info(uint32_t now) {
   StatusInfo si{};
-  si.time_ok = false;
-  si.hour = si.minute = 0;
-  si.wifi_ok = false;
-  si.portal = false;
-  si.weather_ok = false;
-  si.sky = Sky::CLOUDY;
-  si.is_day = true;
-  si.temp_c = 0;
+  struct tm t;
+  si.time_ok = net_local_time(&t);
+  si.hour = si.time_ok ? t.tm_hour : 0;
+  si.minute = si.time_ok ? t.tm_min : 0;
+  si.wifi_ok = net_wifi_ok();
+  si.portal = net_portal_active();
+  WeatherMood wm;
+  NetWeather w;
+  si.weather_ok = fresh_weather(now, &wm, &w);
+  si.sky = si.weather_ok ? wm.sky : Sky::CLOUDY;
+  si.is_day = si.weather_ok ? w.is_day : true;
+  si.temp_c = si.weather_ok ? w.temp_c : 0;
   si.update_ready = false;
   return si;
+}
+
+// Einmal, sobald die Uhrzeit bekannt ist: Aus-Zeit seit dem letzten Speichern wie Schlaf nachrechnen.
+static void apply_elapsed_once() {
+  if (s_elapsed_applied || !net_time_ok()) return;
+  s_elapsed_applied = true;
+  const uint32_t now_epoch = net_epoch();
+  if (s_persist.epoch && now_epoch > s_persist.epoch) {
+    const uint32_t secs = now_epoch - s_persist.epoch;
+    mood_apply_elapsed(s_mood, secs);
+    Serial.printf("mood: %u s aus, Energie jetzt %.1f\n", (unsigned)secs, s_mood.n.energy);
+  }
+  s_persist.epoch = now_epoch;
 }
 
 // Touch lesen und Gesten an die Stimmung weitergeben. Liefert die Geste (für Menü usw.).
@@ -86,9 +116,10 @@ static void eyes_frame(uint32_t now, uint32_t dt, Gesture g) {
   s_emotion = mood_emotion(s_mood, hour, now);
   const bool sleeping = s_emotion == Emotion::SLEEPING;
 
-  const WeatherMood *wm = nullptr;   // ab Task 9
-  const bool is_day = true;
-  const uint32_t ov = overlays_for(s_emotion, wm, is_day);
+  WeatherMood wm;
+  NetWeather w;
+  const bool have_weather = fresh_weather(now, &wm, &w);
+  const uint32_t ov = overlays_for(s_emotion, have_weather ? &wm : nullptr, have_weather ? w.is_day : true);
 
   Expression target = eye_expression(s_emotion);
   if ((ov & OV_STORM) && now % kStormEveryMs < kStormForMs) target.shape = eye_expression(Emotion::SURPRISED).shape;
@@ -101,7 +132,7 @@ static void eyes_frame(uint32_t now, uint32_t dt, Gesture g) {
   EyeShape draw = s_shape;
   if (!sleeping) draw.open *= blinker_open(s_blink, now);
   eyes_draw(s_lcd, draw, s_color, ov, now);
-  status_draw(s_lcd, status_info());
+  status_draw(s_lcd, status_info(now));
 
   led_set(sleeping ? Rgb{0, 0, 0} : s_color, kLedPct);
   set_backlight(sleeping ? kSleepBacklight : kBacklight[s_persist.brightness]);
@@ -112,6 +143,7 @@ void app_setup() {
   light_begin();
   if (!store_load(s_persist)) Serial.println("store: nichts gespeichert, Startwerte");
   mood_init(s_mood, s_persist.needs);
+  net_begin(&s_persist);
   gesture_init(s_gesture);
   const uint32_t now = millis();
   const uint32_t seed = esp_random();
@@ -138,6 +170,9 @@ void app_loop() {
   }
   s_last_frame = now;
   s_frames++;
+
+  net_loop();
+  apply_elapsed_once();
 
   int16_t tx, ty;
   const Gesture g = handle_touch(now, tx, ty);
