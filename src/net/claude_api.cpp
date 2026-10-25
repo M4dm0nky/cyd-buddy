@@ -30,22 +30,71 @@ static bool key_ok(const String &got) {
   return diff == 0;
 }
 
-static void on_post() {
-  if (!key_ok(s_srv.header("X-Buddy-Key"))) { s_srv.send(401, "text/plain", "unauthorized"); return; }
-  if (s_srv.clientContentLength() > (int)kMaxBody) { s_srv.send(413, "text/plain", "too large"); return; }
-  if (!s_srv.hasArg("plain")) { s_srv.send(400, "text/plain", "no json body"); return; }   // Content-Type: application/json
-  const String &body = s_srv.arg("plain");
-  if (body.length() > kMaxBody) { s_srv.send(413, "text/plain", "too large"); return; }
-  JsonDocument doc;
-  if (deserializeJson(doc, body) || !doc.is<JsonObject>()) { s_srv.send(400, "text/plain", "bad json"); return; }
-  const char *e = doc["e"] | "";
-  const char *t = doc["t"] | "";
-  const char *n = doc["n"] | "";
-  const char *sid = doc["sid"] | "";
-  const bool interrupt = doc["i"].as<int>() != 0;
-  if (s_logic) claude_event(*s_logic, e, t, n, sid, interrupt, millis());
-  s_srv.send(204);
+// POST /claude als eigener RequestHandler mit "raw"-Modus des WebServers: Der Kern parst Anfragezeile und Header, ruft dann
+// raw(RAW_START) auf, BEVOR irgendein Körperbyte gelesen wird (WebServer/Parsing.cpp: canRaw/raw-Zweig). Dort prüfen wir
+// Schlüssel und Content-Length; bei Fehler antworten wir sofort (401/413) und schließen die Verbindung, so dass der Kern
+// den Körper nie liest. Der erlaubte Körper (<= 256 B) landet in einem statischen Puffer, nicht auf dem Heap.
+static char s_body[kMaxBody];
+static size_t s_blen = 0;
+static int s_rej = 0;            // 0 = angenommen, sonst bereits gesendeter Fehlercode
+static bool s_raw_seen = false;  // raw() wurde aufgerufen (nicht bei multipart/form-data: dort liest der Kern den Körper vorab)
+static bool s_raw_done = false;  // RAW_END erreicht, Körper vollständig
+
+static void reject_early(WebServer &s, int code, const char *msg) {
+  s_rej = code;
+  s.setContentLength(CONTENT_LENGTH_NOT_SET);   // der Kern setzt das sonst erst NACH dem Parsen; beim ersten Aufruf stünde 0 darin
+  s.send(code, "text/plain", msg);   // "Connection: close"
+  s.client().clear();                // schon eingetroffene Bytes verwerfen (kein Heap)
+  s.client().stop();                 // Kern bricht danach die Körperschleife ab (read() < 0 -> RAW_ABORTED)
 }
+
+class ClaudePostHandler : public RequestHandler {
+ public:
+  using RequestHandler::canHandle;
+  bool canHandle(WebServer &, HTTPMethod m, const String &uri) override {
+    s_blen = 0; s_rej = 0; s_raw_seen = false; s_raw_done = false;   // Beginn einer neuen Anfrage
+    return m == HTTP_POST && uri == "/claude";
+  }
+  using RequestHandler::canRaw;
+  bool canRaw(WebServer &, const String &uri) override { return uri == "/claude"; }
+  void raw(WebServer &s, const String &, HTTPRaw &r) override {
+    switch (r.status) {
+      case RAW_START: {
+        s_raw_seen = true;
+        const int len = s.clientContentLength();
+        if (!key_ok(s.header("X-Buddy-Key"))) reject_early(s, 401, "unauthorized");
+        else if (len < 0 || len > (int)kMaxBody) reject_early(s, 413, "too large");
+        break;
+      }
+      case RAW_WRITE:
+        if (s_rej == 0 && s_blen + r.currentSize <= kMaxBody) { memcpy(s_body + s_blen, r.buf, r.currentSize); s_blen += r.currentSize; }
+        break;
+      case RAW_END: s_raw_done = (s_rej == 0); break;
+      default: break;
+    }
+  }
+  using RequestHandler::handle;
+  bool handle(WebServer &s, HTTPMethod, const String &) override {
+    if (s_rej) return true;   // schon beantwortet, Verbindung zu
+    if (!s_raw_seen) {        // multipart/form-data: der Kern hat den Körper schon gelesen; Schlüssel trotzdem prüfen, Inhalt nicht annehmen
+      if (!key_ok(s.header("X-Buddy-Key"))) s.send(401, "text/plain", "unauthorized");
+      else s.send(415, "text/plain", "unsupported content type");
+      return true;
+    }
+    if (!s_raw_done || s_blen == 0) { s.send(400, "text/plain", "no json body"); return true; }
+    JsonDocument doc;
+    if (deserializeJson(doc, s_body, s_blen) || !doc.is<JsonObject>()) { s.send(400, "text/plain", "bad json"); return true; }
+    const char *e = doc["e"] | "";
+    const char *t = doc["t"] | "";
+    const char *n = doc["n"] | "";
+    const char *sid = doc["sid"] | "";
+    const bool interrupt = doc["i"].as<int>() != 0;
+    if (s_logic) claude_event(*s_logic, e, t, n, sid, interrupt, millis());
+    s.send(204);
+    return true;
+  }
+};
+static ClaudePostHandler s_post_handler;
 
 static void on_ping() {
   if (!key_ok(s_srv.header("X-Buddy-Key"))) { s_srv.send(401, "text/plain", "unauthorized"); return; }
@@ -55,10 +104,16 @@ static void on_ping() {
 }
 
 static void start_server() {
-  static const char *kHeaders[] = {"X-Buddy-Key"};
-  s_srv.collectHeaders(kHeaders, 1);
-  s_srv.on("/claude", HTTP_POST, on_post);
-  s_srv.on("/claude/ping", HTTP_GET, on_ping);
+  // Handler und Header-Liste nur beim ersten Start: collectHeaders() hängt bei jedem Aufruf an (_headerKeysCount += n),
+  // on()/addHandler() hängen Handler an; stop()/begin() lässt beides stehen.
+  static bool registered = false;
+  if (!registered) {
+    static const char *kHeaders[] = {"X-Buddy-Key"};
+    s_srv.collectHeaders(kHeaders, 1);
+    s_srv.addHandler(&s_post_handler);
+    s_srv.on("/claude/ping", HTTP_GET, on_ping);
+    registered = true;
+  }
   s_srv.begin();
   s_mdns = MDNS.begin(kHost);
   if (s_mdns) MDNS.addService("http", "tcp", 80);
