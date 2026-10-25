@@ -14,6 +14,8 @@
 #include "ui/menu.h"
 #include "ui/clock_view.h"
 #include "ui/settings.h"
+#include "ui/game_catch.h"
+#include "ui/game_simon.h"
 
 static LGFX s_lcd;
 LGFX &app_lcd() { return s_lcd; }
@@ -179,8 +181,8 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
         case MenuChoice::CLOCK: s_screen = Screen::CLOCK; clock_open(s_lcd, now); break;
         case MenuChoice::SETTINGS: open_settings(now); break;
         case MenuChoice::CLOSE: go_eyes(); break;
-        case MenuChoice::PLAY_CATCH:   // Spiele ab Task 11
-        case MenuChoice::PLAY_SIMON: go_eyes(); break;
+        case MenuChoice::PLAY_CATCH: s_screen = Screen::GAME_CATCH; game_catch_open(s_lcd, now); break;
+        case MenuChoice::PLAY_SIMON: s_screen = Screen::GAME_SIMON; game_simon_open(s_lcd, now); break;
         default: break;
       }
       return;
@@ -208,6 +210,16 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
       }
       settings_tick(s_lcd, s_persist, now);
       return;
+
+    case Screen::GAME_CATCH:
+    case Screen::GAME_SIMON: {
+      const GameResult r = s_screen == Screen::GAME_CATCH ? game_catch_update(s_lcd, tap, tx, ty, now)
+                                                          : game_simon_update(s_lcd, tap, tx, ty, now);
+      if (r == GameResult::RUNNING) return;
+      mood_event(s_mood, r == GameResult::WON ? MoodEvent::GAME_WON : MoodEvent::GAME_LOST, now);
+      go_eyes();
+      return;
+    }
 
     default:
       go_eyes();

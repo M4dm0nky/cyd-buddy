@@ -3,7 +3,8 @@
 #include "eye_model.h"
 
 // Spiel „Simon“: Folge aus 4 Feldern wird länger; Länge 6 geschafft = gewonnen. Reine Logik (Host-Test test/test_games).
-enum class SimonState : uint8_t { SHOW, INPUT, WON, LOST };
+// AWAIT_INPUT statt INPUT: Arduino definiert INPUT als Makro.
+enum class SimonState : uint8_t { SHOW, AWAIT_INPUT, WON, LOST };
 constexpr uint8_t SIMON_WIN_LEN = 6;
 constexpr uint8_t SIMON_FIELDS = 4;
 struct Simon { uint8_t seq[SIMON_WIN_LEN]; uint8_t len, pos; uint32_t seed; SimonState state; };
@@ -16,15 +17,15 @@ inline void simon_start(Simon &s, uint32_t seed) {
   s.pos = 0;
   s.state = SimonState::SHOW;
 }
-// Anzeige der Folge fertig: jetzt tippt der Spieler.
+// Anzeige der Folge fertig: jetzt tippt der Spieler (AWAIT_INPUT).
 inline void simon_shown(Simon &s) {
   if (s.state != SimonState::SHOW) return;
-  s.state = SimonState::INPUT;
+  s.state = SimonState::AWAIT_INPUT;
   s.pos = 0;
 }
-// Nur in INPUT. Richtig und letztes Feld: Länge 6 → WON, sonst nächste Runde (len++, SHOW). Falsch: LOST.
+// Nur in AWAIT_INPUT. Richtig und letztes Feld: Länge 6 → WON, sonst nächste Runde (len++, SHOW). Falsch: LOST.
 inline void simon_press(Simon &s, uint8_t field) {
-  if (s.state != SimonState::INPUT) return;
+  if (s.state != SimonState::AWAIT_INPUT) return;
   if (field != s.seq[s.pos]) { s.state = SimonState::LOST; return; }
   s.pos++;
   if (s.pos < s.len) return;

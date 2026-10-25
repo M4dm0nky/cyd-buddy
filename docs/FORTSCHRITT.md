@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Task 11 – Spiel-Bildschirme (Fang mich, Simon) – ERLEDIGT
+- Zeit: 2026-10-25 12:15 UTC
+- Gemacht: „Fang mich“ (kleines cyan Auge, alte Stelle schwarz übermalt, Restzeit-Balken + Treffer-Punkte oben) und „Simon“ (4 Felder rot/grün/blau/gelb, 500 ms hell / 200 ms Pause, Tipp leuchtet 150 ms). Spielfeld 320×200 unter 40-px-Kopf (`GAME_TOP`). Ende: 2 s großes Augenpaar (EXCITED bzw. BORED), dann EYES und `mood_event(GAME_WON/GAME_LOST)`. Seed aus `esp_random()`.
+- Dateien: src/ui/game_common.*, src/ui/game_catch.*, src/ui/game_simon.*, src/app.cpp, src/logic/simon.h
+- Prüfung: `pio run -e cyd2usb` → SUCCESS, RAM 17,2 % (56 428 B), Flash 72,2 % (1 420 259 B). `pio test -e native` → 47 Tests, 0 Fehler (8 Gruppen)
+- Gegenprobe: –
+- Nächster Schritt: Task 12 Step 1
+- Offen/Fragen: **Abweichung:** `SimonState::INPUT` heißt jetzt `SimonState::AWAIT_INPUT`, weil Arduino `INPUT` als Makro definiert (Build-Fehler „expected identifier before numeric constant“). Der Test aus dem Plan benutzt `INPUT` nicht und läuft unverändert.
+- Am Gerät zu prüfen: Spiele spielbar (Treffer-Toleranz, Tempo), Ergebnis-Augen.
+
 ## Task 10 – Menü, Uhr, Einstellungen – ERLEDIGT
 - Zeit: 2026-10-25 12:00 UTC
 - Gemacht: Menü 2×2 Kacheln (Spielen grün, Uhr gelb, Einstellungen violett, Schließen rot; 2. Ebene Fang-mich/Simon + Zurück), Uhr 15 s (Font7, Datum „So 25.10.“, Wetter, Augen schauen von unten herein; ohne Zeit „--:--“ + rotes WLAN), Einstellungen (Helligkeit 0→1→2→0, WLAN/Ort → Portal, Firmware-Zeile über Quelle ab Task 12, Info: Build-Datum, Heap, LDR). `app.cpp` mit `enum class Screen`; Stimmung/Licht laufen auf allen Bildschirmen weiter. Neu `logic/ascii.h` (UTF-8 → ASCII, die eingebauten Schriften haben keine Umlaute) mit Test.
