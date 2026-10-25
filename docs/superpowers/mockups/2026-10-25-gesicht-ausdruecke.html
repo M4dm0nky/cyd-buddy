@@ -1,0 +1,84 @@
+<h2>Welche Ausdrücke soll er können?</h2>
+<p class="subtitle">Stil A. Die ersten 11 hat er heute schon, die bekommen jetzt Brauen, Pupillen und Mund. Die übrigen wären neu. Wähle die neuen aus, die du willst (Mehrfachauswahl). Alle Gesichter entstehen aus denselben Reglern, so wie später auf dem Gerät.</p>
+
+<div class="cards" id="grid" data-multiselect></div>
+
+<script>
+// Gesichts-Baukasten (Entwurf des Gerätemodells). Koordinaten wie auf dem Display (320x240, Augen/Mund im Bereich 0..200).
+const P = (o) => Object.assign({
+  col:'#00dcff', open:1, tilt:0, topCut:0, botCut:0,       // Lider (tilt>0 = außen hängend/traurig, <0 = böse)
+  pdx:0, pdy:0, pr:15, wink:false,                          // Pupillen
+  by:-12, bt:0, bc:0.6, bAsym:0,                            // Brauen: Höhe über Auge, Neigung (+ = innen hoch/besorgt, - = böse), Bogen
+  mc:0.6, mo:0, mw:60, ms:'line',                           // Mund: Bogen (-1..1), Öffnung, Breite, Form
+  extra:''
+}, o);
+
+function face(p){
+  const L=90, R=230, EY=96, W=64, H=72;
+  let s=`<svg viewBox="0 0 320 210" width="100%"><rect width="320" height="210" fill="#000"/>`;
+  [[L,-1],[R,1]].forEach(([cx,side])=>{
+    const h = Math.max(4, H*p.open*(p.wink&&side==1?0.08:1));
+    const y0 = EY - h/2, x0 = cx - W/2;
+    s+=`<rect x="${x0}" y="${y0}" width="${W}" height="${h}" rx="${Math.min(20,h/2)}" fill="${p.col}"/>`;
+    if (h>20) {
+      s+=`<circle cx="${cx+p.pdx}" cy="${EY+p.pdy}" r="${p.pr}" fill="#001820"/>`;
+      s+=`<circle cx="${cx+p.pdx+p.pr*0.35}" cy="${EY+p.pdy-p.pr*0.4}" r="${Math.max(2,p.pr*0.3)}" fill="#fff"/>`;
+    }
+    // oberes Lid (schwarz), Neigung: innen = Richtung Gesichtsmitte
+    const inner = side==-1 ? x0+W : x0, outer = side==-1 ? x0 : x0+W;
+    const cutIn = y0 + h*p.topCut - p.tilt*H*0.35, cutOut = y0 + h*p.topCut + p.tilt*H*0.35;
+    s+=`<polygon points="${inner},${y0-2} ${outer},${y0-2} ${outer},${cutOut} ${inner},${cutIn}" fill="#000"/>`;
+    if (p.botCut>0) s+=`<ellipse cx="${cx}" cy="${y0+h+H*0.32}" rx="${W*0.72}" ry="${H*p.botCut*0.9+6}" fill="#000"/>`;
+    // Braue
+    const byy = y0 + p.by - (side==1? p.bAsym:0);
+    const ti = p.bt*10, bx1 = cx - 28, bx2 = cx + 28;
+    const yIn = byy - ti, yOut = byy + ti;
+    const ya = side==-1 ? yOut : yIn, yb = side==-1 ? yIn : yOut;
+    s+=`<path d="M${bx1} ${ya} Q${cx} ${(ya+yb)/2 - p.bc*12} ${bx2} ${yb}" stroke="${p.col}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  });
+  s+=`<circle cx="160" cy="146" r="4" fill="${p.col}"/>`;   // Nase
+  const my=172, w=p.mw/2;
+  if (p.ms=='o') s+=`<ellipse cx="160" cy="${my}" rx="${8+p.mo*6}" ry="${8+p.mo*10}" fill="none" stroke="${p.col}" stroke-width="6"/>`;
+  else if (p.ms=='zig') s+=`<path d="M${160-w} ${my} l${w/2} -7 l${w/2} 7 l${w/2} -7 l${w/2} 7" stroke="${p.col}" stroke-width="6" fill="none" stroke-linejoin="round" stroke-linecap="round"/>`;
+  else if (p.ms=='wave') s+=`<path d="M${160-w} ${my} q${w/2} -10 ${w} 0 t${w} 0" stroke="${p.col}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  else if (p.ms=='kiss') s+=`<path d="M154 ${my-8} q10 4 0 8 q10 4 0 8" stroke="${p.col}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  else {
+    const c = p.mc*22;
+    if (p.mo>0) s+=`<path d="M${160-w} ${my} Q160 ${my+c} ${160+w} ${my} Q160 ${my+c+p.mo*26} ${160-w} ${my} Z" fill="${p.col}"/>`;
+    else s+=`<path d="M${160-w} ${my} Q160 ${my+c} ${160+w} ${my}" stroke="${p.col}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  }
+  return s + p.extra + `</svg>`;
+}
+
+const RED='#ff3228', PINK='#ff50aa', BLUE='#3c78ff', YEL='#ffdc00', GREY='#806eb4', DIM='#008caa', MINT='#00ffb4';
+const E = [
+ ['zufrieden','heute', P({})],
+ ['fröhlich','heute', P({botCut:.45, mc:1, mo:.5, mw:70, by:-16})],
+ ['gelangweilt','heute', P({col:GREY, open:.55, topCut:.35, pdy:6, mc:0, mw:44, by:-6, bc:0})],
+ ['traurig','heute', P({col:BLUE, open:.8, tilt:.5, topCut:.2, pdy:8, pr:13, mc:-.8, mw:44, bt:1, bc:.2})],
+ ['müde','heute', P({col:DIM, open:.35, topCut:.5, pdy:8, mc:.1, mw:36, by:-4, bc:.2})],
+ ['schläft','heute', P({col:'#005a6e', open:.06, mc:.2, mw:28, by:-6, extra:'<text x="250" y="40" fill="#005a6e" font-size="28" font-weight="bold">z Z</text>'})],
+ ['überrascht','heute', P({col:'#78f0ff', pr:10, by:-26, bc:1, ms:'o', mo:.7})],
+ ['verliebt','heute', P({col:PINK, botCut:.3, pr:18, mc:.9, mw:50, by:-16, extra:'<text x="140" y="34" fill="#ff50aa" font-size="30">♥</text>'})],
+ ['genervt','heute', P({col:RED, open:.85, tilt:-.6, topCut:.2, pr:12, bt:-1.2, bc:-.2, by:-4, ms:'zig', mw:50})],
+ ['aufgeregt','heute', P({col:YEL, pr:17, by:-20, bc:.9, mc:1, mo:.8, mw:74})],
+ ['begrüßt','heute', P({col:MINT, wink:true, botCut:.4, mc:1, mo:.4, mw:64, by:-16})],
+ ['verwirrt','neu', P({pdx:-8, pdy:-6, bAsym:12, bt:.3, mw:44, ms:'wave', extra:'<text x="260" y="44" fill="#00dcff" font-size="34" font-weight="bold">?</text>'})],
+ ['schelmisch','neu', P({col:MINT, wink:true, pdx:6, bAsym:-8, mc:.8, mw:56, extra:''})],
+ ['ängstlich','neu', P({col:'#b4c8ff', pr:7, bt:1.2, by:-22, bc:.3, ms:'wave', mw:50, extra:''})],
+ ['skeptisch','neu', P({open:.7, topCut:.25, pdx:12, bAsym:14, bt:-.4, mc:-.2, mw:40})],
+ ['stolz','neu', P({open:.6, topCut:.35, botCut:.2, pdy:-4, by:-14, mc:.9, mw:64})],
+ ['kichert','neu', P({col:YEL, open:.2, botCut:.6, mc:1, mo:.6, mw:58, by:-14})],
+ ['gähnt','neu', P({col:DIM, open:.15, topCut:.3, by:-8, ms:'o', mo:1.4})],
+ ['pfeift (Langeweile)','neu', P({col:GREY, pdx:-14, pdy:-10, by:-14, ms:'o', mo:0, extra:'<text x="200" y="176" fill="#806eb4" font-size="26">♪</text>'})],
+ ['Kussmund','neu', P({col:PINK, open:.25, botCut:.5, by:-14, ms:'kiss', extra:'<text x="196" y="160" fill="#ff50aa" font-size="22">♥</text>'})],
+ ['frech (Zunge)','neu', P({wink:true, mc:.6, mw:50, extra:'<path d="M168 178 q8 18 18 0 z" fill="#ff5c7a"/>'})],
+ ['erschrocken (Gewitter)','neu', P({col:'#ffffff', pr:6, by:-28, bt:.6, bc:1, ms:'o', mo:1.2})],
+];
+document.getElementById('grid').innerHTML = E.map(([n,k,p],i)=>`
+  <div class="card" data-choice="${n}" ${k=='neu'?'onclick="toggleSelect(this)"':''} style="${k=='heute'?'opacity:.85':''}">
+    <div class="card-image" style="background:#000;padding:6px">${face(p)}</div>
+    <div class="card-body"><h3>${n}</h3><p>${k=='heute'?'gibt es schon, wird ergänzt':'neu, zum Auswählen anklicken'}</p></div>
+  </div>`).join('');
+</script>
+<style>#grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}</style>

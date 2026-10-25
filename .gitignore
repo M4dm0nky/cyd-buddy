@@ -3,3 +3,4 @@
 !.vscode/extensions.json
 ota-out/
 *.tmp
+.superpowers/
