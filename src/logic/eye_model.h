@@ -23,22 +23,8 @@ inline uint32_t rng_range(uint32_t &s, uint32_t lo, uint32_t hi) {
 }
 
 // lid_top_tilt > 0: äußere Ecke hängt (traurig), < 0: innere Ecke tiefer (böse). Der Renderer spiegelt links.
-inline Expression eye_expression(Emotion e) {
-  switch (e) {
-    case Emotion::HAPPY:     return {{74, 80, 22, 1, 0, 0, 0.45f, 0, 0}, {0, 230, 255}};
-    case Emotion::BORED:     return {{70, 90, 18, 0.55f, 0, 0.35f, 0, 0, 0}, {128, 110, 180}};
-    case Emotion::SAD:       return {{64, 86, 18, 0.8f, 0.5f, 0.2f, 0, 0, 0}, {60, 120, 255}};
-    case Emotion::SLEEPY:    return {{70, 90, 18, 0.35f, 0, 0.5f, 0, 0, 0}, {0, 140, 170}};
-    case Emotion::SLEEPING:  return {{70, 90, 18, 0.04f, 0, 0, 0, 0, 0}, {0, 90, 110}};
-    case Emotion::SURPRISED: return {{84, 104, 30, 1, 0, 0, 0, 0, 0}, {120, 240, 255}};
-    case Emotion::LOVE:      return {{70, 86, 22, 1, 0, 0, 0.3f, 0, 0}, {255, 80, 170}};
-    case Emotion::ANNOYED:   return {{72, 70, 12, 0.9f, -0.6f, 0.25f, 0, 0, 0}, {255, 50, 40}};
-    case Emotion::EXCITED:   return {{80, 96, 24, 1, 0, 0, 0.25f, 0, 0}, {255, 220, 0}};
-    case Emotion::GREETING:  return {{74, 80, 22, 1, 0, 0, 0.45f, 0, 0}, {0, 255, 180}};
-    case Emotion::CONTENT:
-    default:                 return {{70, 90, 18, 1, 0, 0, 0, 0, 0}, {0, 220, 255}};
-  }
-}
+// Definition in face_model.h (aus der Gesichtstabelle abgeleitet); wird unten eingebunden.
+inline Expression eye_expression(Emotion e);
 
 constexpr float EYE_TWEEN_TAU_MS = 150.0f;
 
@@ -117,3 +103,5 @@ inline void gazer_update(Gazer &z, uint32_t now_ms) {
   z.gy = (float)rng_range(z.seed, 0, 2 * GAZE_Y_MAX) - GAZE_Y_MAX;
   z.next_ms = now_ms + rng_range(z.seed, GAZE_GAP_MIN_MS, GAZE_GAP_MAX_MS);
 }
+
+#include "face_model.h"

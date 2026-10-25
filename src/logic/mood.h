@@ -3,7 +3,8 @@
 #include "clamp.h"
 
 // Bedürfnisse und Gefühl des Buddys. Reine Logik, Zeit kommt als Parameter (Host-Test test/test_mood).
-enum class Emotion : uint8_t { CONTENT, HAPPY, BORED, SAD, SLEEPY, SLEEPING, SURPRISED, LOVE, ANNOYED, EXCITED, GREETING, COUNT };
+enum class Emotion : uint8_t { CONTENT, HAPPY, BORED, SAD, SLEEPY, SLEEPING, SURPRISED, LOVE, ANNOYED, EXCITED, GREETING,
+                            CONFUSED, MISCHIEVOUS, SCARED, SKEPTICAL, PROUD, GIGGLE, YAWN, WHISTLE, KISS, CHEEKY, STARTLED, COUNT };
 enum class MoodEvent : uint8_t { TAP, STROKE, POKE, GAME_WON, GAME_LOST };
 struct Needs { float affection, fun, energy; };
 struct MoodState {
