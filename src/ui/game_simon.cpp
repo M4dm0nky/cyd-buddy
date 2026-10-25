@@ -11,6 +11,8 @@ static uint32_t s_show_start = 0;      // Beginn der Anzeige der Folge
 static int s_lit = -1;                 // gerade hell gezeichnetes Feld
 static int s_flash = -1;               // vom Spieler getipptes Feld, leuchtet kurz
 static uint32_t s_flash_until = 0;
+static constexpr uint32_t kInputTimeoutMs = 30000;
+static uint32_t s_wait_start = 0;      // seit wann auf Eingabe gewartet wird (Beginn von AWAIT_INPUT bzw. letzter Tipp)
 static bool s_result_shown = false;
 static uint32_t s_result_ms = 0;
 static uint8_t s_drawn_len = 0;
@@ -70,7 +72,7 @@ GameResult game_simon_update(LGFX &lcd, bool tap, int16_t x, int16_t y, uint32_t
     if ((int32_t)(now_ms - s_show_start) >= 0) {
       const uint32_t t = now_ms - s_show_start;
       const uint32_t step = t / (kOnMs + kGapMs);
-      if (step >= s_s.len) simon_shown(s_s);
+      if (step >= s_s.len) { simon_shown(s_s); s_wait_start = now_ms; }
       else if (t % (kOnMs + kGapMs) < kOnMs) want = s_s.seq[step];
     }
     if (want != s_lit) {
@@ -80,7 +82,10 @@ GameResult game_simon_update(LGFX &lcd, bool tap, int16_t x, int16_t y, uint32_t
     }
   } else if (s_s.state == SimonState::AWAIT_INPUT) {
     const int f = tap ? field_at(x, y) : -1;
-    if (f >= 0) {
+    if (f < 0 && now_ms - s_wait_start >= kInputTimeoutMs) {   // 30 s ohne Eingabe: Spiel endet als verloren
+      s_s.state = SimonState::LOST;
+    } else if (f >= 0) {
+      s_wait_start = now_ms;
       if (s_flash >= 0) draw_field(lcd, s_flash, false);
       draw_field(lcd, f, true);
       s_flash = f;
