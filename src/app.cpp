@@ -31,6 +31,7 @@
 #include "ota/ota_pull.h"
 #include "logic/ota_policy.h"
 #include "logic/claude_face.h"
+#include "logic/deadline.h"
 
 #ifndef CYD_DIAG_TOUCH
 #define CYD_DIAG_TOUCH 0   // 1 = Touch/Gesten seriell ausgeben (Kalibrierung prüfen); per build_flags -DCYD_DIAG_TOUCH=1
@@ -54,7 +55,7 @@ static ClaudeLogic s_claude;                       // Claude-Modus: Zustand aus 
 static constexpr Rgb kClaudeCol{217, 119, 87};
 static constexpr uint32_t kTouchPrioMs = 3000;         // Berührungs-Gefühle haben so lange Vorrang vor Claude-Gesichtern
 static constexpr uint32_t kHeyEveryMs = 30000;
-static uint32_t s_touch_prio_until = 0;
+static Deadline s_touch_prio;
 static uint8_t s_claude_fx = CFX_NONE;                 // Zusatzeffekte des angezeigten Claude-Gesichts
 static bool s_claude_busy = false;                     // Zustand mit eigenem Gesicht (nicht OFF/IDLE)
 static ClaudeState s_prev_cs = ClaudeState::OFF;
@@ -75,8 +76,8 @@ static Emotion s_emotion = Emotion::CONTENT;
 static bool s_elapsed_applied = false;
 static LookState s_look{};
 static bool s_pressed = false;                     // Finger liegt gerade auf
-static uint32_t s_hand_until = 0;                  // High-Five-Hand sichtbar bis
-static uint32_t s_led_flash_until = 0;             // LED kurz weiß
+static Deadline s_hand;                           // High-Five-Hand sichtbar bis
+static Deadline s_led_flash;                     // LED kurz weiß
 static constexpr uint32_t kHandMs = 1500, kLedFlashMs = 250;
 
 // F2: Sprechblasen, Rituale, Tageszähler
@@ -86,7 +87,7 @@ static constexpr uint8_t kStrokeSayPct = 25;
 static SpeechState s_speech;
 static RitualState s_rituals{};
 static char s_bubble[64] = "";
-static uint32_t s_bubble_until = 0;
+static Deadline s_bubble_dl;
 static char s_pending[64] = "";        // zweite Blase (Morgen: Tageswetter)
 static uint32_t s_pending_at = 0;
 static bool s_touch_began = false;     // in diesem Bild hat eine Berührung begonnen
@@ -102,7 +103,7 @@ static constexpr int kFoodY0 = 236, kMouthY = 172;
 static Character s_char{};
 static int s_feed_food = -1;           // gerade gefütterte Speise (Animation), -1 = keine
 static uint32_t s_feed_start = 0;
-static uint32_t s_sneeze_until = 0;
+static Deadline s_sneeze;
 
 // F4: Pomodoro
 static constexpr Rgb kTimerCol{255, 90, 140}, kBreakCol{60, 220, 120};
@@ -180,7 +181,7 @@ static void apply_elapsed_once() {
 
 static void show_bubble(const char *txt, uint32_t now) {
   strlcpy(s_bubble, txt, sizeof s_bubble);
-  s_bubble_until = now + kBubbleMs;
+  s_bubble_dl.arm(now, kBubbleMs);
   speech_shown(s_speech, now);
 }
 // Claude-Blase: während der Pomodoro-Arbeit nur, wenn Claude etwas von dir braucht (even_in_work).
@@ -243,7 +244,7 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
 
 static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
   const int hour = current_hour();
-  if (g == Gesture::TAP || g == Gesture::STROKE || g == Gesture::POKE) s_touch_prio_until = now + kTouchPrioMs;
+  if (g == Gesture::TAP || g == Gesture::STROKE || g == Gesture::POKE) s_touch_prio.arm(now, kTouchPrioMs);
   switch (g) {
     case Gesture::TAP:
       if (focused_work()) break;   // während der Arbeit: kein Überraschen, nur der Blick folgt
@@ -252,8 +253,8 @@ static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
         char_highfive(s_char);
         say(Say::HIGHFIVE, now);
         eyes_set_hand(tx > 160, now);
-        s_hand_until = now + kHandMs;
-        s_led_flash_until = now + kLedFlashMs;
+        s_hand.arm(now, kHandMs);
+        s_led_flash.arm(now, kLedFlashMs);
       } else {
         mood_event(s_mood, MoodEvent::TAP, now, hour);
       }
@@ -334,7 +335,7 @@ static void mood_frame(uint32_t now, uint32_t dt) {
   if (focused_work() && s_emotion != Emotion::SLEEPING) s_emotion = Emotion::FOCUSED;   // überschreibt alles außer Schlaf
   if (s_emotion == Emotion::BORED) char_bored(s_char, dt);
   // Claude-Gesicht: Berührungs-Gefühl (3 s) und Pomodoro haben Vorrang
-  const bool touch_feel = (int32_t)(s_touch_prio_until - now) > 0 && !mood_is_sleeping(s_mood, now) &&
+  const bool touch_feel = s_touch_prio.active(now) && !mood_is_sleeping(s_mood, now) &&
                           s_emotion != mood_base_emotion(s_mood, hour);
   const ClaudeFace cf = claude_face(cs, work, touch_feel, s_emotion);
   s_emotion = cf.emo;
@@ -364,7 +365,7 @@ static void weather_say(uint32_t now) {
 static void speech_frame(uint32_t now, bool sleeping) {
   const bool woke = (s_prev_sleeping && !sleeping) || s_touch_began;
   s_prev_sleeping = sleeping;
-  if (sleeping) { s_bubble_until = now; s_pending_at = 0; return; }
+  if (sleeping) { s_bubble_dl.clear(); s_pending_at = 0; return; }
   struct tm t;
   const uint32_t day = today(&t);
   daystats_roll(s_persist.day, day);
@@ -392,7 +393,7 @@ static void speech_frame(uint32_t now, bool sleeping) {
   Say what;
   if (speech_due(s_speech, mood_base_emotion(s_mood, hour), now, &what, s_char.cuddly)) say(what, now);
   if (mood_sneeze_due(s_mood, now)) {   // krank: Hatschi
-    s_sneeze_until = now + kSneezeMs;
+    s_sneeze.arm(now, kSneezeMs);
     say(Say::KRANK, now);
   }
 }
@@ -403,7 +404,7 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
   NetWeather w;
   const bool have_weather = fresh_weather(now, &wm, &w);
   uint32_t ov = overlays_for(s_emotion, have_weather ? &wm : nullptr, have_weather ? w.is_day : true);
-  if ((int32_t)(s_hand_until - now) > 0 && !sleeping) ov |= OV_HAND;
+  if (s_hand.active(now) && !sleeping) ov |= OV_HAND;
   if (!sleeping && (s_claude_fx & CFX_HAND)) ov |= OV_HAND;
   if (!sleeping && (s_claude_fx & CFX_TYPING)) ov |= OV_TYPING;
 
@@ -436,7 +437,7 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
 
   FaceShape draw = s_face;
   if (!sleeping) draw.eye.open *= blinker_open(s_blink, now);
-  const bool sneezing = (int32_t)(s_sneeze_until - now) > 0;
+  const bool sneezing = s_sneeze.active(now);
   if (sneezing) { ov |= OV_SNEEZE; draw.eye.open *= 0.1f; }   // Augen kurz zu
   // Füttern: Speise fliegt in 600 ms von unten zum Mund, dann 3× kauen, dann Reaktion
   if (s_feed_food >= 0) {
@@ -456,10 +457,10 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
       say(food_feed(s_mood, f, (Food)s_persist.favorite_food, now), now);
     }
   }
-  eyes_draw(s_lcd, draw, s_color, ov, now, (int32_t)(s_bubble_until - now) > 0 ? s_bubble : nullptr);
+  eyes_draw(s_lcd, draw, s_color, ov, now, s_bubble_dl.active(now) ? s_bubble : nullptr);
   status_draw(s_lcd, status_info(now));
 
-  if ((int32_t)(s_led_flash_until - now) > 0) led_set(Rgb{255, 255, 255}, kLedPct);   // High-Five
+  if (s_led_flash.active(now)) led_set(Rgb{255, 255, 255}, kLedPct);   // High-Five
   else led_set(sleeping ? Rgb{0, 0, 0} : s_color, kLedPct);
   set_backlight(sleeping ? kSleepBacklight : kBacklight[s_persist.brightness]);
 }
