@@ -28,9 +28,10 @@ void test_stroke_cooldown() {
   mood_event(s, MoodEvent::STROKE, 10000);
   mood_event(s, MoodEvent::STROKE, 11000);   // < 2 s: zählt nicht
   TEST_ASSERT_FLOAT_WITHIN(0.01f, 58.0f, s.n.affection);
-  mood_event(s, MoodEvent::STROKE, 12500);
+  // Spec Gesicht: das 3. Streicheln innerhalb 20 s kichert (GIGGLE) -> drittes erst nach 20 s
+  mood_event(s, MoodEvent::STROKE, 40000);
   TEST_ASSERT_FLOAT_WITHIN(0.01f, 66.0f, s.n.affection);
-  TEST_ASSERT_EQUAL((int)Emotion::LOVE, (int)mood_emotion(s, 12, 13000));
+  TEST_ASSERT_EQUAL((int)Emotion::LOVE, (int)mood_emotion(s, 12, 40500));
 }
 void test_affection_clamped_at_100() {
   fresh(99, 50, 50);
@@ -141,8 +142,185 @@ void test_morning_wakes_with_greeting() {
   TEST_ASSERT_EQUAL((int)Emotion::GREETING, (int)mood_emotion(s, 7, 801000));
 }
 
+// ---- Neue Ausloeser (Spec Gesicht) ----
+static int E(Emotion e) { return (int)e; }
+
+void test_giggle_third_stroke_in_20s() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::STROKE, 1000);
+  mood_event(s, MoodEvent::STROKE, 1500);   // Cooldown: zaehlt trotzdem
+  TEST_ASSERT_EQUAL(E(Emotion::LOVE), E(mood_emotion(s, 12, 2000)));
+  mood_event(s, MoodEvent::STROKE, 3000);
+  TEST_ASSERT_EQUAL(E(Emotion::GIGGLE), E(mood_emotion(s, 12, 3500)));
+  TEST_ASSERT_EQUAL(E(Emotion::GIGGLE), E(mood_emotion(s, 12, 5999)));
+  TEST_ASSERT_NOT_EQUAL(E(Emotion::GIGGLE), E(mood_emotion(s, 12, 6001)));
+}
+void test_no_giggle_when_spread_over_20s() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::STROKE, 0);
+  mood_event(s, MoodEvent::STROKE, 15000);
+  mood_event(s, MoodEvent::STROKE, 30000);
+  TEST_ASSERT_EQUAL(E(Emotion::LOVE), E(mood_emotion(s, 12, 30500)));
+}
+void test_kiss_when_affection_over_90() {
+  fresh(85, 50, 50);
+  mood_event(s, MoodEvent::STROKE, 1000);   // 93
+  TEST_ASSERT_EQUAL(E(Emotion::KISS), E(mood_emotion(s, 12, 1500)));
+  TEST_ASSERT_EQUAL(E(Emotion::KISS), E(mood_emotion(s, 12, 3999)));
+  TEST_ASSERT_NOT_EQUAL(E(Emotion::KISS), E(mood_emotion(s, 12, 4001)));
+}
+void test_giggle_beats_kiss_beats_love() {
+  fresh(95, 50, 50);
+  mood_event(s, MoodEvent::STROKE, 1000);
+  TEST_ASSERT_EQUAL(E(Emotion::KISS), E(mood_emotion(s, 12, 1100)));
+  mood_event(s, MoodEvent::STROKE, 3500);
+  mood_event(s, MoodEvent::STROKE, 6000);
+  TEST_ASSERT_EQUAL(E(Emotion::GIGGLE), E(mood_emotion(s, 12, 6100)));
+}
+void test_double_tap_confused() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::TAP, 100);   // erster Tipp: nie verwirrt
+  TEST_ASSERT_EQUAL(E(Emotion::SURPRISED), E(mood_emotion(s, 12, 200)));
+  mood_event(s, MoodEvent::TAP, 1000);
+  mood_event(s, MoodEvent::TAP, 1400);   // < 500 ms
+  TEST_ASSERT_EQUAL(E(Emotion::CONFUSED), E(mood_emotion(s, 12, 1500)));
+  TEST_ASSERT_EQUAL(E(Emotion::CONFUSED), E(mood_emotion(s, 12, 3899)));
+  TEST_ASSERT_NOT_EQUAL(E(Emotion::CONFUSED), E(mood_emotion(s, 12, 3901)));
+}
+void test_slow_taps_stay_surprised() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::TAP, 1000);
+  mood_event(s, MoodEvent::TAP, 1500);   // genau 500 ms: noch nicht verwirrt
+  TEST_ASSERT_EQUAL(E(Emotion::SURPRISED), E(mood_emotion(s, 12, 1600)));
+}
+void test_poke_when_sad_is_scared() {
+  fresh(10, 50, 50);
+  mood_event(s, MoodEvent::POKE, 1000, 12);
+  TEST_ASSERT_FLOAT_WITHIN(0.01f, 7.0f, s.n.affection);
+  TEST_ASSERT_EQUAL(E(Emotion::SCARED), E(mood_emotion(s, 12, 5999)));
+  TEST_ASSERT_EQUAL(E(Emotion::SAD), E(mood_emotion(s, 12, 6001)));
+}
+void test_poke_when_not_sad_still_annoyed() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::POKE, 1000, 12);
+  TEST_ASSERT_EQUAL(E(Emotion::ANNOYED), E(mood_emotion(s, 12, 2000)));
+}
+void test_game_won_then_proud() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::GAME_WON, 0);
+  TEST_ASSERT_EQUAL(E(Emotion::EXCITED), E(mood_emotion(s, 12, 5999)));
+  TEST_ASSERT_EQUAL(E(Emotion::PROUD), E(mood_emotion(s, 12, 6001)));
+  TEST_ASSERT_EQUAL(E(Emotion::PROUD), E(mood_emotion(s, 12, 9999)));
+  TEST_ASSERT_EQUAL(E(Emotion::CONTENT), E(mood_emotion(s, 12, 10001)));
+}
+void test_new_transient_cancels_proud_follow() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::GAME_WON, 0);
+  mood_event(s, MoodEvent::TAP, 1000);
+  TEST_ASSERT_EQUAL(E(Emotion::CONTENT), E(mood_emotion(s, 12, 7000)));
+}
+void test_game_lost_skeptical() {
+  fresh(50, 50, 50);
+  mood_event(s, MoodEvent::GAME_LOST, 0);
+  TEST_ASSERT_EQUAL(E(Emotion::SKEPTICAL), E(mood_emotion(s, 12, 3999)));
+  TEST_ASSERT_EQUAL(E(Emotion::CONTENT), E(mood_emotion(s, 12, 4001)));
+}
+void test_base_emotion_ignores_transient() {
+  fresh(10, 50, 50);
+  mood_event(s, MoodEvent::TAP, 1000);
+  TEST_ASSERT_EQUAL(E(Emotion::SURPRISED), E(mood_emotion(s, 12, 1100)));
+  TEST_ASSERT_EQUAL(E(Emotion::SAD), E(mood_base_emotion(s, 12)));
+}
+
+// ---- Eigenarten ----
+// Laeuft Frames im 1-s-Takt; liefert Zeitpunkt des ersten Auftretens von `want` (oder -1) und merkt sich weitere.
+static long first_seen(Emotion want, int hour, uint32_t until_ms) {
+  for (uint32_t t = 0; t <= until_ms; t += 1000) {
+    mood_quirks(s, hour, t);
+    if (mood_emotion(s, hour, t) == want) return (long)t;
+  }
+  return -1;
+}
+void test_quirk_yawn_when_sleepy_within_5min_for_3s() {
+  fresh(50, 50, 20);   // SLEEPY
+  mood_seed(s, 12345);
+  long t0 = first_seen(Emotion::YAWN, 12, 300000);
+  TEST_ASSERT_TRUE(t0 >= 120000);
+  TEST_ASSERT_EQUAL(E(Emotion::YAWN), E(mood_emotion(s, 12, t0 + 2999)));
+  TEST_ASSERT_EQUAL(E(Emotion::SLEEPY), E(mood_emotion(s, 12, t0 + 3001)));
+}
+void test_quirk_whistle_when_bored_within_3min_for_5s() {
+  fresh(50, 10, 50);   // BORED
+  mood_seed(s, 777);
+  long t0 = first_seen(Emotion::WHISTLE, 12, 180000);
+  TEST_ASSERT_TRUE(t0 >= 60000);
+  TEST_ASSERT_EQUAL(E(Emotion::WHISTLE), E(mood_emotion(s, 12, t0 + 4999)));
+  TEST_ASSERT_EQUAL(E(Emotion::BORED), E(mood_emotion(s, 12, t0 + 5001)));
+}
+void test_quirk_happy_gives_mischievous_or_cheeky_both_occur() {
+  bool seen_m = false, seen_c = false;
+  for (uint32_t seed = 1; seed <= 30; seed++) {
+    fresh(80, 70, 50);   // HAPPY
+    mood_seed(s, seed);
+    bool got = false;
+    for (uint32_t t = 0; t <= 360000; t += 1000) {
+      mood_quirks(s, 12, t);
+      const Emotion e = mood_emotion(s, 12, t);
+      if (e == Emotion::MISCHIEVOUS) { seen_m = true; got = true; break; }
+      if (e == Emotion::CHEEKY) { seen_c = true; got = true; break; }
+    }
+    TEST_ASSERT_TRUE(got);
+  }
+  TEST_ASSERT_TRUE(seen_m && seen_c);
+}
+void test_quirk_none_when_sleeping() {
+  fresh(50, 50, 20);
+  mood_seed(s, 12345);
+  s.napping = true;
+  for (uint32_t t = 0; t <= 900000; t += 1000) {
+    mood_quirks(s, 12, t);
+    TEST_ASSERT_EQUAL(E(Emotion::SLEEPING), E(mood_emotion(s, 12, t)));
+  }
+  TEST_ASSERT_EQUAL(E(Emotion::CONTENT), E(s.transient));
+}
+void test_quirk_none_during_other_transient() {
+  fresh(50, 10, 50);   // BORED
+  mood_seed(s, 777);
+  mood_set_transient(s, Emotion::SURPRISED, 0, 1000000);
+  for (uint32_t t = 0; t <= 400000; t += 1000) {
+    mood_quirks(s, 12, t);
+    TEST_ASSERT_EQUAL(E(Emotion::SURPRISED), E(mood_emotion(s, 12, t)));
+  }
+}
+void test_quirk_none_for_other_base_emotions() {
+  fresh(50, 50, 50);   // CONTENT
+  mood_seed(s, 5);
+  for (uint32_t t = 0; t <= 900000; t += 1000) {
+    mood_quirks(s, 12, t);
+    TEST_ASSERT_EQUAL(E(Emotion::CONTENT), E(mood_emotion(s, 12, t)));
+  }
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
+  RUN_TEST(test_giggle_third_stroke_in_20s);
+  RUN_TEST(test_no_giggle_when_spread_over_20s);
+  RUN_TEST(test_kiss_when_affection_over_90);
+  RUN_TEST(test_giggle_beats_kiss_beats_love);
+  RUN_TEST(test_double_tap_confused);
+  RUN_TEST(test_slow_taps_stay_surprised);
+  RUN_TEST(test_poke_when_sad_is_scared);
+  RUN_TEST(test_poke_when_not_sad_still_annoyed);
+  RUN_TEST(test_game_won_then_proud);
+  RUN_TEST(test_new_transient_cancels_proud_follow);
+  RUN_TEST(test_game_lost_skeptical);
+  RUN_TEST(test_base_emotion_ignores_transient);
+  RUN_TEST(test_quirk_yawn_when_sleepy_within_5min_for_3s);
+  RUN_TEST(test_quirk_whistle_when_bored_within_3min_for_5s);
+  RUN_TEST(test_quirk_happy_gives_mischievous_or_cheeky_both_occur);
+  RUN_TEST(test_quirk_none_when_sleeping);
+  RUN_TEST(test_quirk_none_during_other_transient);
+  RUN_TEST(test_quirk_none_for_other_base_emotions);
   RUN_TEST(test_decay_awake_one_hour);
   RUN_TEST(test_sleep_regenerates_and_clamps);
   RUN_TEST(test_stroke_cooldown);

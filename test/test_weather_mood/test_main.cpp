@@ -43,8 +43,27 @@ void test_overlays() {
   TEST_ASSERT_TRUE(overlays_for(Emotion::CONTENT, &storm, true) & OV_STORM);
 }
 
+void test_new_overlays() {
+  TEST_ASSERT_TRUE(overlays_for(Emotion::CONFUSED, nullptr, true) & OV_QUESTION);
+  TEST_ASSERT_TRUE(overlays_for(Emotion::WHISTLE, nullptr, true) & OV_NOTE);
+  TEST_ASSERT_TRUE(overlays_for(Emotion::KISS, nullptr, true) & OV_HEART);
+  TEST_ASSERT_FALSE(overlays_for(Emotion::CONTENT, nullptr, true) & (OV_QUESTION | OV_NOTE));
+  TEST_ASSERT_FALSE(overlays_for(Emotion::YAWN, nullptr, true) & OV_ZZZ);   // zZ nur beim Schlafen
+}
+void test_sunglasses_for_proud_and_cheeky() {
+  WeatherMood sun = weather_mood(0, 20);
+  TEST_ASSERT_TRUE(overlays_for(Emotion::PROUD, &sun, true) & OV_SUNGLASSES);
+  TEST_ASSERT_TRUE(overlays_for(Emotion::MISCHIEVOUS, &sun, true) & OV_SUNGLASSES);
+  TEST_ASSERT_TRUE(overlays_for(Emotion::CHEEKY, &sun, true) & OV_SUNGLASSES);
+  TEST_ASSERT_FALSE(overlays_for(Emotion::PROUD, &sun, false) & OV_SUNGLASSES);
+  WeatherMood rain = weather_mood(63, 10);
+  TEST_ASSERT_FALSE(overlays_for(Emotion::PROUD, &rain, true) & OV_SUNGLASSES);
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
+  RUN_TEST(test_new_overlays);
+  RUN_TEST(test_sunglasses_for_proud_and_cheeky);
   RUN_TEST(test_wmo_mapping);
   RUN_TEST(test_flags);
   RUN_TEST(test_fresh);

@@ -2,25 +2,12 @@
 #include <stdint.h>
 #include <math.h>
 #include "mood.h"
+#include "rng.h"
 
 // Augenform je Gefühl, weiche Übergänge, Blinzeln, Blick, Zufall. Reine Logik (Host-Test test/test_eye_model).
 struct EyeShape { float w, h, radius, open, lid_top_tilt, lid_top_cut, lid_bottom_cut, gaze_x, gaze_y; };
 struct Rgb { uint8_t r, g, b; };
 struct Expression { EyeShape shape; Rgb color; };
-
-// xorshift32; ein Zustand 0 wird vorher auf 1 gesetzt.
-inline uint32_t rng_next(uint32_t &s) {
-  if (s == 0) s = 1;
-  s ^= s << 13;
-  s ^= s >> 17;
-  s ^= s << 5;
-  return s;
-}
-// Gleichverteilt (bis auf Modulo-Rest) in [lo, hi].
-inline uint32_t rng_range(uint32_t &s, uint32_t lo, uint32_t hi) {
-  if (hi <= lo) return lo;
-  return lo + rng_next(s) % (hi - lo + 1);
-}
 
 // lid_top_tilt > 0: äußere Ecke hängt (traurig), < 0: innere Ecke tiefer (böse). Der Renderer spiegelt links.
 // Definition in face_model.h (aus der Gesichtstabelle abgeleitet); wird unten eingebunden.

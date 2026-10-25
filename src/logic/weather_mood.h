@@ -31,18 +31,22 @@ inline bool weather_fresh(uint32_t now_ms, uint32_t fetched_ms) {
 
 enum Overlay : uint32_t {
   OV_HEART = 1, OV_SUNGLASSES = 2, OV_SWEAT = 4, OV_TEAR = 8,
-  OV_ZZZ = 16, OV_SHIVER = 32, OV_RAIN_TINT = 64, OV_STORM = 128
+  OV_ZZZ = 16, OV_SHIVER = 32, OV_RAIN_TINT = 64, OV_STORM = 128,
+  OV_QUESTION = 256, OV_NOTE = 512
 };
 
 // w = nullptr: kein (frisches) Wetter.
 inline uint32_t overlays_for(Emotion e, const WeatherMood *w, bool is_day) {
   if (e == Emotion::SLEEPING) return OV_ZZZ;
   uint32_t o = 0;
-  if (e == Emotion::LOVE) o |= OV_HEART;
+  if (e == Emotion::LOVE || e == Emotion::KISS) o |= OV_HEART;
   if (e == Emotion::SAD) o |= OV_TEAR;
+  if (e == Emotion::CONFUSED) o |= OV_QUESTION;
+  if (e == Emotion::WHISTLE) o |= OV_NOTE;
   if (w) {
     if (w->sky == Sky::SUNNY && is_day &&
-        (e == Emotion::HAPPY || e == Emotion::CONTENT || e == Emotion::GREETING))
+        (e == Emotion::HAPPY || e == Emotion::CONTENT || e == Emotion::GREETING ||
+         e == Emotion::PROUD || e == Emotion::MISCHIEVOUS || e == Emotion::CHEEKY))
       o |= OV_SUNGLASSES;
     if (w->hot) o |= OV_SWEAT;
     if (w->cold) o |= OV_SHIVER;
