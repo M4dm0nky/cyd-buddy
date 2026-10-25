@@ -15,3 +15,5 @@ struct Persist {
 void store_defaults(Persist &p);     // needs {60,60,80}, epoch 0, brightness 2, place "", has_place false
 bool store_load(Persist &p);         // false = nichts gespeichert (dann defaults)
 void store_save(const Persist &p);
+bool store_load_touch(uint16_t cal[8]);   // false = noch nicht kalibriert
+void store_save_touch(const uint16_t cal[8]);

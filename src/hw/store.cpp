@@ -51,3 +51,19 @@ void store_save(const Persist &p) {
   prefs.putBool("hasp", p.has_place);
   prefs.end();
 }
+
+// Touch-Kalibrierung (8 Werte aus LGFX::calibrateTouch), eigener Schlüssel, unabhängig von Persist.
+bool store_load_touch(uint16_t cal[8]) {
+  Preferences prefs;
+  if (!prefs.begin(kNs, true)) return false;
+  const size_t n = prefs.getBytes("touchcal", cal, 8 * sizeof(uint16_t));
+  prefs.end();
+  return n == 8 * sizeof(uint16_t);
+}
+
+void store_save_touch(const uint16_t cal[8]) {
+  Preferences prefs;
+  if (!prefs.begin(kNs, false)) return;
+  prefs.putBytes("touchcal", cal, 8 * sizeof(uint16_t));
+  prefs.end();
+}

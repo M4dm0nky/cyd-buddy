@@ -129,7 +129,10 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
     if (raw_down && !s_raw_only) Serial.printf("touch verworfen raw=%d,%d\n", (int)raw.x, (int)raw.y);
     s_raw_only = raw_down;
   }
-  return gesture_feed(s_gesture, pressed, tx, ty, now);
+  const Gesture g = gesture_feed(s_gesture, pressed, tx, ty, now);
+  if (g != Gesture::NONE)   // Diagnose: welche Geste mit welcher Position auf welchem Bildschirm
+    Serial.printf("geste %d bei x=%d y=%d screen=%d\n", (int)g, (int)tx, (int)ty, (int)s_screen);
+  return g;
 }
 
 static void touch_to_mood(Gesture g, uint32_t now) {
