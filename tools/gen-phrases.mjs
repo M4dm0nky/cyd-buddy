@@ -52,7 +52,8 @@ function main() {
   const h = generate(json);
   const target = path.join(ROOT, TARGET);
   if (process.argv.includes('--check')) {
-    const cur = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : '';
+    // Zeilenenden ignorieren: unter Windows checkt Git mit CRLF aus (core.autocrlf), erzeugt wird LF.
+    const cur = fs.existsSync(target) ? fs.readFileSync(target, 'utf8').replace(/\r\n/g, '\n') : '';
     if (cur !== h) { console.error(`${TARGET} ist veraltet: node tools/gen-phrases.mjs`); process.exit(1); }
     console.log(`${TARGET} ist aktuell.`);
     return;

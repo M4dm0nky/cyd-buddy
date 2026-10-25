@@ -24,5 +24,5 @@ test('ungültige Eingaben werden abgelehnt', () => {
 });
 test('eingecheckte phrases.h ist aktuell', () => {
   const json = JSON.parse(fs.readFileSync(path.join(ROOT, SOURCE), 'utf8'));
-  assert.equal(fs.readFileSync(path.join(ROOT, TARGET), 'utf8'), generate(json));
+  assert.equal(fs.readFileSync(path.join(ROOT, TARGET), 'utf8').replace(/\r\n/g, '\n'), generate(json));   // CRLF-Checkout unter Windows
 });
