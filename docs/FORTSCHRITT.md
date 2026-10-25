@@ -3,6 +3,15 @@
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
 ## Interaktion Task 7 – Füttern und Charakter (UI) – TEILWEISE
+- Zeit: 2026-10-25 14:14 UTC
+- Gemacht: Step 4: `OV_SNEEZE = 2048` + Test; Tropfen an der Nase und Augen 600 ms zu, Blase „krank“. Füttern: Menü → FEED → Speise fliegt 600 ms von unten zum Mund (ins Sprite), Mund kaut 3× (mouth_open 0↔0,6 alle 200 ms), dann `food_feed` → Reaktion + Blase, `meals`-Zähler. Charakter: Streicheln/Stupsen/Spiel/High-Five/Langeweile ändern `cuddly`/`playful`, `mood_set_character` jedes Bild, Gedanken-Blasen nach `cuddly`. Krankheit, Charakter, Lieblingsessen (beim ersten Start ausgelost) werden gespeichert.
+- Dateien: src/logic/weather_mood.h, test/test_weather_mood/test_main.cpp, src/ui/eyes.h, src/ui/eyes.cpp, src/app.cpp
+- Prüfung: `pio test -e native -f test_weather_mood` vorher → ERRORED (`OV_SNEEZE` fehlt), danach 7 Tests, 0 Fehler. `pio run -e cyd2usb` → SUCCESS, RAM 17,5 % (57 292 B), Flash 73,9 % (1 452 207 B)
+- Gegenprobe: `OV_SNEEZE = 4096` → `test_hand_bit: Expected 2048 Was 4096`; zurück → PASS
+- Nächster Schritt: Interaktion Task 7 Step 5 (Charakter-Balken im Info-Bereich der Einstellungen)
+- Offen/Fragen: –
+
+## Interaktion Task 7 – Füttern und Charakter (UI) – TEILWEISE
 - Zeit: 2026-10-25 14:12 UTC
 - Gemacht: Step 3: Bildschirm FEED `src/ui/feed.*` (Sättigungsbalken grün ≥ 60 / gelb ≥ 25 / rot, Thermometer bei Krankheit, Schließen oben rechts, 4 Kacheln Apfel/Pizza/Kuchen/Kaffee, 10 s Timeout). Neue Symbole `icon_food`, `icon_thermometer`, `icon_ball`, `icon_pillow`, `icon_stop`.
 - Dateien: src/ui/feed.h, src/ui/feed.cpp, src/ui/icons.h, src/ui/icons.cpp

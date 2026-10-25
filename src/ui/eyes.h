@@ -16,5 +16,7 @@ bool eyes_ready();
 void eyes_draw(LGFX &lcd, const FaceShape &face, Rgb color, uint32_t overlays, uint32_t now_ms, const char *bubble = nullptr);
 // High-Five-Hand (Overlay OV_HAND): Ecke (rechts/links) und Startzeit für das kurze Aufploppen.
 void eyes_set_hand(bool right, uint32_t since_ms);
+// Speise, die gerade zum Mund fliegt (0..3 wie logic/food.h, -1 = keine), y = Mitte.
+void eyes_set_food(int food, int y);
 // Zeichnet ein Augenpaar ohne Overlays auf ein beliebiges Ziel (Spiele, OTA); (cx, cy) = Mitte zwischen den Augen.
 void eyes_draw_pair(LovyanGFX &d, int cx, int cy, const EyeShape &shape, Rgb color, float scale);

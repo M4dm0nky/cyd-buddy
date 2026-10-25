@@ -9,6 +9,9 @@
 #include "logic/speech.h"
 #include "logic/rituals.h"
 #include "logic/daystats.h"
+#include "logic/food.h"
+#include "logic/character.h"
+#include "ui/feed.h"
 #include "ui/review.h"
 #include "hw/led.h"
 #include "hw/light.h"
@@ -77,7 +80,15 @@ static uint32_t s_seen_weather_ms = 0; // fetched_ms des zuletzt ausgewerteten W
 static bool s_sky_known = false;
 static Sky s_last_sky = Sky::CLOUDY;
 
-enum class Screen { EYES, MENU, CLOCK, SETTINGS, GAME_CATCH, GAME_SIMON, OTA, REVIEW };
+// F3: Füttern, Krankheit, Charakter
+static constexpr uint32_t kFlyMs = 600, kChewMs = 1200, kChewStepMs = 200, kSneezeMs = 600;
+static constexpr int kFoodY0 = 236, kMouthY = 172;
+static Character s_char{};
+static int s_feed_food = -1;           // gerade gefütterte Speise (Animation), -1 = keine
+static uint32_t s_feed_start = 0;
+static uint32_t s_sneeze_until = 0;
+
+enum class Screen { EYES, MENU, CLOCK, SETTINGS, GAME_CATCH, GAME_SIMON, OTA, REVIEW, FEED };
 static Screen s_screen = Screen::EYES;
 
 static int current_hour() { return net_hour(); }
@@ -90,6 +101,9 @@ static void set_backlight(uint8_t v) {
 
 static void save_now() {
   s_persist.needs = s_mood.n;
+  s_persist.sick = s_mood.sick;
+  s_persist.cuddly = s_char.cuddly;
+  s_persist.playful = s_char.playful;
   const uint32_t epoch = net_epoch();
   if (epoch) s_persist.epoch = epoch;
   store_save(s_persist);
@@ -193,6 +207,7 @@ static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
     case Gesture::TAP:
       if (highfive_hit(tx, ty)) {   // obere Ecke: High-Five statt Tippen
         mood_event(s_mood, MoodEvent::HIGHFIVE, now, hour);
+        char_highfive(s_char);
         say(Say::HIGHFIVE, now);
         eyes_set_hand(tx > 160, now);
         s_hand_until = now + kHandMs;
@@ -204,11 +219,13 @@ static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
     case Gesture::STROKE:
       mood_event(s_mood, MoodEvent::STROKE, now, hour);
       s_persist.day.strokes++;
+      char_stroke(s_char);
       if (speech_may(s_speech, now) && esp_random() % 100 < kStrokeSayPct) say(Say::VERLIEBT, now);   // Abstand gilt
       break;
     case Gesture::POKE:
       mood_event(s_mood, MoodEvent::POKE, now, hour);
       s_persist.day.pokes++;
+      char_poke(s_char);
       say(Say::GENERVT, now);
       break;
     default: break;
@@ -220,9 +237,11 @@ static void mood_frame(uint32_t now, uint32_t dt) {
   const int hour = current_hour();
   mood_set_dark(s_mood, light_update(now), hour, now);
   mood_night_check(s_mood, hour, now);
+  mood_set_character(s_mood, s_char);
   mood_tick(s_mood, dt, now);
   mood_quirks(s_mood, hour, now);
   s_emotion = mood_emotion(s_mood, hour, now);
+  if (s_emotion == Emotion::BORED) char_bored(s_char, dt);
 }
 
 // Neues Wetter mit geändertem Himmel: einmal ein passender Satz.
@@ -270,7 +289,11 @@ static void speech_frame(uint32_t now, bool sleeping) {
   }
   weather_say(now);
   Say what;
-  if (speech_due(s_speech, mood_base_emotion(s_mood, hour), now, &what, 0)) say(what, now);
+  if (speech_due(s_speech, mood_base_emotion(s_mood, hour), now, &what, s_char.cuddly)) say(what, now);
+  if (mood_sneeze_due(s_mood, now)) {   // krank: Hatschi
+    s_sneeze_until = now + kSneezeMs;
+    say(Say::KRANK, now);
+  }
 }
 
 static void eyes_frame(uint32_t now, uint32_t dt) {
@@ -299,6 +322,26 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
 
   FaceShape draw = s_face;
   if (!sleeping) draw.eye.open *= blinker_open(s_blink, now);
+  const bool sneezing = (int32_t)(s_sneeze_until - now) > 0;
+  if (sneezing) { ov |= OV_SNEEZE; draw.eye.open *= 0.1f; }   // Augen kurz zu
+  // Füttern: Speise fliegt in 600 ms von unten zum Mund, dann 3× kauen, dann Reaktion
+  if (s_feed_food >= 0) {
+    const uint32_t t = now - s_feed_start;
+    if (t < kFlyMs) {
+      eyes_set_food(s_feed_food, kFoodY0 + (int)((kMouthY - kFoodY0) * (float)t / kFlyMs));
+    } else if (t < kFlyMs + kChewMs) {
+      eyes_set_food(-1, 0);
+      draw.mouth = Mouth::CURVE;
+      draw.mouth_curve = 0.3f;
+      draw.mouth_open = ((t - kFlyMs) / kChewStepMs) % 2 ? 0.6f : 0.0f;
+    } else {
+      eyes_set_food(-1, 0);
+      const Food f = (Food)s_feed_food;
+      s_feed_food = -1;
+      s_persist.day.meals++;
+      say(food_feed(s_mood, f, (Food)s_persist.favorite_food, now), now);
+    }
+  }
   eyes_draw(s_lcd, draw, s_color, ov, now, (int32_t)(s_bubble_until - now) > 0 ? s_bubble : nullptr);
   status_draw(s_lcd, status_info(now));
 
@@ -373,6 +416,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
         case MenuChoice::CLOSE: go_eyes(); break;
         case MenuChoice::PLAY_CATCH: s_screen = Screen::GAME_CATCH; game_catch_open(s_lcd, now); break;
         case MenuChoice::PLAY_SIMON: s_screen = Screen::GAME_SIMON; game_simon_open(s_lcd, now); break;
+        case MenuChoice::FEED: s_screen = Screen::FEED; feed_open(s_lcd, s_mood.n.satiety, s_mood.sick, now); break;
         default: break;
       }
       return;
@@ -416,6 +460,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
                                                           : game_simon_update(s_lcd, tap, tx, ty, now);
       if (r == GameResult::RUNNING) return;
       s_persist.day.games++;
+      char_game(s_char);
       if (r == GameResult::WON) s_persist.day.wins++;
       mood_event(s_mood, r == GameResult::WON ? MoodEvent::GAME_WON : MoodEvent::GAME_LOST, now, current_hour());
       go_eyes();
@@ -436,6 +481,19 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
       return;
     }
 
+    case Screen::FEED: {
+      if (feed_timed_out(now)) { go_eyes(); return; }
+      if (!tap) return;
+      const int f = feed_touch(tx, ty, now);
+      if (f == FEED_CLOSE) go_eyes();
+      else if (f >= 0) {
+        s_feed_food = f;
+        s_feed_start = now;
+        go_eyes();
+      }
+      return;
+    }
+
     case Screen::REVIEW:
       if (tap || !review_update(s_lcd, now)) go_eyes();
       return;
@@ -451,6 +509,12 @@ void app_setup() {
   light_begin();
   if (!store_load(s_persist)) Serial.println("store: nichts gespeichert, Startwerte");
   mood_init(s_mood, s_persist.needs);
+  s_mood.sick = s_persist.sick;
+  s_char = Character{s_persist.cuddly, s_persist.playful};
+  if (s_persist.favorite_food == STORE_NO_FAVORITE) {   // erster Start: Lieblingsessen auslosen
+    s_persist.favorite_food = (uint8_t)(esp_random() % (uint32_t)Food::COUNT);
+    store_save(s_persist);
+  }
   ota_pull::begin();
   net_task_hook(ota_pull::loop);   // OTA-Abruf läuft im net_task
   settings_firmware_source(firmware_line);

@@ -3,11 +3,18 @@
 #include <math.h>
 #include "../logic/weather_mood.h"
 #include "bubble.h"
+#include "icons.h"
 
 static LGFX_Sprite s_spr;
 static bool s_ready = false;
 static bool s_hand_right = false;
 static uint32_t s_hand_since = 0;
+
+static int s_food = -1, s_food_y = 0;
+void eyes_set_food(int food, int y) {
+  s_food = food;
+  s_food_y = y;
+}
 
 void eyes_set_hand(bool right, uint32_t since_ms) {
   s_hand_right = right;
@@ -315,6 +322,10 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
     const int dy = (int)(4 * sinf(now / 300.0f));
     music_note(d, 212, 168 + dy, col);
   }
+  if (ov & OV_SNEEZE) {   // Hatschi: Tropfen an der Nase
+    drop(d, 160 + ox + 8, kNoseY + oy + 14, 12, lgfx::color888(140, 210, 255));
+  }
+  if (s_food >= 0) icon_food(d, 160 + ox, s_food_y, 40, s_food);
   if (ov & OV_HAND) {
     const uint32_t t = now - s_hand_since;
     const float u = t < 150 ? 0.6f + 0.4f * t / 150.0f : 1.0f;   // ploppt kurz auf
