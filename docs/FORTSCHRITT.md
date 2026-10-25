@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 2 – Blick folgt und High-Five (UI) – ERLEDIGT
+- Zeit: 2026-10-25 13:51 UTC
+- Gemacht: Step 2: Hand (Handfläche, 4 Finger, Daumen zur Mitte) in Augenfarbe in der getippten oberen Ecke, ploppt in 150 ms auf (`eyes_set_hand(right, since)`). Step 3: `app.cpp` – solange der Finger auf dem Augen-Bildschirm liegt (Touch-Beginn und Streicheln) `look_at`, aktives Blickziel ersetzt den Gazer; TAP in Ecke → `MoodEvent::HIGHFIVE` statt TAP, `OV_HAND` 1,5 s, LED 250 ms weiß.
+- Dateien: src/ui/eyes.h, src/ui/eyes.cpp, src/app.cpp
+- Prüfung: `pio run -e cyd2usb` → SUCCESS, RAM 17,4 % (56 996 B, +32 B), Flash 73,1 % (1 437 795 B). `pio test -e native` → 84 Tests, 0 Fehler
+- Gegenprobe: – (UI)
+- Nächster Schritt: Interaktion Task 3
+- Offen/Fragen: Blickziel wird in jedem Bild mit Finger neu gesetzt (nicht nur bei Beginn) – deckt „während des Streichelns“ ab, Pupillen folgen also auch beim Halten.
+- Am Gerät zu prüfen: Pupillen folgen dem Finger, High-Five in beiden oberen Ecken (Hand, LED weiß, EXCITED), Mitte oben bleibt normales Tippen.
+
 ## Interaktion Task 2 – Blick folgt und High-Five (UI) – TEILWEISE
 - Zeit: 2026-10-25 13:49 UTC
 - Gemacht: Step 1: `OV_HAND = 1024` in weather_mood.h + Test `test_hand_bit` (Bit-Wert, `overlays_for` setzt es nie).

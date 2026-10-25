@@ -5,6 +5,7 @@
 #include "logic/gesture.h"
 #include "logic/eye_model.h"
 #include "logic/weather_mood.h"
+#include "logic/look.h"
 #include "hw/led.h"
 #include "hw/light.h"
 #include "hw/store.h"
@@ -49,6 +50,11 @@ static uint8_t s_backlight = 0;
 static Emotion s_emotion = Emotion::CONTENT;
 
 static bool s_elapsed_applied = false;
+static LookState s_look{};
+static bool s_pressed = false;                     // Finger liegt gerade auf
+static uint32_t s_hand_until = 0;                  // High-Five-Hand sichtbar bis
+static uint32_t s_led_flash_until = 0;             // LED kurz weiß
+static constexpr uint32_t kHandMs = 1500, kLedFlashMs = 250;
 
 enum class Screen { EYES, MENU, CLOCK, SETTINGS, GAME_CATCH, GAME_SIMON, OTA };
 static Screen s_screen = Screen::EYES;
@@ -117,7 +123,8 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
   if (pressed) { s_last_x = (int16_t)x; s_last_y = (int16_t)y; }
   tx = s_last_x;
   ty = s_last_y;
-  if (pressed) mood_touch(s_mood, now);   // jede Berührung hält ihn nachts wach bzw. weckt ihn
+  if (pressed) mood_touch(s_mood, now);
+  s_pressed = pressed;   // jede Berührung hält ihn nachts wach bzw. weckt ihn
 #if CYD_DIAG_TOUCH
   static bool s_was_pressed = false;
   if (pressed && !s_was_pressed) {   // Beginn einer Berührung seriell ausgeben (Touch-Kalibrierung prüfen)
@@ -145,10 +152,19 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
   return g;
 }
 
-static void touch_to_mood(Gesture g, uint32_t now) {
+static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
   const int hour = current_hour();
   switch (g) {
-    case Gesture::TAP: mood_event(s_mood, MoodEvent::TAP, now, hour); break;
+    case Gesture::TAP:
+      if (highfive_hit(tx, ty)) {   // obere Ecke: High-Five statt Tippen
+        mood_event(s_mood, MoodEvent::HIGHFIVE, now, hour);
+        eyes_set_hand(tx > 160, now);
+        s_hand_until = now + kHandMs;
+        s_led_flash_until = now + kLedFlashMs;
+      } else {
+        mood_event(s_mood, MoodEvent::TAP, now, hour);
+      }
+      break;
     case Gesture::STROKE: mood_event(s_mood, MoodEvent::STROKE, now, hour); break;
     case Gesture::POKE: mood_event(s_mood, MoodEvent::POKE, now, hour); break;
     default: break;
@@ -170,12 +186,15 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
   WeatherMood wm;
   NetWeather w;
   const bool have_weather = fresh_weather(now, &wm, &w);
-  const uint32_t ov = overlays_for(s_emotion, have_weather ? &wm : nullptr, have_weather ? w.is_day : true);
+  uint32_t ov = overlays_for(s_emotion, have_weather ? &wm : nullptr, have_weather ? w.is_day : true);
+  if ((int32_t)(s_hand_until - now) > 0 && !sleeping) ov |= OV_HAND;
 
   const bool storm = (ov & OV_STORM) && now % kStormEveryMs < kStormForMs;
   FaceExpr target = face_expression(storm ? Emotion::STARTLED : s_emotion);
   gazer_update(s_gaze, now);
-  const float gx = sleeping ? 0.0f : s_gaze.gx, gy = sleeping ? 0.0f : s_gaze.gy;
+  float gx = s_gaze.gx, gy = s_gaze.gy;
+  if (look_active(s_look, now)) look_target(s_look, &gx, &gy);   // Blick folgt dem Finger
+  if (sleeping) gx = gy = 0;
   target.s.pupil_dx += gx / GAZE_X_MAX * 14.0f;
   target.s.pupil_dy += gy / GAZE_Y_MAX * 10.0f;
   target.s.eye.gaze_x = gx / GAZE_X_MAX * 8.0f;
@@ -188,7 +207,8 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
   eyes_draw(s_lcd, draw, s_color, ov, now);
   status_draw(s_lcd, status_info(now));
 
-  led_set(sleeping ? Rgb{0, 0, 0} : s_color, kLedPct);
+  if ((int32_t)(s_led_flash_until - now) > 0) led_set(Rgb{255, 255, 255}, kLedPct);   // High-Five
+  else led_set(sleeping ? Rgb{0, 0, 0} : s_color, kLedPct);
   set_backlight(sleeping ? kSleepBacklight : kBacklight[s_persist.brightness]);
 }
 
@@ -231,7 +251,8 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
         open_ota_card(now);
         return;
       }
-      touch_to_mood(g, now);
+      if (s_pressed) look_at(s_look, tx, ty, now);   // bei Touch-Beginn und während des Streichelns
+      touch_to_mood(g, tx, ty, now);
       eyes_frame(now, dt);
       ota_pull::ui_alive();
       return;

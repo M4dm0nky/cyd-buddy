@@ -5,6 +5,13 @@
 
 static LGFX_Sprite s_spr;
 static bool s_ready = false;
+static bool s_hand_right = false;
+static uint32_t s_hand_since = 0;
+
+void eyes_set_hand(bool right, uint32_t since_ms) {
+  s_hand_right = right;
+  s_hand_since = since_ms;
+}
 
 static constexpr int kEyeDx = 70;   // Abstand der Augenmitten von der Bildmitte
 static constexpr int kEyeY = 100;
@@ -236,6 +243,22 @@ static void music_note(LovyanGFX &d, int x, int y, uint32_t col) {
   d.drawWideLine(x + 16.0f, y - 17.0f, x + 14.0f, y - 9.0f, 2.0f, col);
 }
 
+// Offene Hand (Handfläche + 5 Finger) in Augenfarbe; (cx, cy) = Mitte der Handfläche, u = Größe (1 = ~56 px hoch).
+static void hand(LovyanGFX &d, int cx, int cy, float u, bool right, uint32_t col) {
+  const int pw = ir(30 * u), ph = ir(26 * u);
+  d.fillRoundRect(cx - pw / 2, cy - ph / 2, pw, ph, ir(9 * u), col);
+  const int fw = ir(7 * u);
+  static const int8_t kDx[4] = {-11, -4, 3, 10};   // Zeige- bis kleiner Finger
+  static const int8_t kLen[4] = {20, 24, 22, 17};
+  for (int i = 0; i < 4; i++) {
+    const int fx = cx + ir(kDx[i] * u) - fw / 2, fl = ir(kLen[i] * u);
+    d.fillRoundRect(fx, cy - ph / 2 - fl + ir(4 * u), fw, fl, fw / 2, col);
+  }
+  // Daumen schräg zur Bildmitte hin
+  const float s = right ? -1.0f : 1.0f;
+  d.drawWideLine(cx + s * 12 * u, cy + 4 * u, cx + s * 24 * u, cy - 8 * u, 3.6f * u, col);
+}
+
 static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uint32_t now) {
   d.fillRect(0, 0, EYES_W, EYES_H, TFT_BLACK);
   Rgb c = color;
@@ -290,6 +313,11 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
   if (ov & OV_NOTE) {
     const int dy = (int)(4 * sinf(now / 300.0f));
     music_note(d, 212, 168 + dy, col);
+  }
+  if (ov & OV_HAND) {
+    const uint32_t t = now - s_hand_since;
+    const float u = t < 150 ? 0.6f + 0.4f * t / 150.0f : 1.0f;   // ploppt kurz auf
+    hand(d, s_hand_right ? 282 : 38, 38, u, s_hand_right, col);
   }
   if (ov & OV_ZZZ) {
     const uint32_t zc = lgfx::color888(150, 170, 255);
