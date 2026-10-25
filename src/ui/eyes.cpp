@@ -92,22 +92,171 @@ static void letter_z(LovyanGFX &d, int x, int y, int s, uint32_t col) {
   d.drawWideLine(x, y + s, x + s, y + s, t, col);
 }
 
-static void render(LovyanGFX &d, const EyeShape &shape, Rgb color, uint32_t ov, uint32_t now) {
+// ---- Gesicht (Zeichenvorschrift = face() im Mockup 2026-10-25-gesicht-ausdruecke.html) ----
+static constexpr int kFaceL = 90, kFaceR = 230, kFaceEY = 96, kFaceW = 64, kFaceH = 72;
+static constexpr int kNoseY = 146, kMouthY = 172;
+static constexpr int kBezN = 12;   // Segmente je Kurve
+
+static inline int ir(float v) { return (int)lroundf(v); }
+
+// Quadratische Bezier-Kurve als Kette dicker Linien (r = Radius, Dicke = 2r).
+static void qbez_line(LovyanGFX &d, float x0, float y0, float cx, float cy, float x1, float y1, int n, float r, uint32_t col) {
+  float px = x0, py = y0;
+  for (int i = 1; i <= n; i++) {
+    const float t = (float)i / n, u = 1.0f - t;
+    const float x = u * u * x0 + 2 * u * t * cx + t * t * x1;
+    const float y = u * u * y0 + 2 * u * t * cy + t * t * y1;
+    d.drawWideLine(px, py, x, y, r, col);
+    px = x; py = y;
+  }
+}
+
+static void face_eye(LovyanGFX &d, const FaceShape &f, int side, int ox, int oy, uint32_t col, uint32_t pupil_col) {
+  const EyeShape &e = f.eye;
+  const int cx = (side < 0 ? kFaceL : kFaceR) + ox, ey = kFaceEY + oy;
+  const float W = e.w, H = e.h;
+  float h = H * e.open * ((f.wink && side > 0) ? 0.08f : 1.0f);
+  if (h < 4) h = 4;
+  const float y0 = ey - h / 2, x0 = cx - W / 2;
+  float rad = e.radius;
+  if (rad > h / 2) rad = h / 2;
+  d.fillRoundRect(ir(x0), ir(y0), ir(W), ir(h), ir(rad), col);
+  if (h > 20) {
+    const float pr = f.pupil_r;
+    const int px = ir(cx + f.pupil_dx), py = ir(ey + f.pupil_dy);
+    d.fillCircle(px, py, ir(pr), pupil_col);
+    d.fillCircle(ir(px + pr * 0.35f), ir(py - pr * 0.4f), ir(fmaxf(2.0f, pr * 0.3f)), TFT_WHITE);
+  }
+  // oberes Lid (schwarz); innen = Richtung Gesichtsmitte
+  const float inner = side < 0 ? x0 + W : x0, outer = side < 0 ? x0 : x0 + W;
+  const float cutIn = y0 + h * e.lid_top_cut - e.lid_top_tilt * H * 0.35f;
+  const float cutOut = y0 + h * e.lid_top_cut + e.lid_top_tilt * H * 0.35f;
+  if (e.lid_top_cut > 0.001f || fabsf(e.lid_top_tilt) > 0.001f) {
+    const int yt = ir(y0) - 2;
+    d.fillTriangle(ir(inner), yt, ir(outer), yt, ir(outer), ir(cutOut), TFT_BLACK);
+    d.fillTriangle(ir(inner), yt, ir(outer), ir(cutOut), ir(inner), ir(cutIn), TFT_BLACK);
+  }
+  // unteres Lid
+  if (e.lid_bottom_cut > 0.0f)
+    d.fillEllipse(cx, ir(y0 + h + H * 0.32f), ir(W * 0.72f), ir(H * e.lid_bottom_cut * 0.9f + 6), TFT_BLACK);
+  // Braue
+  const float byy = y0 + f.brow_y - (side > 0 ? f.brow_asym : 0.0f);
+  const float ti = f.brow_tilt * 10.0f;
+  const float yIn = byy - ti, yOut = byy + ti;
+  const float ya = side < 0 ? yOut : yIn, yb = side < 0 ? yIn : yOut;
+  qbez_line(d, cx - 28.0f, ya, (float)cx, (ya + yb) / 2 - f.brow_curve * 12.0f, cx + 28.0f, yb, kBezN, 3.5f, col);
+}
+
+static void face_mouth(LovyanGFX &d, const FaceShape &f, int ox, int oy, uint32_t col) {
+  const int cx = 160 + ox, my = kMouthY + oy;
+  const float w = f.mouth_w / 2;
+  switch (f.mouth) {
+    case Mouth::O: {
+      const int rx = ir(8 + f.mouth_open * 6), ry = ir(8 + f.mouth_open * 10);
+      d.fillEllipse(cx, my, rx + 3, ry + 3, col);
+      d.fillEllipse(cx, my, rx - 3, ry - 3, TFT_BLACK);
+      break;
+    }
+    case Mouth::ZIG: {
+      float x = cx - w, y = (float)my;
+      for (int i = 0; i < 4; i++) {
+        const float nx = x + w / 2, ny = (i & 1) ? y + 7 : y - 7;
+        d.drawWideLine(x, y, nx, ny, 3.0f, col);
+        d.fillCircle(ir(nx), ir(ny), 3, col);
+        x = nx; y = ny;
+      }
+      break;
+    }
+    case Mouth::WAVE:
+      qbez_line(d, cx - w, (float)my, cx - w / 2, my - 10.0f, (float)cx, (float)my, 8, 3.0f, col);
+      qbez_line(d, (float)cx, (float)my, cx + w / 2, my + 10.0f, cx + w, (float)my, 8, 3.0f, col);
+      break;
+    case Mouth::KISS:
+      qbez_line(d, cx - 6.0f, my - 8.0f, cx + 4.0f, my - 4.0f, cx - 6.0f, (float)my, 8, 2.5f, col);
+      qbez_line(d, cx - 6.0f, (float)my, cx + 4.0f, my + 4.0f, cx - 6.0f, my + 8.0f, 8, 2.5f, col);
+      break;
+    case Mouth::CURVE:
+    case Mouth::TONGUE:
+    default: {
+      const float c = f.mouth_curve * 22.0f;
+      const float xl = cx - w, xr = cx + w;
+      if (f.mouth_open > 0.0f && f.mouth != Mouth::TONGUE) {
+        // Fläche zwischen oberer und unterer Kurve (gleiche x(t)) als Streifen
+        const float c2 = c + f.mouth_open * 26.0f;
+        float pxx = xl, pyt = (float)my, pyb = (float)my;
+        for (int i = 1; i <= kBezN; i++) {
+          const float t = (float)i / kBezN, u = 1.0f - t;
+          const float x = u * u * xl + 2 * u * t * cx + t * t * xr;
+          const float yt = u * u * my + 2 * u * t * (my + c) + t * t * my;
+          const float yb = u * u * my + 2 * u * t * (my + c2) + t * t * my;
+          d.fillTriangle(ir(pxx), ir(pyt), ir(x), ir(yt), ir(pxx), ir(pyb), col);
+          d.fillTriangle(ir(x), ir(yt), ir(x), ir(yb), ir(pxx), ir(pyb), col);
+          pxx = x; pyt = yt; pyb = yb;
+        }
+      }
+      // Oberlinie immer (bei kleinem mouth_open fließt die Form so ohne Sprung aus der Linie)
+      qbez_line(d, xl, (float)my, (float)cx, my + c, xr, (float)my, kBezN, 3.0f, col);
+      if (f.mouth == Mouth::TONGUE) {
+        const uint32_t pink = lgfx::color888(255, 92, 122);
+        const float x0 = 168.0f + ox, y0 = 178.0f + oy;   // q8 18 18 0: Kontrollpunkt (+8,+18), Ende (+18,0)
+        float px = x0, py = y0;
+        for (int i = 1; i <= 8; i++) {
+          const float t = i / 8.0f, u = 1.0f - t;
+          const float x = u * u * x0 + 2 * u * t * (x0 + 8) + t * t * (x0 + 18);
+          const float y = u * u * y0 + 2 * u * t * (y0 + 18) + t * t * y0;
+          d.fillTriangle(ir(x0), ir(y0), ir(px), ir(py), ir(x), ir(y), pink);
+          px = x; py = y;
+        }
+      }
+      break;
+    }
+  }
+}
+
+// Fragezeichen aus Primitiven; (x, y) = Mitte des Bogens.
+static void question_mark(LovyanGFX &d, int x, int y, float u, uint32_t col) {
+  const float r = 9.0f * u;
+  float px = 0, py = 0;
+  bool first = true;
+  for (int i = 0; i <= 10; i++) {
+    const float a = (170.0f + (440.0f - 170.0f) * i / 10.0f) * 0.0174533f;
+    const float qx = x + r * cosf(a), qy = y + r * sinf(a);
+    if (!first) d.drawWideLine(px, py, qx, qy, 2.6f * u, col);
+    px = qx; py = qy; first = false;
+  }
+  d.drawWideLine(px, py, (float)x, y + 17.0f * u, 2.6f * u, col);
+  d.fillCircle(x, y + 26 * u, ir(3.2f * u), col);
+}
+
+// Achtelnote; (x, y) = Mitte des Kopfes.
+static void music_note(LovyanGFX &d, int x, int y, uint32_t col) {
+  d.fillEllipse(x, y, 7, 5, col);
+  d.drawWideLine(x + 6.0f, (float)y, x + 6.0f, y - 26.0f, 1.8f, col);
+  d.drawWideLine(x + 6.0f, y - 26.0f, x + 16.0f, y - 17.0f, 2.0f, col);
+  d.drawWideLine(x + 16.0f, y - 17.0f, x + 14.0f, y - 9.0f, 2.0f, col);
+}
+
+static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uint32_t now) {
   d.fillRect(0, 0, EYES_W, EYES_H, TFT_BLACK);
   Rgb c = color;
   if (ov & OV_RAIN_TINT) c = mix(c, Rgb{60, 120, 255}, 0.3f);
+  const uint32_t col = rgb(c);
+  const uint32_t pupil_col = lgfx::color888((uint8_t)(c.r / 10), (uint8_t)(c.g / 10), (uint8_t)(c.b / 10));
   const int shiver = (ov & OV_SHIVER) ? (((now / 40) & 1) ? 2 : -2) : 0;
-  const int cx = EYES_W / 2 + shiver;
-  eyes_draw_pair(d, cx, kEyeY, shape, c, 1.0f);
+  const int ox = (int)f.eye.gaze_x + shiver, oy = (int)f.eye.gaze_y;
 
-  const int lx = cx - kEyeDx + (int)shape.gaze_x, rx = cx + kEyeDx + (int)shape.gaze_x;
-  const int ey = kEyeY + (int)shape.gaze_y;
-  const int top = ey - (int)(shape.h * shape.open / 2);
+  face_eye(d, f, -1, ox, oy, col, pupil_col);
+  face_eye(d, f, 1, ox, oy, col, pupil_col);
+  d.fillCircle(160 + ox, kNoseY + oy, 4, col);
+  face_mouth(d, f, ox, oy, col);
+
+  const int lx = kFaceL + ox, rx = kFaceR + ox, ey = kFaceEY + oy;
+  const int eh = (int)(f.eye.h * f.eye.open);
 
   if (ov & OV_SUNGLASSES) {
     const uint32_t lens = lgfx::color888(40, 40, 48), frame = lgfx::color888(120, 120, 130);
-    const int lw = (int)shape.w + 16, lh = (int)(shape.h * 0.62f);
-    const int ly = ey - (int)(shape.h / 2) - 6;
+    const int lw = (int)f.eye.w + 16, lh = (int)(f.eye.h * 0.62f);
+    const int ly = ey - (int)(f.eye.h / 2) - 6;
     for (int x : {lx, rx}) {
       d.fillRoundRect(x - lw / 2, ly, lw, lh, 10, lens);
       d.drawRoundRect(x - lw / 2, ly, lw, lh, 10, frame);
@@ -116,18 +265,26 @@ static void render(LovyanGFX &d, const EyeShape &shape, Rgb color, uint32_t ov, 
     d.drawWideLine(lx + lw / 2, ly + 8, rx - lw / 2, ly + 8, 2.0f, frame);
   }
   if (ov & OV_HEART) {
-    const int s = 18 + (int)(4 * sinf(now / 200.0f));
+    const int s = 22 + (int)(4 * sinf(now / 200.0f));
     const uint32_t pink = lgfx::color888(255, 80, 170);
-    heart(d, lx, top - 22, s, pink);
-    heart(d, rx, top - 22, s, pink);
+    heart(d, 160 + ox, 28 + oy, s, pink);
+    if (f.mouth == Mouth::KISS) heart(d, 205 + ox, 158 + oy, 14, pink);
   }
   if (ov & OV_SWEAT) {
     const float ph = (now % 2000) / 2000.0f;
-    drop(d, rx + (int)shape.w / 2 + 10, 25 + (int)(ph * 40), 14, lgfx::color888(140, 210, 255));
+    drop(d, rx + (int)f.eye.w / 2 + 10, 25 + (int)(ph * 40), 14, lgfx::color888(140, 210, 255));
   }
   if (ov & OV_TEAR) {
     const float ph = (now % 3000) / 3000.0f;
-    drop(d, lx - (int)shape.w / 4, ey + (int)(shape.h * shape.open / 2) + 6 + (int)(ph * 30), 12, lgfx::color888(100, 170, 255));
+    drop(d, lx - (int)f.eye.w / 4, ey + eh / 2 + 6 + (int)(ph * 30), 12, lgfx::color888(100, 170, 255));
+  }
+  if (ov & OV_QUESTION) {
+    const int bob = (int)(3 * sinf(now / 350.0f));
+    question_mark(d, 270, 34 + bob, 1.0f, col);
+  }
+  if (ov & OV_NOTE) {
+    const int dy = (int)(4 * sinf(now / 300.0f));
+    music_note(d, 212, 168 + dy, col);
   }
   if (ov & OV_ZZZ) {
     const uint32_t zc = lgfx::color888(150, 170, 255);
@@ -139,13 +296,13 @@ static void render(LovyanGFX &d, const EyeShape &shape, Rgb color, uint32_t ov, 
   }
 }
 
-void eyes_draw(LGFX &lcd, const EyeShape &shape, Rgb color, uint32_t overlays, uint32_t now_ms) {
+void eyes_draw(LGFX &lcd, const FaceShape &face, Rgb color, uint32_t overlays, uint32_t now_ms) {
   if (s_ready) {
-    render(s_spr, shape, color, overlays, now_ms);
+    render(s_spr, face, color, overlays, now_ms);
     s_spr.pushSprite(&lcd, 0, 0);
   } else {
     lcd.startWrite();
-    render(lcd, shape, color, overlays, now_ms);
+    render(lcd, face, color, overlays, now_ms);
     lcd.endWrite();
   }
 }

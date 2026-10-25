@@ -41,7 +41,7 @@ static MoodState s_mood;
 static GestureState s_gesture;
 static Blinker s_blink;
 static Gazer s_gaze;
-static EyeShape s_shape;
+static FaceShape s_face;
 static Rgb s_color;
 static uint32_t s_last_frame = 0, s_last_save = 0, s_last_log = 0;
 static uint32_t s_frames = 0;
@@ -146,10 +146,11 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
 }
 
 static void touch_to_mood(Gesture g, uint32_t now) {
+  const int hour = current_hour();
   switch (g) {
-    case Gesture::TAP: mood_event(s_mood, MoodEvent::TAP, now); break;
-    case Gesture::STROKE: mood_event(s_mood, MoodEvent::STROKE, now); break;
-    case Gesture::POKE: mood_event(s_mood, MoodEvent::POKE, now); break;
+    case Gesture::TAP: mood_event(s_mood, MoodEvent::TAP, now, hour); break;
+    case Gesture::STROKE: mood_event(s_mood, MoodEvent::STROKE, now, hour); break;
+    case Gesture::POKE: mood_event(s_mood, MoodEvent::POKE, now, hour); break;
     default: break;
   }
 }
@@ -160,6 +161,7 @@ static void mood_frame(uint32_t now, uint32_t dt) {
   mood_set_dark(s_mood, light_update(now), hour, now);
   mood_night_check(s_mood, hour, now);
   mood_tick(s_mood, dt, now);
+  mood_quirks(s_mood, hour, now);
   s_emotion = mood_emotion(s_mood, hour, now);
 }
 
@@ -170,16 +172,19 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
   const bool have_weather = fresh_weather(now, &wm, &w);
   const uint32_t ov = overlays_for(s_emotion, have_weather ? &wm : nullptr, have_weather ? w.is_day : true);
 
-  Expression target = eye_expression(s_emotion);
-  if ((ov & OV_STORM) && now % kStormEveryMs < kStormForMs) target.shape = eye_expression(Emotion::SURPRISED).shape;
+  const bool storm = (ov & OV_STORM) && now % kStormEveryMs < kStormForMs;
+  FaceExpr target = face_expression(storm ? Emotion::STARTLED : s_emotion);
   gazer_update(s_gaze, now);
-  target.shape.gaze_x = sleeping ? 0 : s_gaze.gx;
-  target.shape.gaze_y = sleeping ? 0 : s_gaze.gy;
-  s_shape = eye_tween(s_shape, target.shape, dt);
+  const float gx = sleeping ? 0.0f : s_gaze.gx, gy = sleeping ? 0.0f : s_gaze.gy;
+  target.s.pupil_dx += gx / GAZE_X_MAX * 14.0f;
+  target.s.pupil_dy += gy / GAZE_Y_MAX * 10.0f;
+  target.s.eye.gaze_x = gx / GAZE_X_MAX * 8.0f;
+  target.s.eye.gaze_y = gy / GAZE_Y_MAX * 4.0f;
+  s_face = face_tween(s_face, target.s, dt);   // switch_acc läuft im s_face mit
   s_color = rgb_tween(s_color, target.color, dt);
 
-  EyeShape draw = s_shape;
-  if (!sleeping) draw.open *= blinker_open(s_blink, now);
+  FaceShape draw = s_face;
+  if (!sleeping) draw.eye.open *= blinker_open(s_blink, now);
   eyes_draw(s_lcd, draw, s_color, ov, now);
   status_draw(s_lcd, status_info(now));
 
@@ -282,7 +287,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
       const GameResult r = s_screen == Screen::GAME_CATCH ? game_catch_update(s_lcd, tap, tx, ty, now)
                                                           : game_simon_update(s_lcd, tap, tx, ty, now);
       if (r == GameResult::RUNNING) return;
-      mood_event(s_mood, r == GameResult::WON ? MoodEvent::GAME_WON : MoodEvent::GAME_LOST, now);
+      mood_event(s_mood, r == GameResult::WON ? MoodEvent::GAME_WON : MoodEvent::GAME_LOST, now, current_hour());
       go_eyes();
       return;
     }
@@ -321,8 +326,9 @@ void app_setup() {
   const uint32_t seed = esp_random();
   blinker_init(s_blink, seed, now);
   gazer_init(s_gaze, seed ^ 0x9E3779B9u, now);
-  const Expression start = eye_expression(Emotion::CONTENT);
-  s_shape = start.shape;
+  mood_seed(s_mood, esp_random());
+  const FaceExpr start = face_expression(Emotion::CONTENT);
+  s_face = start.s;
   s_color = start.color;
 
   s_lcd.fillScreen(TFT_BLACK);
