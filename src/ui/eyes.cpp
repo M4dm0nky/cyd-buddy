@@ -259,7 +259,11 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
     const int lw = (int)f.eye.w + 16, lh = (int)(f.eye.h * 0.7f);
     const int ly = ey - lh / 2 + 2;
     for (int x : {lx, rx}) {
-      d.fillRoundRect(x - lw / 2, ly, lw, lh, 10, lens);
+      // Getöntes Glas: Schachbrett-Raster (jedes zweite Pixel), damit Augen und Pupillen durchscheinen.
+      // Das 8-Bit-Sprite kann keine echte Transparenz; ohne sichtbare Pupillen ginge viel Ausdruck verloren (Nutzer).
+      const int x0 = x - lw / 2;
+      for (int yy = ly + 2; yy < ly + lh - 2; yy++)
+        for (int xx = x0 + 2 + (yy & 1); xx < x0 + lw - 2; xx += 2) d.drawPixel(xx, yy, lens);
       d.drawRoundRect(x - lw / 2, ly, lw, lh, 10, frame);
       d.drawRoundRect(x - lw / 2 + 1, ly + 1, lw - 2, lh - 2, 9, frame);
     }
