@@ -2,6 +2,15 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Interaktion Task 8 – Pomodoro (Logik) – ERLEDIGT
+- Zeit: 2026-10-25 14:16 UTC
+- Gemacht: `src/logic/pomodoro.h`: Zustände IDLE/WORK/BREAK, `pomo_start` (nur 15/25/45 min), Pause fest 5 min, `pomo_tick` → NONE/BREAK_START/BREAK_END (nächste Phase beginnt am Ende der vorigen), nach BREAK_END IDLE, `pomo_stop`, `pomo_progress` 0..1, `pomo_remaining_s` aufgerundet.
+- Dateien: src/logic/pomodoro.h, test/test_pomodoro/test_main.cpp
+- Prüfung: `pio test -e native -f test_pomodoro` vorher → ERRORED (Header fehlt); danach 5 Tests, 0 Fehler
+- Gegenprobe: Pause ab spätem Abfragen statt Phasenende → `test_late_tick…: Expected 240 Was 300`; Restzeit abgerundet → `Expected 1500 Was 1499`; jede Minutenzahl erlaubt → `test_start_only_15_25_45` FAIL; alles zurück → 5 PASS
+- Nächster Schritt: Interaktion Task 9 Step 1
+- Offen/Fragen: –
+
 ## Interaktion Task 7 – Füttern und Charakter (UI) – ERLEDIGT
 - Zeit: 2026-10-25 14:15 UTC
 - Gemacht: Step 5: Info-Zeile der Einstellungen mit zwei Charakter-Balken (Herz ↔ Blitz für `cuddly`, Ball ↔ Kissen für `playful`; Mitte = 0, Ausschlag zur jeweiligen Seite). Info-Text gekürzt auf Build-Datum + „Heap …k Licht …“.
