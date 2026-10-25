@@ -72,6 +72,46 @@ void test_nap_and_wake_by_touch() {
   mood_event(s, MoodEvent::TAP, 2000);
   TEST_ASSERT_FALSE(mood_is_sleeping(s, 2000));
 }
+void test_nap_stays_awake_after_touch() {
+  fresh(50, 50, 5);
+  mood_tick(s, 20, 20);
+  TEST_ASSERT_TRUE(mood_is_sleeping(s, 20));
+  mood_event(s, MoodEvent::TAP, 1000);
+  TEST_ASSERT_FALSE(mood_is_sleeping(s, 1000));
+  uint32_t t = 1000;
+  for (int i = 0; i < 100; i++) { t += 20; mood_tick(s, 20, t); }
+  TEST_ASSERT_FALSE(mood_is_sleeping(s, t));
+}
+void test_nap_again_after_energy_recovers_and_falls() {
+  fresh(50, 50, 5);
+  mood_tick(s, 20, 20);
+  mood_event(s, MoodEvent::TAP, 1000);
+  s.n.energy = 12;
+  mood_tick(s, 20, 1020);   // wieder >= 10
+  s.n.energy = 9;
+  mood_tick(s, 20, 1040);   // erneut darunter -> Flanke
+  TEST_ASSERT_TRUE(mood_is_sleeping(s, 1040));
+}
+void test_nap_again_10min_after_last_touch() {
+  fresh(50, 50, 5);
+  mood_tick(s, 20, 20);
+  mood_event(s, MoodEvent::TAP, 1000);
+  mood_tick(s, 20, 1000 + 9UL * 60000UL);
+  TEST_ASSERT_FALSE(mood_is_sleeping(s, 1000 + 9UL * 60000UL));
+  s.n.energy = 5;
+  mood_tick(s, 20, 1000 + 10UL * 60000UL + 1);
+  TEST_ASSERT_TRUE(mood_is_sleeping(s, 1000 + 10UL * 60000UL + 1));
+}
+void test_night_hours_shared() {
+  for (int h = 0; h < 24; h++) {
+    const bool night = h >= 22 || h < 7;
+    TEST_ASSERT_EQUAL_MESSAGE(night, mood_is_night(h), "mood_is_night");
+    TEST_ASSERT_EQUAL_MESSAGE(!night, mood_daytime(h), "mood_daytime");
+    fresh(50, 50, 50);
+    TEST_ASSERT_EQUAL_MESSAGE(night ? (int)Emotion::SLEEPY : (int)Emotion::CONTENT, (int)mood_base_emotion(s, h), "SLEEPY");
+  }
+  TEST_ASSERT_FALSE(mood_is_night(-1));
+}
 void test_nap_ends_above_60() {
   fresh(50, 50, 5);
   mood_tick(s, 1000, 1000);
@@ -313,6 +353,10 @@ void test_highfive() {
 
 int main(int, char **) {
   UNITY_BEGIN();
+  RUN_TEST(test_night_hours_shared);
+  RUN_TEST(test_nap_stays_awake_after_touch);
+  RUN_TEST(test_nap_again_after_energy_recovers_and_falls);
+  RUN_TEST(test_nap_again_10min_after_last_touch);
   RUN_TEST(test_giggle_third_stroke_in_20s);
   RUN_TEST(test_no_giggle_when_spread_over_20s);
   RUN_TEST(test_kiss_when_affection_over_90);

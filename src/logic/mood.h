@@ -16,6 +16,7 @@ struct MoodState {
   uint32_t last_stroke_ms;
   bool stroked_once;
   bool napping;               // Nickerchen wegen Energie < 10
+  bool low_prev;              // Energie war beim letzten Tick < 10 (Flanke fürs Nickerchen)
   bool dark;
   uint32_t dark_since;
   bool night_sleep;           // Nachtschlaf: nachts nach MOOD_NIGHT_IDLE_MS ohne Berührung
@@ -77,7 +78,9 @@ inline void mood_init(MoodState &s, Needs start) {
   s.love_scale = 1;
   mood_clamp(s.n);
 }
-inline bool mood_daytime(int hour) { return hour < 0 || (hour >= 7 && hour < 22); }
+// Nacht = 22-7 Uhr (für Nachtschlaf und SLEEPY); hour < 0 = Uhrzeit unbekannt = nie Nacht.
+inline bool mood_is_night(int hour) { return hour >= 0 && (hour >= 22 || hour < 7); }
+inline bool mood_daytime(int hour) { return !mood_is_night(hour); }
 inline bool mood_is_sleeping(const MoodState &s, uint32_t now_ms) {
   return s.napping || s.night_sleep || (s.dark && now_ms - s.dark_since > MOOD_DARK_SLEEP_MS);
 }
@@ -103,8 +106,7 @@ inline void mood_touch(MoodState &s, uint32_t now_ms) {
 // Jedes Bild aufrufen. Nachts (22-7 Uhr) nach 10 min Ruhe einschlafen, morgens mit Begrüßung aufwachen.
 // Der Lichtsensor des CYD erkennt Dunkelheit kaum (Beschaltung, das Display leuchtet ihn an), darum zählt vor allem die Uhrzeit.
 inline void mood_night_check(MoodState &s, int hour, uint32_t now_ms) {
-  const bool night = hour >= 0 && (hour >= 22 || hour < 7);
-  if (!night) {
+  if (!mood_is_night(hour)) {
     if (s.night_sleep) {
       s.night_sleep = false;
       if (!mood_is_sleeping(s, now_ms)) mood_set_transient(s, Emotion::GREETING, now_ms, 3000);
@@ -130,8 +132,11 @@ inline void mood_tick(MoodState &s, uint32_t dt_ms, uint32_t now_ms) {
   if (!cond) s.sick_cond = false;
   else if (!s.sick_cond) { s.sick_cond = true; s.sick_cond_since = now_ms; }
   else if (!s.sick && now_ms - s.sick_cond_since >= MOOD_SICK_AFTER_MS) { s.sick = true; s.heal_strokes = 0; }
-  if (s.n.energy < 10) s.napping = true;
+  // Nickerchen nur beim Unterschreiten von 10 (Flanke) oder 10 min nach der letzten Berührung; eine Berührung beendet es.
+  const bool low = s.n.energy < 10;
+  if (low && !s.napping && (!s.low_prev || now_ms - s.last_touch_ms > MOOD_NIGHT_IDLE_MS)) s.napping = true;
   else if (s.napping && s.n.energy > 60) s.napping = false;
+  s.low_prev = low;
 }
 constexpr uint32_t MOOD_GIGGLE_WINDOW_MS = 20000;
 constexpr uint32_t MOOD_DOUBLE_TAP_MS = 500;
@@ -139,7 +144,7 @@ constexpr uint32_t MOOD_DOUBLE_TAP_MS = 500;
 // Grundgefühl: aus den Bedürfnissen, ohne Schlaf und ohne kurzzeitige Gefühle.
 inline Emotion mood_base_emotion(const MoodState &s, int hour) {
   if (s.sick) return Emotion::SICK;
-  if (s.n.energy < 30 || (hour >= 0 && (hour >= 22 || hour < 6))) return Emotion::SLEEPY;
+  if (s.n.energy < 30 || mood_is_night(hour)) return Emotion::SLEEPY;
   if (s.n.satiety < MOOD_HUNGRY_BELOW) return Emotion::HUNGRY;
   if (s.n.affection < 20) return Emotion::SAD;
   if (s.n.fun < 25) return Emotion::BORED;
