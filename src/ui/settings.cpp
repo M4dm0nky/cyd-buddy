@@ -30,21 +30,38 @@ static void draw_brightness(LGFX &d, const Persist &p) {
   icon_brightness(d, 100, cy, 36, p.brightness, d.color888(255, 210, 0));
 }
 
-static void draw_wifi(LGFX &d, const Persist &p) {
+// Jede Zeile merkt sich, was sie zuletzt gezeichnet hat (Schlüssel aus Text und Farbe), und zeichnet nur bei Änderung neu.
+// force = Zeile wurde von außen gelöscht bzw. der Bildschirm neu aufgebaut.
+static bool unchanged(char *cache, size_t n, const char *key, bool force) {
+  if (!force && strcmp(cache, key) == 0) return true;
+  strlcpy(cache, key, n);
+  return false;
+}
+
+static void draw_wifi(LGFX &d, const Persist &p, bool force) {
+  static char s_cache[80] = "";
+  const bool ok = net_wifi_ok();
+  const char *txt = net_portal_active() ? "Portal offen: CYD-Buddy" : (p.place[0] ? p.place : "WLAN / Ort einrichten");
+  char key[80];
+  snprintf(key, sizeof key, "%d|%s", ok ? 1 : 0, txt);
+  if (unchanged(s_cache, sizeof s_cache, key, force)) return;
   row_bg(d, 1);
   const int cy = row(1).y + kRowH / 2;
-  const uint32_t col = net_wifi_ok() ? d.color888(60, 220, 120) : d.color888(255, 60, 60);
+  const uint32_t col = ok ? d.color888(60, 220, 120) : d.color888(255, 60, 60);
   icon_wifi(d, 30, cy, 30, col);
-  const char *txt = net_portal_active() ? "Portal offen: CYD-Buddy" : (p.place[0] ? p.place : "WLAN / Ort einrichten");
   ui_text(d, txt, 62, cy, &FONT_M, TFT_WHITE, middle_left);
 }
 
-static void draw_firmware(LGFX &d, uint32_t now_ms) {
-  row_bg(d, 2);
-  const int cy = row(2).y + kRowH / 2;
+static void draw_firmware(LGFX &d, uint32_t now_ms, bool force) {
+  static char s_cache[64] = "";
   char buf[48] = "-";   // Strich bis OTA da ist
   int tone = 0;
   if (s_fw) tone = s_fw(buf, sizeof buf, now_ms);
+  char key[64];
+  snprintf(key, sizeof key, "%d|%s", tone, buf);
+  if (unchanged(s_cache, sizeof s_cache, key, force)) return;
+  row_bg(d, 2);
+  const int cy = row(2).y + kRowH / 2;
   const uint32_t col = tone == 1 ? d.color888(60, 220, 120) : (tone == 2 ? d.color888(255, 80, 80) : d.color888(200, 200, 210));
   icon_update(d, 30, cy, 30, d.color888(80, 200, 255));
   ui_text(d, buf, 62, cy, &FONT_M, col, middle_left);
@@ -61,11 +78,16 @@ static void char_bar(LGFX &d, int y, float v, void (*left)(LGFX &, int, int), vo
   d.drawFastVLine(mid, y - 5, 11, TFT_WHITE);
 }
 
-static void draw_info(LGFX &d, const Persist &p) {
+static void draw_info(LGFX &d, const Persist &p, bool force) {
+  static char s_cache[128] = "";
+  char buf[64];
+  char key[128];
+  snprintf(key, sizeof key, "%u|%d|%s|%d|%d", (unsigned)(ESP.getFreeHeap() / 1024), light_raw(), claude_api_key(),
+           (int)p.cuddly, (int)p.playful);
+  if (unchanged(s_cache, sizeof s_cache, key, force)) return;
   row_bg(d, 3);
   const int cy = row(3).y + kRowH / 2;
   icon_info(d, 30, cy, 30, d.color888(180, 180, 255));
-  char buf[64];
   ui_text(d, __DATE__, 62, cy - 17, &fonts::Font2, d.color888(200, 200, 210), middle_left);
   snprintf(buf, sizeof buf, "Heap %uk Licht %d", (unsigned)(ESP.getFreeHeap() / 1024), light_raw());
   ui_text(d, buf, 62, cy, &fonts::Font2, d.color888(200, 200, 210), middle_left);
@@ -84,9 +106,9 @@ static void draw_info(LGFX &d, const Persist &p) {
 void settings_redraw(LGFX &lcd, const Persist &p) {
   lcd.startWrite();
   draw_brightness(lcd, p);
-  draw_wifi(lcd, p);
-  draw_firmware(lcd, millis());
-  draw_info(lcd, p);
+  draw_wifi(lcd, p, true);
+  draw_firmware(lcd, millis(), true);
+  draw_info(lcd, p, true);
   lcd.endWrite();
 }
 
@@ -113,9 +135,9 @@ void settings_tick(LGFX &lcd, const Persist &p, uint32_t now_ms) {
   if (now_ms - s_last_tick < 1000) return;
   s_last_tick = now_ms;
   lcd.startWrite();
-  draw_wifi(lcd, p);
-  draw_firmware(lcd, now_ms);
-  draw_info(lcd, p);
+  draw_wifi(lcd, p, false);
+  draw_firmware(lcd, now_ms, false);
+  draw_info(lcd, p, false);
   lcd.endWrite();
 }
 
