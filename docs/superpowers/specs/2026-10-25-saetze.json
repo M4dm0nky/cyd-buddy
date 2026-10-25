@@ -23,5 +23,10 @@
   "highfive": ["High five!", "Klatsch!", "Gib mir fünf!", "Abgeklatscht!", "Team!", "Yeah!"],
   "gedanken": ["Was wohl die Wolken tun?", "Ich denk nach...", "Hmm...", "Wie schmeckt der Mond?", "Ob Fische träumen?", "Tagträume..."],
   "frech": ["Na du!", "Fang mich doch!", "Hihi, erwischt!", "Ich bin frech heute.", "Ätsch!", "Wetten, du verlierst?"],
-  "verschmust": ["Kuscheln?", "Bleib noch ein bisschen.", "Ich mag dich sehr.", "Streichelst du mich?", "Du bist so lieb.", "Warm und kuschelig."]
+  "verschmust": ["Kuscheln?", "Bleib noch ein bisschen.", "Ich mag dich sehr.", "Streichelst du mich?", "Du bist so lieb.", "Warm und kuschelig."],
+  "claude_okay": ["Okay!", "Bin dran!", "Mach ich!", "Verstanden!", "Alles klar!", "Los geht's!"],
+  "claude_hmm": ["Hmm...", "Mal überlegen...", "Moment...", "Aha...", "Interessant...", "Lass mich denken..."],
+  "claude_fehler": ["Mist!", "Huch, Fehler!", "Oje...", "Nochmal!", "Autsch!", "Das klappte nicht."],
+  "claude_hey": ["Hey, du!", "Ich brauch dich!", "Schau mal her!", "Frage an dich!", "Kurz mal bitte!", "Hallo? Deine Hilfe!"],
+  "claude_fertig": ["Fertig!", "Geschafft!", "Erledigt!", "Tadaa!", "Das war's!", "Alles fertig!"]
 }

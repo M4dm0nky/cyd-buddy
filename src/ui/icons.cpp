@@ -249,3 +249,19 @@ void icon_stop(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
   const int h = s * 32 / 100;
   d.fillRoundRect(cx - h, cy - h, 2 * h, 2 * h, s / 12, col);
 }
+
+// Claude-Funke: vierzackiger Stern mit vier kurzen Zwischenstrahlen (Claude-Orange vom Aufrufer).
+void icon_claude(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
+  const float lo = s * 0.5f, sh = s * 0.32f, w = s / 12.0f + 0.9f;
+  for (int i = 0; i < 8; i++) {
+    const float a = i * kPi / 4.0f, len = (i & 1) ? sh : lo;
+    d.drawWideLine(cx, cy, cx + len * cosf(a), cy + len * sinf(a), w, col);
+  }
+  d.fillCircle(cx, cy, s / 8, col);
+}
+
+// Helfer (Subagent): kleines Männchen aus Kopf und Körper.
+void icon_helper(LovyanGFX &d, int cx, int cy, int s, uint32_t col) {
+  d.fillCircle(cx, cy - s * 3 / 10, s / 5, col);
+  d.fillRoundRect(cx - s * 3 / 10, cy - s / 10, s * 3 / 5, s * 3 / 5, s / 5, col);
+}

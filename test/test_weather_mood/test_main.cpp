@@ -64,10 +64,11 @@ void test_sunglasses_for_proud_and_cheeky() {
 void test_hand_bit() {
   TEST_ASSERT_EQUAL_UINT32(1024u, (uint32_t)OV_HAND);
   TEST_ASSERT_EQUAL_UINT32(2048u, (uint32_t)OV_SNEEZE);
+  TEST_ASSERT_EQUAL_UINT32(4096u, (uint32_t)OV_TYPING);   // Claude-Modus; 2048 war schon OV_SNEEZE
   for (int i = 0; i < (int)Emotion::COUNT; i++) {
     WeatherMood w = weather_mood(95, 30);
-    TEST_ASSERT_FALSE(overlays_for((Emotion)i, &w, true) & (OV_HAND | OV_SNEEZE));
-    TEST_ASSERT_FALSE(overlays_for((Emotion)i, nullptr, true) & (OV_HAND | OV_SNEEZE));
+    TEST_ASSERT_FALSE(overlays_for((Emotion)i, &w, true) & (OV_HAND | OV_SNEEZE | OV_TYPING));
+    TEST_ASSERT_FALSE(overlays_for((Emotion)i, nullptr, true) & (OV_HAND | OV_SNEEZE | OV_TYPING));
   }
 }
 

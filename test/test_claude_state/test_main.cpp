@@ -187,6 +187,32 @@ void test_state_names() {
   TEST_ASSERT_EQUAL_STRING("done", claude_state_name(ClaudeState::DONE));
 }
 
+void test_first_event_after_off_works() {
+  // frisch
+  TEST_ASSERT_EQUAL((int)ClaudeState::CODING, (int)after("PreToolUse", "Edit"));
+  TEST_ASSERT_EQUAL((int)ClaudeState::LISTENING, (int)after("UserPromptSubmit"));
+  // nach SessionEnd
+  ClaudeLogic L;
+  claude_event(L, "PreToolUse", "Read", "", "s1", false, 1000);
+  claude_event(L, "SessionEnd", "", "", "s1", false, 2000);
+  TEST_ASSERT_EQUAL((int)ClaudeState::OFF, (int)claude_state(L, 2000));
+  claude_event(L, "PreToolUse", "Edit", "", "s1", false, 3000);
+  TEST_ASSERT_EQUAL((int)ClaudeState::CODING, (int)claude_state(L, 3000));
+  claude_event(L, "SessionEnd", "", "", "s1", false, 4000);
+  claude_event(L, "UserPromptSubmit", "", "", "s1", false, 5000);
+  TEST_ASSERT_EQUAL((int)ClaudeState::LISTENING, (int)claude_state(L, 5000));
+  // nach 15-min-Timeout (Abfrage zwischendurch und ohne)
+  ClaudeLogic T;
+  claude_event(T, "PreToolUse", "Read", "", "s1", false, 1000);
+  TEST_ASSERT_EQUAL((int)ClaudeState::OFF, (int)claude_state(T, 1000 + 15 * MIN));
+  claude_event(T, "PreToolUse", "Edit", "", "s1", false, 1000 + 15 * MIN);
+  TEST_ASSERT_EQUAL((int)ClaudeState::CODING, (int)claude_state(T, 1000 + 15 * MIN));
+  ClaudeLogic N;   // NEEDS_YOU-Timeout (30 min)
+  claude_event(N, "PermissionRequest", "", "", "s1", false, 1000);
+  claude_event(N, "PreToolUse", "Edit", "", "s2", false, 1000 + 31 * MIN);
+  TEST_ASSERT_EQUAL((int)ClaudeState::CODING, (int)claude_state(N, 1000 + 31 * MIN));
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_initial_is_off);
@@ -211,5 +237,6 @@ int main(int, char **) {
   RUN_TEST(test_unknown_event_ignored);
   RUN_TEST(test_wraparound);
   RUN_TEST(test_state_names);
+  RUN_TEST(test_first_event_after_off_works);
   return UNITY_END();
 }

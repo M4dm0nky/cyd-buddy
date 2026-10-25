@@ -34,7 +34,8 @@ enum Overlay : uint32_t {
   OV_ZZZ = 16, OV_SHIVER = 32, OV_RAIN_TINT = 64, OV_STORM = 128,
   OV_QUESTION = 256, OV_NOTE = 512,
   OV_HAND = 1024,   // High-Five: gesetzt von app.cpp, nicht von overlays_for
-  OV_SNEEZE = 2048  // krank, „Hatschi“: gesetzt von app.cpp
+  OV_SNEEZE = 2048, // krank, „Hatschi“: gesetzt von app.cpp
+  OV_TYPING = 4096  // Claude-Modus, Schreiben: drei wandernde Punkte unter dem Mund, gesetzt von app.cpp (2048 ist OV_SNEEZE)
 };
 
 // w = nullptr: kein (frisches) Wetter.

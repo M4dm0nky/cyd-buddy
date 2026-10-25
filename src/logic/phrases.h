@@ -3,7 +3,7 @@
 
 // ERZEUGT von tools/gen-phrases.mjs aus docs/superpowers/specs/2026-10-25-saetze.json – nicht von Hand ändern.
 // Sätze in UTF-8; vor dem Zeichnen über logic/ascii.h wandeln. Host-Test test/test_phrases.
-enum class Say : uint8_t { MORGEN, NACHT, GELANGWEILT, TRAURIG, FROH, HUNGRIG, KRANK, VERLIEBT, GENERVT, REGEN, SONNE, HITZE, KALT, GEWITTER, POMODORO_START, POMODORO_PAUSE, POMODORO_FERTIG, LECKER, LIEBLINGSESSEN, SATT, HIGHFIVE, GEDANKEN, FRECH, VERSCHMUST, COUNT };
+enum class Say : uint8_t { MORGEN, NACHT, GELANGWEILT, TRAURIG, FROH, HUNGRIG, KRANK, VERLIEBT, GENERVT, REGEN, SONNE, HITZE, KALT, GEWITTER, POMODORO_START, POMODORO_PAUSE, POMODORO_FERTIG, LECKER, LIEBLINGSESSEN, SATT, HIGHFIVE, GEDANKEN, FRECH, VERSCHMUST, CLAUDE_OKAY, CLAUDE_HMM, CLAUDE_FEHLER, CLAUDE_HEY, CLAUDE_FERTIG, COUNT };
 
 namespace phrases_detail {
 inline const char *const MORGEN[] = {"Moin! Schon wach?", "Guten Morgen!", "Sonne oder Kaffee?", "Na, gut geschlafen?", "Auf in den Tag!", "Hallo du! Endlich wach."};
@@ -30,6 +30,11 @@ inline const char *const HIGHFIVE[] = {"High five!", "Klatsch!", "Gib mir fünf!
 inline const char *const GEDANKEN[] = {"Was wohl die Wolken tun?", "Ich denk nach...", "Hmm...", "Wie schmeckt der Mond?", "Ob Fische träumen?", "Tagträume..."};
 inline const char *const FRECH[] = {"Na du!", "Fang mich doch!", "Hihi, erwischt!", "Ich bin frech heute.", "Ätsch!", "Wetten, du verlierst?"};
 inline const char *const VERSCHMUST[] = {"Kuscheln?", "Bleib noch ein bisschen.", "Ich mag dich sehr.", "Streichelst du mich?", "Du bist so lieb.", "Warm und kuschelig."};
+inline const char *const CLAUDE_OKAY[] = {"Okay!", "Bin dran!", "Mach ich!", "Verstanden!", "Alles klar!", "Los geht's!"};
+inline const char *const CLAUDE_HMM[] = {"Hmm...", "Mal überlegen...", "Moment...", "Aha...", "Interessant...", "Lass mich denken..."};
+inline const char *const CLAUDE_FEHLER[] = {"Mist!", "Huch, Fehler!", "Oje...", "Nochmal!", "Autsch!", "Das klappte nicht."};
+inline const char *const CLAUDE_HEY[] = {"Hey, du!", "Ich brauch dich!", "Schau mal her!", "Frage an dich!", "Kurz mal bitte!", "Hallo? Deine Hilfe!"};
+inline const char *const CLAUDE_FERTIG[] = {"Fertig!", "Geschafft!", "Erledigt!", "Tadaa!", "Das war's!", "Alles fertig!"};
 }  // namespace phrases_detail
 
 struct SayList { const char *const *items; uint8_t n; };
@@ -60,6 +65,11 @@ inline SayList say_list(Say s) {
     case Say::GEDANKEN: return SayList{GEDANKEN, 6};
     case Say::FRECH: return SayList{FRECH, 6};
     case Say::VERSCHMUST: return SayList{VERSCHMUST, 6};
+    case Say::CLAUDE_OKAY: return SayList{CLAUDE_OKAY, 6};
+    case Say::CLAUDE_HMM: return SayList{CLAUDE_HMM, 6};
+    case Say::CLAUDE_FEHLER: return SayList{CLAUDE_FEHLER, 6};
+    case Say::CLAUDE_HEY: return SayList{CLAUDE_HEY, 6};
+    case Say::CLAUDE_FERTIG: return SayList{CLAUDE_FERTIG, 6};
     default: return SayList{nullptr, 0};
   }
 }

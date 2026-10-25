@@ -28,4 +28,6 @@ void icon_food(LovyanGFX &d, int cx, int cy, int s, int food);         // 0 Apfe
 void icon_thermometer(LovyanGFX &d, int cx, int cy, int s);              // krank
 void icon_ball(LovyanGFX &d, int cx, int cy, int s, uint32_t col);       // verspielt
 void icon_pillow(LovyanGFX &d, int cx, int cy, int s, uint32_t col);     // faul
+void icon_claude(LovyanGFX &d, int cx, int cy, int s, uint32_t col);     // Funke/Stern (Claude-Modus)
+void icon_helper(LovyanGFX &d, int cx, int cy, int s, uint32_t col);     // Helfer-Männchen (Subagent)
 void icon_stop(LovyanGFX &d, int cx, int cy, int s, uint32_t col);       // Quadrat (Timer stoppen)

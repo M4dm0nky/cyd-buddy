@@ -20,5 +20,7 @@ void eyes_set_hand(bool right, uint32_t since_ms);
 void eyes_set_food(int food, int y);
 // Pomodoro-Fortschrittsring am Sprite-Rand (Bogen um das Gesicht); progress < 0 = aus.
 void eyes_set_ring(float progress, Rgb color);
+// Claude-Modus (Ausfuehren): kurzes Segment (1/6 des Umfangs) dreht am Rand, 1 Umdrehung je 1,5 s.
+void eyes_set_spin(bool on, Rgb color);
 // Zeichnet ein Augenpaar ohne Overlays auf ein beliebiges Ziel (Spiele, OTA); (cx, cy) = Mitte zwischen den Augen.
 void eyes_draw_pair(LovyanGFX &d, int cx, int cy, const EyeShape &shape, Rgb color, float scale);

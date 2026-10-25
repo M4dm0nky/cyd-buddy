@@ -30,6 +30,7 @@
 #include "ui/ota_card.h"
 #include "ota/ota_pull.h"
 #include "logic/ota_policy.h"
+#include "logic/claude_face.h"
 
 #ifndef CYD_DIAG_TOUCH
 #define CYD_DIAG_TOUCH 0   // 1 = Touch/Gesten seriell ausgeben (Kalibrierung prüfen); per build_flags -DCYD_DIAG_TOUCH=1
@@ -49,6 +50,17 @@ static const uint8_t kBacklight[3] = {77, 153, 255};  // 30 / 60 / 100 %
 
 static Persist s_persist;
 static ClaudeLogic s_claude;                       // Claude-Modus: Zustand aus den Hook-Ereignissen (claude_api -> claude_event)
+// Claude-Modus Darstellung (Spec 2026-10-25-claude-modus-design.md)
+static constexpr Rgb kClaudeCol{217, 119, 87};
+static constexpr uint32_t kTouchPrioMs = 3000;         // Berührungs-Gefühle haben so lange Vorrang vor Claude-Gesichtern
+static constexpr uint32_t kHeyEveryMs = 30000;
+static uint32_t s_touch_prio_until = 0;
+static uint8_t s_claude_fx = CFX_NONE;                 // Zusatzeffekte des angezeigten Claude-Gesichts
+static bool s_claude_busy = false;                     // Zustand mit eigenem Gesicht (nicht OFF/IDLE)
+static ClaudeState s_prev_cs = ClaudeState::OFF;
+static uint32_t s_next_hmm = 0, s_next_hey = 0;
+static bool s_needs_ack = false;                       // Tippen hat das gelbe Blinken beendet ...
+static uint32_t s_needs_ack_since = 0;                 // ... für das NEEDS_YOU, das bei L.since begann
 static MoodState s_mood;
 static GestureState s_gesture;
 static Blinker s_blink;
@@ -148,6 +160,8 @@ static StatusInfo status_info(uint32_t now) {
   si.update_ready = ota_pull::info().state == ota_pull::AVAILABLE;
   si.timer_s = (uint16_t)pomo_remaining_s(s_pomo, now);
   si.timer_break = s_pomo.state == PomoState::BREAK;
+  si.claude_on = claude_active(s_claude, now);
+  si.helpers = claude_helpers(s_claude, now);
   return si;
 }
 
@@ -169,7 +183,14 @@ static void show_bubble(const char *txt, uint32_t now) {
   s_bubble_until = now + kBubbleMs;
   speech_shown(s_speech, now);
 }
+// Claude-Blase: während der Pomodoro-Arbeit nur, wenn Claude etwas von dir braucht (even_in_work).
+static void claude_say(Say what, uint32_t now, bool even_in_work = false) {
+  if (focused_work() && !even_in_work) return;
+  show_bubble(speech_pick(s_speech, what, esp_random()), now);
+}
 static void say(Say what, uint32_t now) {
+  const bool pomo_say = what == Say::POMODORO_START || what == Say::POMODORO_PAUSE || what == Say::POMODORO_FERTIG;
+  if (s_claude_busy && !pomo_say) return;                      // Claude arbeitet: keine Pet-Blasen
   if (focused_work() && what != Say::POMODORO_START) return;   // während der Arbeit still (außer beim Start)
   show_bubble(speech_pick(s_speech, what, esp_random()), now);
 }
@@ -222,6 +243,7 @@ static Gesture handle_touch(uint32_t now, int16_t &tx, int16_t &ty) {
 
 static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
   const int hour = current_hour();
+  if (g == Gesture::TAP || g == Gesture::STROKE || g == Gesture::POKE) s_touch_prio_until = now + kTouchPrioMs;
   switch (g) {
     case Gesture::TAP:
       if (focused_work()) break;   // während der Arbeit: kein Überraschen, nur der Blick folgt
@@ -253,15 +275,48 @@ static void touch_to_mood(Gesture g, int16_t tx, int16_t ty, uint32_t now) {
 }
 
 // Stimmung läuft auf jedem Bildschirm weiter (Zeit vergeht), Licht und LED auch.
+// Claude-Blasen bei Zustandswechseln (Spec-Tabelle); läuft jedes Bild.
+static void claude_frame(ClaudeState cs, uint32_t now) {
+  if (cs != s_prev_cs) {
+    const bool was_calm = s_prev_cs == ClaudeState::OFF || s_prev_cs == ClaudeState::IDLE || s_prev_cs == ClaudeState::DONE;
+    if (was_calm && claude_busy(cs) && cs != ClaudeState::DONE) s_next_hmm = now + 20000 + esp_random() % 20001;
+    switch (cs) {
+      case ClaudeState::LISTENING: claude_say(Say::CLAUDE_OKAY, now); break;
+      case ClaudeState::FAILED: claude_say(Say::CLAUDE_FEHLER, now); break;
+      case ClaudeState::NEEDS_YOU:
+        claude_say(Say::CLAUDE_HEY, now, true);
+        s_next_hey = now + kHeyEveryMs;
+        break;
+      case ClaudeState::DONE:
+        claude_say(Say::CLAUDE_FERTIG, now);
+        eyes_set_hand(true, now);
+        break;
+      default: break;
+    }
+    s_prev_cs = cs;
+  }
+  if (cs == ClaudeState::THINKING && (int32_t)(now - s_next_hmm) >= 0) {   // alle 20-40 s ein „Hmm...“
+    claude_say(Say::CLAUDE_HMM, now);
+    s_next_hmm = now + 20000 + esp_random() % 20001;
+  }
+  if (cs == ClaudeState::NEEDS_YOU && (int32_t)(now - s_next_hey) >= 0) {   // „Hey, du!“ alle 30 s
+    claude_say(Say::CLAUDE_HEY, now, true);
+    s_next_hey = now + kHeyEveryMs;
+  }
+}
+
 static void mood_frame(uint32_t now, uint32_t dt) {
   const int hour = current_hour();
   const bool work = focused_work();
-  if (work) mood_touch(s_mood, now);   // während der Arbeit kein Schlaf
-  mood_set_dark(s_mood, work ? false : light_update(now), hour, now);
+  const ClaudeState cs = claude_state(s_claude, now);
+  s_claude_busy = claude_busy(cs);
+  const bool calm = work || s_claude_busy;   // Pomodoro-Arbeit bzw. Claude arbeitet: kein Schlaf, keine Eigenarten
+  if (calm) mood_touch(s_mood, now);
+  mood_set_dark(s_mood, calm ? false : light_update(now), hour, now);
   mood_night_check(s_mood, hour, now);
   mood_set_character(s_mood, s_char);
   mood_tick(s_mood, dt, now);
-  if (!work) mood_quirks(s_mood, hour, now);
+  if (!calm) mood_quirks(s_mood, hour, now);
   switch (pomo_tick(s_pomo, now)) {
     case PomoEvent::BREAK_START:
       mood_set_transient(s_mood, Emotion::EXCITED, now, 3000);
@@ -278,6 +333,13 @@ static void mood_frame(uint32_t now, uint32_t dt) {
   s_emotion = mood_emotion(s_mood, hour, now);
   if (focused_work() && s_emotion != Emotion::SLEEPING) s_emotion = Emotion::FOCUSED;   // überschreibt alles außer Schlaf
   if (s_emotion == Emotion::BORED) char_bored(s_char, dt);
+  // Claude-Gesicht: Berührungs-Gefühl (3 s) und Pomodoro haben Vorrang
+  const bool touch_feel = (int32_t)(s_touch_prio_until - now) > 0 && !mood_is_sleeping(s_mood, now) &&
+                          s_emotion != mood_base_emotion(s_mood, hour);
+  const ClaudeFace cf = claude_face(cs, work, touch_feel, s_emotion);
+  s_emotion = cf.emo;
+  s_claude_fx = cf.fx;
+  claude_frame(cs, now);
   s_persist.cuddly = s_char.cuddly;   // für die Anzeige in den Einstellungen
   s_persist.playful = s_char.playful;
 }
@@ -306,7 +368,7 @@ static void speech_frame(uint32_t now, bool sleeping) {
   struct tm t;
   const uint32_t day = today(&t);
   daystats_roll(s_persist.day, day);
-  if (focused_work()) return;   // keine Rituale, Gedanken, Hatschi-Blasen während der Arbeit
+  if (focused_work() || s_claude_busy) return;   // keine Rituale, Gedanken, Hatschi-Blasen während der Arbeit bzw. Claude-Modus
   const int hour = day ? t.tm_hour : -1, minute = day ? t.tm_min : 0;
   if (ritual_morning(s_rituals, woke, hour, day)) {
     mood_set_transient(s_mood, Emotion::GREETING, now, 3000);
@@ -342,8 +404,10 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
   const bool have_weather = fresh_weather(now, &wm, &w);
   uint32_t ov = overlays_for(s_emotion, have_weather ? &wm : nullptr, have_weather ? w.is_day : true);
   if ((int32_t)(s_hand_until - now) > 0 && !sleeping) ov |= OV_HAND;
+  if (!sleeping && (s_claude_fx & CFX_HAND)) ov |= OV_HAND;
+  if (!sleeping && (s_claude_fx & CFX_TYPING)) ov |= OV_TYPING;
 
-  const bool storm = (ov & OV_STORM) && now % kStormEveryMs < kStormForMs;
+  const bool storm = (ov & OV_STORM) && now % kStormEveryMs < kStormForMs && !s_claude_busy;
   if (storm && !s_prev_storm && !sleeping) say(Say::GEWITTER, now);   // Gewitter-Schreck
   s_prev_storm = storm;
   speech_frame(now, sleeping);
@@ -351,14 +415,22 @@ static void eyes_frame(uint32_t now, uint32_t dt) {
   gazer_update(s_gaze, now);
   float gx = s_gaze.gx, gy = s_gaze.gy;
   if (look_active(s_look, now)) look_target(s_look, &gx, &gy);   // Blick folgt dem Finger
-  if (sleeping) gx = gy = 0;
+  if (sleeping || (s_claude_fx & (CFX_STRAIGHT | CFX_JUMP))) gx = gy = 0;   // Claude: Blick gerade bzw. springend, kein Wandern
   target.s.pupil_dx += gx / GAZE_X_MAX * 14.0f;
   target.s.pupil_dy += gy / GAZE_Y_MAX * 10.0f;
   target.s.eye.gaze_x = gx / GAZE_X_MAX * 8.0f;
   target.s.eye.gaze_y = gy / GAZE_Y_MAX * 4.0f;
+  if (s_claude_fx & CFX_STRAIGHT) {   // Claude braucht dich: Blick gerade auf den Betrachter, Brauen hoch
+    target.s.pupil_dx = 0;
+    target.s.pupil_dy = 0;
+    target.s.pupil_r = 18;
+    target.s.brow_y = -26;
+  }
+  if (s_claude_fx & CFX_JUMP) target.s.pupil_dx = ((now / 250) & 1) ? 14.0f : -14.0f;   // Lesen: alle 250 ms links <-> rechts
   s_face = face_tween(s_face, target.s, dt);   // switch_acc läuft im s_face mit
   s_color = rgb_tween(s_color, target.color, dt);
 
+  eyes_set_spin((s_claude_fx & CFX_RING) && !sleeping, kClaudeCol);   // Claude führt etwas aus (nur ohne Pomodoro-Ring)
   if (s_pomo.state == PomoState::IDLE) eyes_set_ring(-1, kTimerCol);
   else eyes_set_ring(pomo_progress(s_pomo, now), s_pomo.state == PomoState::WORK ? kTimerCol : kBreakCol);
 
@@ -435,7 +507,7 @@ static void screen_frame(uint32_t now, uint32_t dt, Gesture g, int16_t tx, int16
         struct tm t;
         const uint32_t day = today(&t);
         const bool awake = s_emotion != Emotion::SLEEPING;
-        if (!focused_work() && ritual_review(s_rituals, awake, s_touch_began, day ? t.tm_hour : -1, day ? t.tm_min : 0, day)) {
+        if (!focused_work() && !s_claude_busy && ritual_review(s_rituals, awake, s_touch_began, day ? t.tm_hour : -1, day ? t.tm_min : 0, day)) {
           daystats_roll(s_persist.day, day);
           s_screen = Screen::REVIEW;
           set_backlight(kBacklight[s_persist.brightness]);
@@ -615,11 +687,14 @@ void app_loop() {
   int16_t tx, ty;
   const Gesture g = handle_touch(now, tx, ty);
   mood_frame(now, dt);
+  if (g == Gesture::TAP && claude_needs_you(s_claude, now)) { s_needs_ack = true; s_needs_ack_since = s_claude.since; }   // Tippen stoppt das Blinken
   screen_frame(now, dt, g, tx, ty);
   if (s_blink_n) {   // LED-Signal (Pomodoro) überschreibt die Gefühlsfarbe: n× an/aus je 150 ms
     const uint32_t step = (now - s_blink_start) / kBlinkStepMs;
     if (step >= 2u * s_blink_n) s_blink_n = 0;
     else led_set((step & 1) ? Rgb{0, 0, 0} : s_blink_col, kLedPct);
+  } else if (claude_needs_you(s_claude, now) && !(s_needs_ack && s_needs_ack_since == s_claude.since)) {
+    led_set((now / 500) & 1 ? Rgb{0, 0, 0} : Rgb{255, 200, 0}, kLedPct);   // Claude braucht dich: gelb, 1 Hz, bis Tippen oder nächster Zustand
   }
 
   if (now - s_last_save >= kSaveEveryMs) {

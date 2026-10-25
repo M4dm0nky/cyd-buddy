@@ -9,7 +9,8 @@ static bool s_valid = false;
 
 static bool same(const StatusInfo &a, const StatusInfo &b) {
   if (a.time_ok != b.time_ok || a.wifi_ok != b.wifi_ok || a.portal != b.portal || a.weather_ok != b.weather_ok ||
-      a.update_ready != b.update_ready || a.timer_s != b.timer_s || a.timer_break != b.timer_break)
+      a.update_ready != b.update_ready || a.timer_s != b.timer_s || a.timer_break != b.timer_break ||
+      a.claude_on != b.claude_on || a.helpers != b.helpers)
     return false;
   if (a.time_ok && (a.hour != b.hour || a.minute != b.minute)) return false;
   if (a.weather_ok && (a.sky != b.sky || a.is_day != b.is_day || lroundf(a.temp_c) != lroundf(b.temp_c))) return false;
@@ -49,6 +50,18 @@ void status_draw(LGFX &lcd, const StatusInfo &s) {
   else snprintf(buf, sizeof buf, "--:--");
   lcd.drawString(buf, 8, cy);
 
+  if (s.claude_on) {   // Claude-Funke (Lücke zwischen Uhrzeit und Wetter), daneben Helfer-Symbol + Zahl
+    const uint32_t oc = lcd.color888(217, 119, 87);
+    icon_claude(lcd, 82, cy, 20, oc);
+    if (s.helpers) {
+      icon_helper(lcd, 104, cy, 16, oc);
+      snprintf(buf, sizeof buf, "%u", (unsigned)(s.helpers > 9 ? 9 : s.helpers));
+      lcd.setFont(&FONT_S);
+      lcd.setTextColor(oc, TFT_BLACK);
+      lcd.drawString(buf, 113, cy);
+      lcd.setFont(&FONT_M);
+    }
+  }
   if (s.weather_ok) {
     icon_sky(lcd, 138, cy, 30, s.sky, s.is_day);
     snprintf(buf, sizeof buf, "%ld°", lroundf(s.temp_c));

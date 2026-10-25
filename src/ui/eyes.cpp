@@ -17,6 +17,50 @@ void eyes_set_ring(float progress, Rgb color) {
   s_ring_col = color;
 }
 
+static bool s_spin = false;
+static Rgb s_spin_col{217, 119, 87};
+void eyes_set_spin(bool on, Rgb color) {
+  s_spin = on;
+  s_spin_col = color;
+}
+
+// Ring-Geometrie: Ellipse am Rand (rx 153, ry 96), 64 Stuetzpunkte einmal berechnet, im Uhrzeigersinn ab oben.
+// Gezeichnet wird als Kette kurzer Linien: keine Trigonometrie und kein Bogen-Scan pro Bild
+// (fillEllipseArc prueft je Bild jedes Pixel der Ellipse und kostete rund 2 fps).
+static constexpr int kRingN = 64;
+static int16_t s_ring_x[kRingN + 1], s_ring_y[kRingN + 1];
+static bool s_ring_ready = false;
+static void ring_init() {
+  if (s_ring_ready) return;
+  for (int i = 0; i <= kRingN; i++) {
+    const float a = (270.0f + 360.0f * i / kRingN) * 0.0174533f;
+    s_ring_x[i] = (int16_t)lroundf(160 + 153.0f * cosf(a));
+    s_ring_y[i] = (int16_t)lroundf(100 + 96.0f * sinf(a));
+  }
+  s_ring_ready = true;
+}
+static void ring_pos(float u, float *x, float *y) {   // u in Stuetzpunkt-Einheiten 0..64 (auch darueber: umlaufend)
+  while (u >= kRingN) u -= kRingN;
+  const int i = (int)u;
+  const float f = u - i;
+  *x = s_ring_x[i] + (s_ring_x[i + 1] - s_ring_x[i]) * f;
+  *y = s_ring_y[i] + (s_ring_y[i + 1] - s_ring_y[i]) * f;
+}
+// Bogen von u0 bis u1 (u1 > u0, hoechstens ein Umlauf) als Kette von Linien, Dicke 2r.
+static void ring_arc(LovyanGFX &d, float u0, float u1, float r, uint32_t col) {
+  float px, py;
+  ring_pos(u0, &px, &py);
+  float u = u0;
+  while (u < u1) {
+    float nu = floorf(u) + 1.0f;
+    if (nu > u1) nu = u1;
+    float nx, ny;
+    ring_pos(nu, &nx, &ny);
+    d.drawWideLine(px, py, nx, ny, r, col);
+    px = nx; py = ny; u = nu;
+  }
+}
+
 static int s_food = -1, s_food_y = 0;
 void eyes_set_food(int food, int y) {
   s_food = food;
@@ -329,11 +373,26 @@ static void render(LovyanGFX &d, const FaceShape &f, Rgb color, uint32_t ov, uin
     const int dy = (int)(4 * sinf(now / 300.0f));
     music_note(d, 212, 168 + dy, col);
   }
-  if (s_ring >= 0) {   // Pomodoro: dünner Bogen um das Gesicht, im Uhrzeigersinn ab oben
-    const float p = s_ring > 1 ? 1 : s_ring;
-    // Ellipse am Rand (rx 153, ry 96), damit der Bogen Augen und Mund nicht schneidet
-    d.fillEllipseArc(160, 100, 152, 154, 95, 97, 0, 360, lgfx::color888(s_ring_col.r / 5, s_ring_col.g / 5, s_ring_col.b / 5));
-    if (p > 0.002f) d.fillEllipseArc(160, 100, 151, 155, 94, 98, 270, 270 + 360 * p, rgb(s_ring_col));
+  if (s_ring >= 0 || s_spin) {   // Pomodoro-Bogen bzw. Claude-Segment: um das Gesicht, im Uhrzeigersinn ab oben
+    ring_init();
+    const Rgb rc = s_ring >= 0 ? s_ring_col : s_spin_col;
+    const uint32_t track = lgfx::color888(rc.r / 5, rc.g / 5, rc.b / 5);
+    for (int i = 0; i < kRingN; i++) {   // Spur: 2 Pixel dick aus zwei versetzten Linien
+      d.drawLine(s_ring_x[i], s_ring_y[i], s_ring_x[i + 1], s_ring_y[i + 1], track);
+      d.drawLine(s_ring_x[i] + 1, s_ring_y[i] + 1, s_ring_x[i + 1] + 1, s_ring_y[i + 1] + 1, track);
+    }
+    if (s_ring >= 0) {
+      const float p = s_ring > 1 ? 1 : s_ring;
+      if (p > 0.002f) ring_arc(d, 0, kRingN * p, 2.0f, rgb(s_ring_col));
+    } else {
+      const float u0 = kRingN * (float)(now % 1500) / 1500.0f;
+      ring_arc(d, u0, u0 + kRingN / 6.0f, 2.0f, rgb(s_spin_col));
+    }
+  }
+  if (ov & OV_TYPING) {   // Claude schreibt: drei Punkte unter dem Mund, der aktive wandert
+    const int active = (int)((now / 200) % 3);
+    const uint32_t oc = lgfx::color888(217, 119, 87);
+    for (int i = 0; i < 3; i++) d.fillCircle(160 + ox + (i - 1) * 18, 190 + oy, i == active ? 5 : 3, oc);
   }
   if (ov & OV_SNEEZE) {   // Hatschi: Tropfen an der Nase
     drop(d, 160 + ox + 8, kNoseY + oy + 14, 12, lgfx::color888(140, 210, 255));
