@@ -36,6 +36,14 @@ Ein Wesen mit großen Augen auf dem ESP32-2432S028 (Cheap Yellow Display, Varian
 
 **Claude-Modus:** Mit Claude-Code-Hooks auf dem PC zeigt der Buddy, was Claude gerade tut – „Okay!“ beim Auftrag, nachdenklich (orange), Pupillen huschen beim Lesen, Tipp-Punkte beim Schreiben, drehender Ring bei Befehlen, „Mist!“ bei Fehlern, **Blick + gelbe LED „Hey, du!“, wenn Claude dich braucht**, High-Five „Fertig!“ am Ende. Oranger Funke im Statusstreifen = Sitzung aktiv (daneben die Zahl der Helfer). 15 min ohne Ereignis = wieder Haustier. Der Schlüssel steht unter Einstellungen → Info. Einrichtung: [`tools/claude-hooks/README.md`](tools/claude-hooks/README.md).
 
+## Gehäuse und Kamera (in Arbeit)
+
+Geplant: Der Buddy bekommt Augen. Eine **Seeed XIAO ESP32S3 Sense** sitzt in der Stirn des Gehäuses und erkennt, ob jemand da ist und wo das Gesicht ist. Die Augen folgen dir, er begrüßt dich und schläft ein, wenn du gehst. Am CYD wird kein Kamerabild gezeigt. Die Kamera hängt über 4 Drähte am CYD (5 V und GND von P1, Daten über GPIO 27/22 an CN1) und läuft mit am selben USB-Kabel.
+
+- Gehäuse „Kopf mit Stirn“ zum Selberdrucken (PETG, ohne Stützen): [`case/README.md`](case/README.md), STL-Dateien unter `case/stl/`.
+- Strom über USB-C nur mit Kabel **USB-A auf USB-C**. Dem USB-C des CYD fehlen die CC-Widerstände, ein Kabel C auf C liefert deshalb keinen Strom.
+- Design: [`docs/superpowers/specs/2026-10-26-kamera-gehaeuse-design.md`](docs/superpowers/specs/2026-10-26-kamera-gehaeuse-design.md).
+
 ## Entwicklung
 
 - Bauen: `pio run -e cyd2usb`

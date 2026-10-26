@@ -2,6 +2,16 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Kamera + Gehäuse – Teil 1: Gehäuse-Entwurf – ERLEDIGT, wartet auf Testdruck
+- Zeit: 2026-10-26 (Opus plant und prüft, Sonnet baut das SCAD-Modell), Branch `feature/kamera-gehaeuse`
+- Entscheidung: Kamera = **Seeed XIAO ESP32S3 Sense** (eigener Rechner mit PSRAM, erkennt Gesichter selbst, schickt dem CYD nur Koordinaten). Direkt am CYD geht keine Kamera: Es sind nur GPIO 22/27/35 frei, und PSRAM fehlt. Bestellt **ohne Header**. Spec: `docs/superpowers/specs/2026-10-26-kamera-gehaeuse-design.md`.
+- Gemacht: `case/madbuddy_case.scad` (parametrisch, OpenSCAD 2021.01 per winget), Form „Kopf mit Stirn“ 114 × 82 × 30 mm, Linse mittig über dem Display, Fuß mit 15°, nur USB-C nach außen (`open_micro_usb = false`), STL-Dateien `front`/`back`/`frame_test`, Prüfskript `case/check.ps1`.
+- Maße: Platine, Löcher und Display aus der Originaldoku (witnessmenow/ESP32-Cheap-Yellow-Display: `Dimensions.png`, Datenblatt JC2432A028N). USB-Lage vom Nutzer gemessen (ab SD-Kante: Micro ab 9,67 mm, USB-C 17,88–27,32 mm). Die übrigen Werte sind im SCAD als VORLÄUFIG markiert.
+- Prüfung: `& case\check.ps1 -NoPng` → alles grün (3 STL ohne Warnung, Stand: Lot 6,9 mm vor der hinteren Kippkante, nichts unter dem Fuß, Kollision leer, Selbsttest erkennt Treffer). Gegenprobe `-Define window_shrink=2` → `[FAIL] Kollision` (288 Facetten), exit 1. Danach läuft kein OpenSCAD-Prozess mehr.
+- Hinweis: `powershell -ExecutionPolicy Bypass` wird von der Rechteprüfung abgelehnt, deshalb das Skript direkt mit `& case\check.ps1` starten.
+- Nächster Schritt: Nutzer druckt `case/stl/madbuddy_frame_test.stl` und meldet die Passung (Fenster über der Leuchtfläche, Lochbild). Danach Maße anpassen und das ganze Gehäuse drucken.
+- Offen: Teil 2 Verkabelung (Pinreihenfolge P1/CN1 am Foto prüfen, bevor gelötet wird). Teil 3 Firmware (`cam/` für den XIAO, `src/logic/cam_link.*` + `Serial2` am CYD), wird geplant, sobald die Hardware da ist. Der USB-C des XIAO ist im eingebauten Zustand nicht erreichbar, deshalb vor dem Einbau flashen und danach per WLAN aktualisieren.
+
 ## Umbenennung CYD-Buddy -> MadBuddy – ERLEDIGT (2026-10-25)
 
 Umbenennung CYD-Buddy -> MadBuddy (Portal, mDNS madbuddy.local, Repo M4dm0nky/madbuddy).

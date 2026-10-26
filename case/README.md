@@ -25,7 +25,7 @@ Alle Maße stehen oben in der Datei mit Kommentar: `QUELLE: Originalzeichnung`, 
 
 ## Prüfung
 
-`powershell -File case\check.ps1` führt alles aus (STL ohne Warnungen, Standsicherheit, Standebene, Kollision gegen alle Prüfkörper inkl. Linsen-Freiraum und aktiver Fläche mit Sichtkegel, Selbsttest der Kollisionsprüfung, PNG-Renders). Exitcode ungleich 0 bei jedem Fehler.
+`& case\check.ps1` (aus PowerShell im Repo-Ordner) führt alles aus (STL ohne Warnungen, Standsicherheit, Standebene, Kollision gegen alle Prüfkörper inkl. Linsen-Freiraum und aktiver Fläche mit Sichtkegel, Selbsttest der Kollisionsprüfung, PNG-Renders). Exitcode ungleich 0 bei jedem Fehler.
 Gegenprobe: `check.ps1 -Define window_shrink=2 -NoPng` muss fehlschlagen (Fenster 2 mm schmaler).
 
 ## Maße
@@ -37,7 +37,8 @@ Gegenprobe: `check.ps1 -Define window_shrink=2 -NoPng` muss fehlschlagen (Fenste
 ## Offene Punkte
 
 - Micro-USB hat standardmäßig keine Wandöffnung (`open_micro_usb = false`), Innenfreiraum bleibt.
-- SD-Slot liegt in der Konstruktion an der unteren Längskante; dort steht der Kopf auf dem Fuß, die Karte lässt sich dann nur bei angehobenem Gerät stecken. Soll der Slot oben liegen, muss die Variante angepasst werden.
+- SD-Slot liegt in der Konstruktion an der unteren Längskante; dort steht der Kopf auf dem Fuß, die Karte lässt sich dann nur bei angehobenem Gerät stecken. Die Firmware nutzt die SD-Karte nicht (geprüft 2026-10-26), daher bleibt das so.
 - Standsicherheit ist eine Schätzung (Massenliste in der SCAD). Ohne die Zusatztiefe `rear_extra = 10` liegt das Lot bei 15° praktisch auf der Kippkante.
 - XIAO-USB-C ist im Gehäuse nicht zugänglich (nur Programmierung vor dem Einbau).
-- Fenster, Lochbild und Glas-Sitz zuerst mit `frame_test` prüfen.
+- Fenster, Lochbild und Glas-Sitz zuerst mit `frame_test` prüfen. **Stand 2026-10-26: Testdruck steht aus.**
+- Strom über den USB-C des CYD nur mit Kabel USB-A auf USB-C (keine CC-Widerstände). Das Netzteil braucht ca. 1 A, weil die Kamera mitversorgt wird.
