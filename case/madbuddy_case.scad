@@ -37,9 +37,11 @@ glass_t    = 2.3;   // QUELLE: Originalzeichnung (Modul ohne Kleber/Abstand)
 disp_h     = 4.5;   // VORLÄUFIG (Datenblatt) Oberkante Display ueber Platine (Modul 2,3 + Klebeband/Abstand)
 glass_gap  = 0.2;   // Luft zwischen Display-Oberkante und Frontplatte
 lcd_len    = 64.75; // QUELLE: Originalzeichnung: LCD-Glasflaeche in Laengsrichtung
-act_w      = 57.6;  // QUELLE: Originalzeichnung: aktive Flaeche (AA)
-act_h      = 43.2;  // QUELLE: Originalzeichnung
-// AA liegt laengs mittig in den 64,75 mm Glas; das Glas liegt buendig an der Aussenkante der Platine.
+aa_left    = 10.0;  // GEMESSEN: linke Platinenkante (Blick von vorn) bis Beginn bespielte Flaeche
+aa_meas    = 58.8;  // GEMESSEN: bespielte Breite (rechts bis Platinenkante gemessen 16, rechnerisch ca. 17)
+act_w      = 59.0;  // GEMESSEN: bespielte Flaeche (58,8, aufgerundet)
+act_h      = 44.3;  // VORLÄUFIG (aus Breite hochgerechnet, 320x240 Pixel) -- nachmessen
+// Die Zeichnung (AA 57,6 mittig in 64,75 Glas) passt nicht zum Geraet: AA-Lage kommt aus der Messung.
 // Quer ist der Versatz ca. 0,2 mm (vernachlaessigt).
 win_off_x  = 0.0;   // Fenster-Versatz in X gegen die AA-Mitte (Variable zum Feinabgleich)
 win_off_y  = 0.0;   // Fenster-Versatz in Y gegen die AA-Mitte (Variable zum Feinabgleich)
@@ -69,7 +71,7 @@ usb_open_h  = 9.5;  // Wandoeffnung Hoehe (VORLÄUFIG, +1 mm Zugabe rundum)
 plug_w      = 12.0; // Steckerhuelle USB-C Breite (VORLÄUFIG, Pruefkoerper)
 micro_plug_w = 10.0; // Steckerhuelle Micro-USB Breite (VORLÄUFIG, Pruefkoerper)
 plug_h      = 6.5;  // Steckerhuelle Hoehe (VORLÄUFIG, Pruefkoerper)
-btn_x       = 36.0; // VORLÄUFIG (Datenblatt) BOOT/RESET Mitte X ab Platinenmitte der Display-Flaeche (Tastergruppe)
+btn_x_from_left = 68.4; // VORLÄUFIG (Datenblatt) BOOT/RESET Mitte X ab linker Platinenkante (Tastergruppe)
 btn_y_from_bottom = 11.0; // VORLÄUFIG (Datenblatt) BOOT/RESET Mitte Y vom unteren Rand
 btn_open_w  = 20.0; // VORLÄUFIG (Datenblatt) Aussparung Breite
 btn_open_h  = 8.0;  // VORLÄUFIG (Datenblatt) Aussparung Hoehe
@@ -111,7 +113,8 @@ stand_min   = 1.5;  // geforderter Mindestabstand des Lots zum Rand der Standfla
 
 // ================================================================= abgeleitete Werte
 a_lip     = (wall - fit) / 2;                 // Aussenhaelfte der Wand im Falzbereich
-pcb_x0    = -(lcd_len / 2);                   // Platine linke Kante (Glas buendig aussen), AA mittig in 64,75
+pcb_x0    = -(aa_left + aa_meas / 2);         // Platine linke Kante (Glas buendig aussen), Ursprung = Mitte der gemessenen AA
+btn_x     = pcb_x0 + btn_x_from_left;
 pcb_x1    = pcb_x0 + pcb_w;                   // Platine rechte Kante (USB-Seite)
 glass_x1  = pcb_x0 + glass_w;
 z_glass_top = -(front_t + glass_gap);

@@ -30,7 +30,8 @@ Gegenprobe: `check.ps1 -Define window_shrink=2 -NoPng` muss fehlschlagen (Fenste
 
 ## Maße
 
-- Aus Originalzeichnung (`QUELLE`): Platine 86 × 50, Eckradius 4, Löcher Ø3,2 mit 4,0 mm Randabstand, Displaymodul 69,2 × 50 × 2,3, LCD-Glas 64,75, aktive Fläche 57,6 × 43,2, Fenster = AA + 0,3 mm je Seite.
+- Aus Originalzeichnung (`QUELLE`): Platine 86 × 50, Eckradius 4, Löcher Ø3,2 mit 4,0 mm Randabstand, Displaymodul 69,2 × 50 × 2,3, LCD-Glas 64,75, Fenster = AA + 0,3 mm je Seite. Die Zeichnungs-AA (57,6 × 43,2, mittig im Glas) passte nicht.
+- Gemessen (2026-10-26, nach Testdruck): bespielte Fläche 58,8 mm breit (Fenster rechnet mit 59), beginnt 10 mm nach der linken Platinenkante (Blick von vorn). Höhe 44,3 mm ist daraus hochgerechnet (VORLÄUFIG).
 - Gemessen: USB-Buchsen-Lage entlang der Schmalseite (Micro ab 9,67 mm, USB-C 17,88 bis 27,32 mm, von der Kante mit dem SD-Slot).
 - VORLÄUFIG (Datenblatt/Schätzung): Platinendicke, Displayhöhe über Platine (4,5), Micro-USB-Breite, alle Höhen (z) der Buchsen/Stecker, SD-Slot (Länge, Lage, Höhe), BOOT/RESET-Lage, Rückseitenbauteile (8 mm, Randstreifen), XIAO-Stapel (21 × 17,8 × 15), Linse, Sichtwinkel, Wandöffnungen, Schwerpunkt-Massen.
 
@@ -40,7 +41,7 @@ Gegenprobe: `check.ps1 -Define window_shrink=2 -NoPng` muss fehlschlagen (Fenste
 - SD-Slot liegt in der Konstruktion an der unteren Längskante; dort steht der Kopf auf dem Fuß, die Karte lässt sich dann nur bei angehobenem Gerät stecken. Die Firmware nutzt die SD-Karte nicht (geprüft 2026-10-26), daher bleibt das so.
 - Standsicherheit ist eine Schätzung (Massenliste in der SCAD). Ohne die Zusatztiefe `rear_extra = 10` liegt das Lot bei 15° praktisch auf der Kippkante.
 - XIAO-USB-C ist im Gehäuse nicht zugänglich (nur Programmierung vor dem Einbau).
-- Fenster, Lochbild und Glas-Sitz zuerst mit `frame_test` prüfen. **Stand 2026-10-26: Testdruck steht aus.**
+- Fenster, Lochbild und Glas-Sitz zuerst mit `frame_test` prüfen. **Stand 2026-10-26: 1. Testdruck: Lochbild passt, Fenster lag falsch, korrigiert, 2. Testdruck steht aus.**
 - Strom über den USB-C des CYD nur mit Kabel USB-A auf USB-C (keine CC-Widerstände). Das Netzteil braucht ca. 1 A, weil die Kamera mitversorgt wird.
 
 ## Variante 2: sitzender Roboter mit Akku (Konzept)
