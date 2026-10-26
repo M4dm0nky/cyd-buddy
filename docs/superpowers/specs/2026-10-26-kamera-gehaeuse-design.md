@@ -31,7 +31,6 @@ Der Buddy soll **sehen, ob jemand da ist und wo das Gesicht ist**: Die Augen fol
 - Druck: PETG (die Kamera wird warm), ohne Stützen. Erst `frame_test`, dann `front` und `back`.
 - Prüfung: `case/check.ps1` (Kollision, Standfestigkeit, Selbsttest). Gegenprobe mit `window_shrink=2` muss fehlschlagen.
 
-## Firmware (wird geplant, sobald die Hardware da ist)
-- XIAO: PlatformIO-Projekt `cam/` mit esp32-camera und Gesichtserkennung über ESP-DL (QVGA, 5–10 Bilder/s). Er sendet mit 115200 Baud Zeilen wie `F <x> <y> <w>` (normiert 0–1000) oder `N` (niemand da).
-- CYD: `src/logic/cam_link.*` als Zeilen-Parser, der am PC testbar ist, dazu ein Treiber an `Serial2` (RX 27, TX 22). Das Gesicht wird Blickziel wie bei „Blick folgt dem Finger“, Präsenz steuert Begrüßung und Einschlafen. Zeitpunkte laufen über `logic/deadline.h`.
+## Firmware
+Eigene Spec: `2026-10-26-kamera-firmware-design.md`.
 - Der USB-C des XIAO ist im Gehäuse nicht erreichbar, deshalb vor dem Einbau flashen und Updates per WLAN einspielen.
