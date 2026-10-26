@@ -1,0 +1,140 @@
+# MadBuddy Gehaeuse: alle Pruefungen. Exitcode 0 = alles gruen, 1 = mindestens eine Pruefung fehlgeschlagen.
+# Aufruf:  powershell -File case\check.ps1 [-Define window_shrink=2] [-NoPng]
+param(
+  [string[]]$Define = @(),   # zusaetzliche -D name=wert (nur Zahlen/Boolsche), z. B. window_shrink=2 fuer die Gegenprobe
+  [switch]$NoPng
+)
+$ErrorActionPreference = 'Stop'
+$here   = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scad   = Join-Path $here 'madbuddy_case.scad'
+$oscad  = 'C:\Program Files\OpenSCAD\openscad.com'
+$custom = $Define.Count -gt 0
+$stlDir = if ($custom) { Join-Path $env:TEMP 'madbuddy_check_stl' } else { Join-Path $here 'stl' }
+$pngDir = Join-Path $here 'render'
+New-Item -ItemType Directory -Force $stlDir, $pngDir | Out-Null
+$script:fails = 0
+
+function Ok($m)   { Write-Host "[ OK ] $m" -ForegroundColor Green }
+function Bad($m)  { Write-Host "[FAIL] $m" -ForegroundColor Red; $script:fails++ }
+
+# OpenSCAD aufrufen (mit Zeitlimit), liefert @{Code; Text}
+function Run-Scad([string[]]$ScadArgs, [int]$TimeoutSec = 600) {
+  $argList = @()
+  foreach ($d in $Define) { $argList += '-D'; $argList += $d }
+  $argList += $ScadArgs
+  $argList += $scad
+  $errFile = [IO.Path]::GetTempFileName(); $outFile = [IO.Path]::GetTempFileName()
+  $p = Start-Process -FilePath $oscad -ArgumentList $argList -NoNewWindow -PassThru `
+        -RedirectStandardError $errFile -RedirectStandardOutput $outFile
+  $null = $p.Handle   # Handle halten, sonst ist ExitCode leer
+  if (-not $p.WaitForExit($TimeoutSec * 1000)) {
+    try { Stop-Process -Id $p.Id -Force } catch {}
+    return @{ Code = -999; Text = "TIMEOUT nach $TimeoutSec s" }
+  }
+  $p.WaitForExit()
+  $txt = (Get-Content $errFile -Raw) + (Get-Content $outFile -Raw)
+  Remove-Item $errFile, $outFile -ErrorAction SilentlyContinue
+  return @{ Code = $p.ExitCode; Text = $txt }
+}
+function PartArg([string]$name) { return @('-D', ('part=\"{0}\"' -f $name)) }
+function FacetCount([string]$file) {
+  if (-not (Test-Path $file)) { return 0 }
+  return ([regex]::Matches((Get-Content $file -Raw), 'facet normal')).Count
+}
+$emptyMsg = 'Current top level object is empty'
+
+Write-Host "== madbuddy_case check ==  Define: $($Define -join ' ')"
+
+# 1) STL-Export jedes Teils ohne Fehler/Warnungen
+foreach ($p in 'front', 'back', 'frame_test') {
+  $out = Join-Path $stlDir "madbuddy_$p.stl"
+  if (Test-Path $out) { Remove-Item $out }
+  $r = Run-Scad ((PartArg $p) + @('-o', $out))
+  $n = FacetCount $out
+  if ($r.Code -ne 0)                { Bad "STL $p : Exitcode $($r.Code) $($r.Text.Trim())" }
+  elseif ($r.Text -match 'WARNING') { Bad "STL $p : WARNING in Ausgabe: $(($r.Text -split "`n" | Select-String WARNING | Select-Object -First 3) -join ' | ')" }
+  elseif ($r.Text -match 'ERROR')   { Bad "STL $p : ERROR in Ausgabe" }
+  elseif ($n -lt 100)               { Bad "STL $p : zu wenige Facetten ($n)" }
+  else                              { Ok "STL $p ($n Facetten)" }
+}
+
+# 2) Standsicherheit (Lot des Schwerpunkts innerhalb der Standflaeche)
+$r = Run-Scad ((PartArg 'info') + @('-o', (Join-Path $env:TEMP 'madbuddy_info.stl')))
+if ($r.Text -match 'STAND_REAR_MARGIN=([-0-9.e]+) STAND_FRONT_MARGIN=([-0-9.e]+) STAND_MIN=([-0-9.e]+)') {
+  $inv = [Globalization.CultureInfo]::InvariantCulture
+  $mr = [double]::Parse($Matches[1], $inv); $mf = [double]::Parse($Matches[2], $inv); $mn = [double]::Parse($Matches[3], $inv)
+  if ($mr -ge $mn -and $mf -ge $mn) { Ok ("Stand: Abstand Lot zu Kippkante hinten {0:N1} mm, vorn {1:N1} mm (min {2})" -f $mr, $mf, $mn) }
+  else { Bad ("Stand: Abstand hinten {0:N1} mm, vorn {1:N1} mm, verlangt >= {2}" -f $mr, $mf, $mn) }
+} else { Bad "Stand: keine Werte aus info gelesen" }
+
+# 2b) Standebene: kein Punkt von Front/Rueckwand (inkl. Fuss) liegt unter der Tischebene des 15-Grad-Fusses
+if ($r.Text -match 'PLANE tilt=([-0-9.e]+) c=([-0-9.e]+) zback=([-0-9.e]+)') {
+  $inv = [Globalization.CultureInfo]::InvariantCulture
+  $t = [double]::Parse($Matches[1], $inv) * [math]::PI / 180; $c = [double]::Parse($Matches[2], $inv); $zb = [double]::Parse($Matches[3], $inv)
+  $minH = 1e9; $touch = 0
+  foreach ($spec in @(@('front', $true), @('back', $false))) {
+    $f = Join-Path $stlDir ("madbuddy_{0}.stl" -f $spec[0])
+    foreach ($m in [regex]::Matches((Get-Content $f -Raw), 'vertex\s+(\S+)\s+(\S+)\s+(\S+)')) {
+      $y = [double]::Parse($m.Groups[2].Value, $inv); $z = [double]::Parse($m.Groups[3].Value, $inv)
+      if ($spec[1]) { $y = -$y; $z = -$z } else { $z = $z + $zb }     # zurueck in Konstruktionskoordinaten
+      $h = $y * [math]::Cos($t) + $z * [math]::Sin($t) - $c
+      if ($h -lt $minH) { $minH = $h }
+      if ([math]::Abs($h) -lt 0.01) { $touch++ }
+    }
+  }
+  if ($minH -ge -0.01 -and $touch -gt 0) { Ok ("Standebene: nichts unter dem Fuss (tiefster Punkt {0:N3} mm ueber der Ebene, {1} Eckpunkte liegen auf der Standflaeche)" -f $minH, $touch) }
+  else { Bad ("Standebene: Punkt {0:N3} mm unter der Fussebene bzw. keine Aufstandspunkte" -f $minH) }
+} else { Bad "Standebene: PLANE-Werte fehlen" }
+
+# 3) Kollisionspruefung: Gehaeuse gegen alle Pruefkoerper (inkl. Linse-Freiraum und aktive Flaeche + Sichtkegel)
+$col = Join-Path $env:TEMP 'madbuddy_collision.stl'
+if (Test-Path $col) { Remove-Item $col }
+$r = Run-Scad ((PartArg 'collision') + @('-o', $col))
+$n = FacetCount $col
+if ($r.Text -match 'WARNING|ERROR' -and $r.Text -notmatch $emptyMsg) { Bad "Kollision: WARNING/ERROR: $($r.Text.Trim())" }
+elseif ($r.Text -match $emptyMsg) { Ok "Kollision: Schnittmenge leer (kollisionsfrei, Fenster gibt aktive Flaeche + Sichtkegel frei)" }
+elseif ($r.Code -eq 0 -and $n -eq 0) { Ok "Kollision: STL ohne Facetten (kollisionsfrei)" }
+elseif ($r.Code -eq 0) {
+  $vol = ''
+  Bad "Kollision: Gehaeuse schneidet Pruefkoerper ($n Facetten Schnittvolumen) -> $col"
+}
+else { Bad "Kollision: Exitcode $($r.Code) $($r.Text.Trim())" }
+
+# 3b) Positive-Kontrolle: die Pruefung muss einen absichtlichen Treffer erkennen (nur ohne -Define)
+if (-not $custom) {
+  $st = Join-Path $env:TEMP 'madbuddy_selftest.stl'
+  if (Test-Path $st) { Remove-Item $st }
+  $r = Run-Scad ((PartArg 'selftest') + @('-o', $st))
+  if ((FacetCount $st) -gt 0) { Ok "Selbsttest: absichtliche Kollision wird erkannt" }
+  else { Bad "Selbsttest: absichtliche Kollision NICHT erkannt (Pruefung taugt nichts)" }
+}
+
+# 4) PNG-Renders
+if (-not $NoPng) {
+  $views = @(
+    @{ n = 'front';   cam = '0,0,0,90,0,0,0';    d = @('view_tilt=0', 'show_ground=false'); part = 'assembly' },
+    @{ n = 'schraeg'; cam = '0,0,0,68,0,335,0';  d = @();                                    part = 'assembly' },
+    @{ n = 'hinten';  cam = '0,0,0,72,0,200,0';  d = @('show_dummies=false');               part = 'assembly'; render = $true },
+    @{ n = 'seite';   cam = '0,0,0,86,0,90,0';   d = @('show_dummies=false');               part = 'assembly'; render = $true },
+    @{ n = 'schnitt'; cam = '0,0,0,90,0,90,0';   d = @();                                    part = 'section'  }
+  )
+  foreach ($v in $views) {
+    $png = Join-Path $pngDir ("madbuddy_{0}.png" -f $v.n)
+    if (Test-Path $png) { Remove-Item $png }
+    $a = (PartArg $v.part) + @('-o', $png, '--camera', $v.cam, '--viewall', '--autocenter', '--imgsize', '1200,900', '--colorscheme', 'Tomorrow')
+    foreach ($d in $v.d) { $a += '-D'; $a += $d }
+    if ($v.render) { $a += '--render' }   # CGAL statt Vorschau: keine Darstellungsfehler bei Waenden
+    $r = Run-Scad $a 400
+    if ($r.Code -ne 0)                           { Bad "PNG $($v.n): Exitcode $($r.Code) $($r.Text.Trim())" }
+    elseif ($r.Text -match 'WARNING')            { Bad "PNG $($v.n): WARNING: $($r.Text.Trim())" }
+    elseif (-not (Test-Path $png) -or (Get-Item $png).Length -lt 5000) { Bad "PNG $($v.n): Datei fehlt/leer" }
+    else { Ok "PNG $($v.n) -> $png" }
+  }
+}
+
+# Aufraeumen: keine OpenSCAD-Reste
+Get-CimInstance Win32_Process -Filter "Name like 'openscad%'" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
+if ($script:fails -gt 0) { Write-Host "== FEHLGESCHLAGEN: $($script:fails) Pruefung(en) ==" -ForegroundColor Red; exit 1 }
+Write-Host "== ALLES GRUEN ==" -ForegroundColor Green
+exit 0
