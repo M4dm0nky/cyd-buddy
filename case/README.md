@@ -42,3 +42,8 @@ Gegenprobe: `check.ps1 -Define window_shrink=2 -NoPng` muss fehlschlagen (Fenste
 - XIAO-USB-C ist im Gehäuse nicht zugänglich (nur Programmierung vor dem Einbau).
 - Fenster, Lochbild und Glas-Sitz zuerst mit `frame_test` prüfen. **Stand 2026-10-26: Testdruck steht aus.**
 - Strom über den USB-C des CYD nur mit Kabel USB-A auf USB-C (keine CC-Widerstände). Das Netzteil braucht ca. 1 A, weil die Kamera mitversorgt wird.
+
+## Variante 2: sitzender Roboter mit Akku (Konzept)
+
+Wenn der Buddy mit Akku laufen soll, kommt diese Form: Roboterkopf mit dem CYD, Oberkörper mit der Kamera, dicke Stummelbeine mit dem Akkuhalter DFRobot DFR0969 (2 × 18650), Laden per USB-C im Boden.
+Bisher gibt es nur ein Konzept: `konzept/roboter_konzept.scad` und `render/roboter_*.png`. Spec: `docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md`.
