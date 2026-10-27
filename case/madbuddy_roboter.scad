@@ -332,8 +332,250 @@ neck_axis_w = [0, sin(head_tilt), cos(head_tilt)];
 // Lokales Koordinatensystem am Halsflansch: Ursprung neck_pt, lokales +Z = neck_axis_w, lokales Y = Weltrichtung "hinten" in der Flanschebene.
 module neck_frame() { translate(neck_pt) rotate([-head_tilt, 0, 0]) children(); }
 
-module shells()   { place_head() head_shells(); }     // Task 3/4: weitere Gehaeuseteile hier ergaenzen
-module dummies()  { place_head() head_dummies(); }    // Task 3/4: weitere Pruefkoerper hier ergaenzen
+// ================================================================= Oberkoerper, Hals, Arme, Haende (Task 3)
+// Oberkoerper-Konstruktionslage = Weltlage um torso_origin verschoben (place_torso): X rechts, Y nach hinten, Z oben.
+// Lokaler Ursprung = Mitte der Unterkante. Teilungsebene y = 0 (Mitte): vorn = Brust mit Kamera, hinten = Rueckwand.
+t_w        = 64;     // QUELLE: Konzept (t_w): Breite
+t_d        = 44;     // QUELLE: Konzept (t_d): Tiefe
+t_h        = 48;     // QUELLE: Konzept (t_h): Hoehe
+t_r        = 10;     // QUELLE: Konzept (t_r): Eckradius oben (Frontansicht)
+t_ch       = 3.5;    // 45-Grad-Fase an Brust und Rueckseite (ohne Stuetzen druckbar)
+torso_origin = [0, -8, 28];   // QUELLE: Konzept: [0, t_y - t_d/2, leg_h - 4] = Mitte der Unterkante des Oberkoerpers in Weltlage (Task 4 baut darauf auf)
+t_plate_z  = 4;      // Bodenplatte liegt 4 mm ueber der Unterkante: darunter ist die Steckkante (Rand), in die der Sitz (Task 4) greift
+t_cable_d  = 11;     // Kabeldurchfuehrung unten (>= 10)
+t_dome_pts = [[-16, 10], [16, 10], [-16, 41], [16, 41]];   // M3-Dome (Teilung vorn/hinten), Lage X/Z
+t_dome_d   = 6.4;
+t_dome_pilot = 10;   // Kernloch im vorderen Dom (>= 7,5)
+t_seat_pts = [for (sx = [-1, 1], sy = [-1, 1]) [sx * 24, sy * 12]];   // 4 M3-Kernloecher unten fuer den Sitz (X/Y), Schrauben von unten
+t_seat_pilot = 7.6;
+t_seat_blk_z = 13.5; // Oberkante der Pfosten ueber der Unterkante
+t_deco_pts = [for (sx = [-1, 1], z = [12, 40.8]) [sx * 23, z]];   // QUELLE: Konzept: Brust-Schrauben (Einlagen)
+// --- Kamera / XIAO: einfach gehalten und parametrisch, die Halterung wird nach Task 4 neu bestimmt
+cam_tilt   = 15;     // QUELLE: Aufgabe: Kamera nach oben gekippt
+cam_z      = 24;     // Linsenhoehe ueber der Unterkante (Konzept 0,6 * t_h; tiefer, damit der Halsblock Platz hat)
+xiao_w     = 21.0;   // VORLÄUFIG (Datenblatt)
+xiao_h     = 17.8;   // VORLÄUFIG (Datenblatt)
+xiao_stack = 15.0;   // VORLÄUFIG (Datenblatt) Stapelhoehe inkl. Linsentubus
+xiao_body_d = xiao_stack - 2.2;  // Platinen-/Modultiefe hinter der Frontflaeche (wie Stufe 2: Stapel - Platte - 0,2)
+lens_d     = 8.0;    // VORLÄUFIG (Datenblatt) Linse
+lens_hole  = 9.0;    // VORLÄUFIG (Datenblatt) Linsenloch
+lens_fov   = 30;     // VORLÄUFIG (Datenblatt) halber Bildwinkel Freiraumkegel
+rib_t      = 1.6;    // Klemmrippen links/rechts (wie Stufe 2)
+rib_h      = 14;     // Rippenhoehe (Z)
+rib_len    = 14;     // Rippenlaenge (Y)
+stop_w     = 3.5;    // Anschlagpfosten unter dem XIAO (wie Stufe 2)
+stop_x     = 7.75;
+xiao_face  = 5.1;    // Abstand Frontflaeche XIAO hinter der Aussenebene entlang der Linsenachse: gerechnet, damit die untere Vorderkante der gekippten Platte hinter der Brustinnenwand liegt
+// --- Hals
+neck_lo_d  = 36;     // Ø unterer Flansch (Schrauben bei y = +-14,3, ausserhalb des Kopfsockels)
+neck_fl_t  = 2.8;    // Flanschdicke (Bohrung im Kopfsockel ist 3 tief, 0,2 Luft)
+neck_bore  = 12;     // QUELLE: Aufgabe: Innen-Ø >= 12
+neck_lobe_d = 6.6;   // Schraubenkopf-Tasche am oberen Flansch (Zugang von unten durch den Oberkoerper)
+neck_lo_bolt_y = 14.3;
+neck_rec_floor = 45; // Boden der Flanschmulde im Oberkoerper (Mulde 3 tief)
+neck_lo_z  = neck_rec_floor + 0.05;
+neck_blk_z = 35;     // Unterkante des Halsblocks im Oberkoerper
+neck_pilot_t = 7.6;  // Kernloch M3 im Halsblock (>= 7,5)
+// --- Arm / Hand (Weltlage)
+arm_x      = 40.5;   // Armebene |x|: Schulterkugel 1 mm neben der Seitenwand (Konzept 37, dort ragte die Kugel in den Koerper)
+ball_r     = 8.5;    // QUELLE: Konzept: Schulterkugel R 8,5
+ball_in    = 7.5;    // Abflachung innen (zum Koerper)
+arm_flat   = 4.95;   // Abflachung aussen = Druckflaeche (45-Grad-Flanke, der Arm druckt auf der Aussenseite)
+arm_r1     = 7;      // QUELLE: Konzept: Arm-Hull r 7 an der Schulter
+arm_r2     = 6;      // QUELLE: Konzept: r 6 an der Hand
+hand_r     = 8;      // QUELLE: Konzept: Hand scale([1,1.3,0.8]) sphere(r=8)
+hand_sc    = [1, 1.3, 0.8];
+hand_cut   = 3.3;    // Abflachung unten (Hand liegt auf dem Oberschenkel, Flanke >= 45 Grad)
+hand_contact_z = 32; // QUELLE: Konzept: leg_h = Oberflaeche der Oberschenkel unter den Haenden (Task 4)
+hand_c_y   = -31;    // Hand-Mitte Y (Weltlage)
+arm_S      = [arm_x, 0, hand_contact_z + hand_cut + 31];       // Schulter, Welt (rechter Arm); Arm 45 Grad nach vorn unten
+arm_H      = [arm_x, hand_c_y, hand_contact_z + hand_cut];     // Hand-Mitte, Welt (rechter Arm)
+arm_d      = [0, -sqrt(0.5), -sqrt(0.5)];                      // Achsrichtung Schulter -> Hand
+arm_peg_d  = 5;      // QUELLE: Aufgabe: Zapfen Ø 5 fuer die Hand
+arm_s_end  = -9;     // Armende: Abstand zur Hand-Mitte entlang der Achse (Ellipsoid-Stuetzwert 8,63 + 0,37)
+arm_peg_tip = -1.3;
+hand_hole_end = -1;
+arm_sh_peg_l = 7;    // Schulterzapfen Ø 6 (peg_d), Laenge ab Innenflaeche
+sh_bore_depth = 6.5;
+sh_y_l     = arm_S[1] - torso_origin[1];   // Schulter lokal Y
+sh_z_l     = arm_S[2] - torso_origin[2];   // Schulter lokal Z
+side       = 1;      // Druckzweig arm/hand: 1 = rechts, -1 = links (gespiegelt)
+
+d_cf_t = t_ch - wall + wall * sqrt(2);
+y_cf_t = t_ch + wall * (sqrt(2) - 1);
+assert(t_cable_d >= 10, "Kabeldurchfuehrung unten < 10");
+assert(neck_bore >= 12, "Hals Innen-Ø < 12");
+assert(neck_rec_floor - neck_pilot_t - neck_blk_z >= 1.5, "Halsblock: Restboden unter Kernloch < 1,5");
+assert(t_seat_blk_z - t_plate_z - t_seat_pilot >= 1.5, "Sitzpfosten: Kernloch zu lang");
+assert(t_d / 2 - wall >= t_dome_pilot + 1.5, "Dom: Kernloch zu lang");
+assert(t_dome_pilot >= 7.5, "Dom-Kernloch < 7,5");
+assert(sh_y_l - hole_ear / 2 * sqrt(2) - 1.0 >= 2, "Schulterbohrung: Wand zur Trennebene unter 2 mm");
+assert(neck_d / 2 - neck_bore / 2 >= 2, "Halsrohr: Wand unter 2 mm");
+assert(arm_x - ball_in > t_w / 2, "Schulterkugel ragt in den Oberkoerper");
+assert(arm_sh_peg_l >= 6 && arm_peg_tip - arm_s_end >= 6, "Zapfen kuerzer als 6 mm");
+
+module place_torso() { translate(torso_origin) children(); }
+module t_out_low() { hull() { translate([-t_w / 2, -10]) square([t_w, 11]); for (sx = [-1, 1]) translate([sx * (t_w / 2 - t_r), t_h - t_r]) circle(r = t_r); } }
+module t_outline() { hull() { translate([-t_w / 2, 0]) square([t_w, 1]); for (sx = [-1, 1]) translate([sx * (t_w / 2 - t_r), t_h - t_r]) circle(r = t_r); } }
+module t_inset(d) { offset(r = -d) t_outline(); }
+module t_cav2d(d) { offset(r = -d) t_out_low(); }
+// 2D-Form (X/Z) entlang Y extrudieren: belegt y0..y1
+module t_ext(y0, y1) { translate([0, y1, 0]) rotate([90, 0, 0]) linear_extrude(y1 - y0) children(); }
+module t_solid() {
+  hull() {
+    t_ext(-t_d / 2 + t_ch, t_d / 2 - t_ch) t_outline();
+    t_ext(-t_d / 2, -t_d / 2 + 0.001) t_inset(t_ch);
+    t_ext(t_d / 2 - 0.001, t_d / 2) t_inset(t_ch);
+  }
+}
+module t_cavity() {
+  hull() for (m = [0, 1]) mirror([0, m, 0]) {
+    t_ext(-t_d / 2 + wall - 0.01, -t_d / 2 + wall) t_cav2d(d_cf_t);
+    t_ext(-t_d / 2 + y_cf_t - 0.01, -t_d / 2 + y_cf_t) t_cav2d(wall);
+  }
+}
+module t_half(front) { intersection() { t_solid(); translate([-50, front ? -t_d / 2 - 1 : 0, -10]) cube([100, t_d / 2 + 1, 100]); } }
+// Innenkontur des Steckrandes (XY-Schnitt bei z < t_plate_z), fuer Task 4: der Sitz greift mit fit Spiel hinein
+module torso_pocket2d() {
+  hxp = t_w / 2 - wall; hyp = t_d / 2 - wall;
+  polygon([[t_w / 2 - d_cf_t, -hyp], [hxp, -(t_d / 2 - y_cf_t)], [hxp, t_d / 2 - y_cf_t], [t_w / 2 - d_cf_t, hyp],
+           [-(t_w / 2 - d_cf_t), hyp], [-hxp, t_d / 2 - y_cf_t], [-hxp, -(t_d / 2 - y_cf_t)], [-(t_w / 2 - d_cf_t), -hyp]]);
+}
+
+// ---- Kamera
+module cam_frame() { translate([0, -t_d / 2, cam_z]) rotate([90 - cam_tilt, 0, 0]) children(); }
+module xiao_dummy_l() cam_frame() {
+  translate([-xiao_w / 2, -xiao_h / 2, -xiao_face - xiao_body_d]) cube([xiao_w, xiao_h, xiao_body_d]);
+  translate([0, 0, -xiao_face - 0.01]) cylinder(d = lens_d, h = xiao_face + 0.01);
+}
+module lens_cone_l() cam_frame() hull() {
+  translate([0, 0, -0.5]) cylinder(d = lens_d, h = 0.5);
+  translate([0, 0, 30]) cylinder(r = lens_d / 2 + 30 * tan(lens_fov), h = 0.01);
+}
+module xiao_dummy_r() { place_torso() xiao_dummy_l(); }
+module lens_cone_r()  { place_torso() lens_cone_l(); }
+module cam_mount() {   // Klemmrippen + Anschlag, nur Vorderhaelfte
+  for (sx = [-1, 1]) translate([sx * (xiao_w / 2 + 0.15 + rib_t / 2) - rib_t / 2, -t_d / 2 + wall - 0.1, cam_z - rib_h / 2]) cube([rib_t, rib_len, rib_h]);
+  for (sx = [-1, 1]) cam_frame() translate([sx * stop_x - stop_w / 2, -xiao_h / 2 - 3.4, -xiao_face - xiao_body_d]) cube([stop_w, 3.3, xiao_body_d + 0.5]);
+}
+module lens_cut() cam_frame() {
+  translate([0, 0, -6]) cylinder(d = lens_hole, h = 10);
+  hull() { translate([0, 0, -1]) cylinder(d = lens_hole, h = 0.01); translate([0, 0, 5]) cylinder(d = lens_hole + 12, h = 0.01); }   // 45-Grad-Senkung aussen
+}
+
+// ---- Einbauten
+module t_adds() {
+  for (p = t_dome_pts) translate([p[0], t_d / 2 - 0.5, p[1]]) rotate([90, 0, 0]) cylinder(d = t_dome_d, h = t_d - 1);
+  translate([-18, -t_d / 2, neck_blk_z]) cube([36, t_d, t_h - neck_blk_z]);                  // Halsblock
+  for (sx = [-1, 1]) translate([sx > 0 ? t_w / 2 - 8.5 : -t_w / 2, 1.0, sh_z_l - 5.1]) cube([8.5, t_d / 2 - 1.0 - 0.5, 10.2]); // Schulterbosse bis zur Rueckwand
+  for (p = t_seat_pts) translate([p[0] - 3.5, p[1] < 0 ? -t_d / 2 + 0.5 : p[1] - 3.5, t_plate_z])
+    cube([7, p[1] < 0 ? t_d / 2 - 0.5 + p[1] + 3.5 : t_d / 2 - 0.5 - p[1] + 3.5, t_seat_blk_z - t_plate_z]);
+  cam_mount();
+}
+module neck_pilots_t()  { for (sy = [-1, 1]) translate([0, sy * neck_lo_bolt_y, neck_rec_floor - neck_pilot_t]) cylinder(d = pilot_d, h = neck_pilot_t + 0.01); }
+module seat_pilots_t()  { for (p = t_seat_pts) translate([p[0], p[1], t_plate_z - 0.01]) cylinder(d = pilot_d, h = t_seat_pilot + 0.01); }
+module dome_pilots_t()  { for (p = t_dome_pts) translate([p[0], 0.01, p[1]]) rotate([90, 0, 0]) cylinder(d = pilot_d, h = t_dome_pilot + 0.01); }
+module sh_bore2d() { intersection() { rotate(90) tear2d(hole_ear); translate([-hole_ear, -hole_ear]) square([hole_ear + hole_ear / 2 - peg_flat, 2 * hole_ear]); } }
+module sh_bores() for (m = [0, 1]) mirror([m, 0, 0]) translate([t_w / 2 - sh_bore_depth, sh_y_l, sh_z_l]) rotate([90, 0, 90]) linear_extrude(sh_bore_depth + 1) sh_bore2d();
+module dumb2d() { circle(d = neck_bore); for (sx = [-1, 1]) translate([sx * neck_bolt_x, 0]) circle(d = neck_lobe_d); }
+module neck_cuts() {
+  translate([0, 0, neck_rec_floor]) cylinder(d = neck_lo_d + fit, h = 5);
+  translate([0, 0, neck_blk_z - 1]) linear_extrude(neck_rec_floor - neck_blk_z + 1.01) dumb2d();
+}
+module t_cuts_common(pilots) {
+  neck_cuts();
+  translate([0, 0, t_plate_z - 1]) cylinder(d = t_cable_d, h = wall + 2);
+  if (pilots) { neck_pilots_t(); seat_pilots_t(); }
+}
+module t_lip_ring() { intersection() { t_ext(-(lip_h - 0.2), 0.01) difference() { t_cav2d(a_lip + fit); t_cav2d(wall); } t_solid(); } }
+
+module torso_front(pilots = true) {
+  difference() {
+    union() {
+      difference() { t_half(true); t_cavity(); }
+      intersection() { t_half(true); translate([-50, -50, t_plate_z]) cube([100, 100, wall]); }
+      intersection() { t_half(true); t_adds(); }
+    }
+    t_ext(-lip_h, 0.01) difference() { t_cav2d(a_lip); t_cav2d(wall); }     // Falz: Innenhaelfte der Wand
+    lens_cut();
+    t_cuts_common(pilots);
+    if (pilots) dome_pilots_t();
+    for (p = t_deco_pts) translate([p[0], -t_d / 2 - 0.01, p[1]]) rotate([-90, 0, 0]) cylinder(d = deco_d + fit_peg, h = deco_in + 0.01);
+  }
+}
+module torso_back(pilots = true) {
+  difference() {
+    union() {
+      difference() { t_half(false); t_cavity(); }
+      intersection() { t_half(false); translate([-50, -50, t_plate_z]) cube([100, 100, wall]); }
+      intersection() { t_half(false); t_adds(); }
+      t_lip_ring();
+    }
+    t_cuts_common(pilots);
+    sh_bores();
+    for (p = t_dome_pts) {
+      translate([p[0], t_d / 2 + 1, p[1]]) rotate([90, 0, 0]) cylinder(d = screw_d, h = t_d / 2 + 2);
+      translate([p[0], t_d / 2 + 0.01, p[1]]) rotate([90, 0, 0]) cylinder(d = cbore_d, h = cbore_t + 0.01);
+    }
+    for (x = [-8, -4, 0, 4, 8]) translate([x - 0.8, t_d / 2 - wall - 1, 17]) cube([1.6, wall + 2, 14]);   // Lueftungsschlitze
+  }
+}
+module torso_decos() for (p = t_deco_pts) translate([p[0], -t_d / 2 + deco_in, p[1]]) rotate([90, 0, 0]) head_deco();
+
+// ---- Hals (Lokalkoordinaten des Oberkoerpers; oberer Flansch um head_tilt gekippt, passt zum Kopfsockel)
+module neck_up() { translate(neck_pt - torso_origin) rotate([-head_tilt, 0, 0]) children(); }
+module neck() {
+  difference() {
+    union() {
+      translate([0, 0, neck_lo_z]) cylinder(d = neck_lo_d, h = neck_fl_t);
+      hull() { translate([0, 0, neck_lo_z + neck_fl_t - 0.01]) cylinder(d = neck_d, h = 0.01); neck_up() translate([0, 0, -0.01]) cylinder(d = neck_d, h = 0.01); }
+      // oberer Flansch mit Abflachung zur Gesichtsseite (lokal -Y): die Bohrung im Kopfsockel hat dort ein auf 12 mm gekapptes Dach (bore_roof)
+      neck_up() intersection() { cylinder(d = neck_flange_d, h = neck_fl_t); translate([-neck_flange_d, -(bore_roof - 0.3), -1]) cube([2 * neck_flange_d, 2 * neck_flange_d, neck_fl_t + 2]); }
+    }
+    hull() { translate([0, 0, neck_lo_z - 1]) cylinder(d = neck_bore, h = 0.01); neck_up() translate([0, 0, neck_fl_t + 1]) cylinder(d = neck_bore, h = 0.01); }
+    for (sx = [-1, 1]) hull() {
+      translate([sx * neck_bolt_x, 0, neck_lo_z - 1]) cylinder(d = neck_lobe_d, h = 0.01);
+      neck_up() translate([sx * neck_bolt_x, 0, 0]) cylinder(d = neck_lobe_d, h = 0.01);
+    }
+    for (sx = [-1, 1]) neck_up() translate([sx * neck_bolt_x, 0, -1]) cylinder(d = screw_d, h = neck_fl_t + 2);
+    for (sy = [-1, 1]) translate([0, sy * neck_lo_bolt_y, neck_lo_z - 1]) cylinder(d = screw_d, h = neck_fl_t + 2);
+  }
+}
+
+// ---- Arm und Hand (Weltlage)
+module arm_dir() rotate([135, 0, 0]) children();     // lokale z-Achse -> arm_d
+module peg2d() { rotate(-90) tear2d(arm_peg_d); rotate(90) tear2d(arm_peg_d); }   // Raute: Spitzen +-X, druckt liegend ohne Stuetzen
+module sh_peg() {
+  intersection() {
+    union() { cylinder(d = peg_d, h = arm_sh_peg_l - peg_ch + 0.01); translate([0, 0, arm_sh_peg_l - peg_ch]) cylinder(d1 = peg_d, d2 = peg_d - 2 * peg_ch, h = peg_ch); }
+    translate([-peg_d, -peg_d, -1]) cube([2 * peg_d, peg_d + peg_d / 2 - peg_flat, arm_sh_peg_l + 2]);
+  }
+}
+module arm_r() {
+  e0 = arm_H + arm_s_end * arm_d;
+  intersection() {
+    union() {
+      translate(arm_S) sphere(r = ball_r);
+      hull() { translate(arm_S) sphere(r = arm_r1); translate(e0) arm_dir() cylinder(r = arm_r2, h = 0.01); }
+    }
+    translate([arm_x - ball_in, -200, -200]) cube([ball_in + arm_flat, 400, 400]);
+  }
+  translate(e0 - 0.01 * arm_d) arm_dir() linear_extrude(arm_peg_tip - arm_s_end + 0.01) peg2d();
+  translate([arm_x - ball_in + 0.01, arm_S[1], arm_S[2]]) rotate([0, -90, 0]) sh_peg();
+}
+module arm(s = 1) { if (s > 0) arm_r(); else mirror([1, 0, 0]) arm_r(); }
+module hand_l() {   // Mitte im Ursprung, Flaeche unten bei z = -hand_cut
+  difference() {
+    intersection() { scale(hand_sc) sphere(r = hand_r, $fn = 48); translate([-20, -20, -hand_cut]) cube([40, 40, 40]); }
+    translate(-10 * arm_d) arm_dir() linear_extrude(10 + hand_hole_end) offset(delta = fit_peg) peg2d();
+  }
+}
+module hand(s = 1) { translate([s * arm_x, hand_c_y, arm_H[2]]) hand_l(); }
+module arm_print() translate([-(arm_S[2] - arm_S[1]) * cos(45), 0, arm_x + arm_flat]) rotate([0, 90, 0]) rotate([-45, 0, 0]) arm_r();
+
+module body_shells() { place_torso() { torso_front(); torso_back(); neck(); torso_decos(); } for (s = [1, -1]) { arm(s); hand(s); } }
+module shells()   { place_head() head_shells(); body_shells(); }
+module dummies()  { place_head() head_dummies(); xiao_dummy_r(); lens_cone_r(); }
 
 // ================================================================= Schwerpunkt / Standsicherheit (Schaetzung)
 // Massen in Konstruktionslage des Kopfes [g, x, y, z], VORLÄUFIG (Schaetzung)
@@ -348,7 +590,10 @@ head_masses_c = [
 ];
 function to_world(m) = let(w = head_to_world([m[1], m[2], m[3]])) [m[0], w[0], w[1], w[2]];
 // [g, x, y, z] in Weltkoordinaten. Task 3/4 haengen ihre Listen mit concat(...) an.
-masses = concat([for (m = head_masses_c) to_world(m)]);
+arm_masses = [for (s = [-1, 1]) each [[8, s * arm_x, (arm_S[1] + arm_H[1]) / 2, (arm_S[2] + arm_H[2]) / 2], [6, s * arm_x, hand_c_y, arm_H[2]]]];
+masses = concat([for (m = head_masses_c) to_world(m)],
+  [[38, 0, -18, 52], [45, 0, 2, 52], [8, 0, -8, 78], [8, 0, -18, 52]],   // Oberkoerper vorn/hinten, Hals, XIAO
+  arm_masses);
 function msum(i, k = 0) = k >= len(masses) ? 0 : (i == 0 ? masses[k][0] : masses[k][0] * masses[k][i]) + msum(i, k + 1);
 mtot  = msum(0);
 com_x = msum(1) / mtot;
@@ -386,6 +631,16 @@ module colored_dummies() {
 }
 module assembly_parts() {
   place_head() { colored_head(); if (show_dummies) colored_dummies(); }
+  colored_body();
+}
+module colored_body() {
+  place_torso() {
+    color("#ff7a29") { torso_front(); torso_back(); }
+    color("#263238") neck();
+    color("#c0c0c0") torso_decos();
+    if (show_dummies) color("#8a4fc9", 0.8) xiao_dummy_l();
+  }
+  for (s = [1, -1]) { color("#ff7a29") arm(s); color("#263238") hand(s); }
 }
 module exploded_parts() {
   place_head() {
@@ -397,6 +652,12 @@ module exploded_parts() {
     translate([-30, 0, 0]) color("#ffb000") ear_left();
     if (show_dummies) translate([0, 0, -16]) colored_dummies();
   }
+  place_torso() {
+    translate([0, -30, 0]) color("#ff7a29") torso_front();
+    translate([0, 30, 0]) color("#ff7a29") torso_back();
+    translate([0, 0, 22]) color("#263238") neck();
+  }
+  for (s = [1, -1]) translate([s * 25, 0, 0]) { color("#ff7a29") arm(s); color("#263238") hand(s); }
 }
 module decos_head_only() { for (p = deco_pts) translate([p[0], p[1], -deco_in]) head_deco(); }
 
@@ -409,7 +670,24 @@ else if (part == "ear") ear();                                                 /
 else if (part == "deco") {                                                     // Einsaetze flach: 4 Kopf-, 2 Ohr-Zierschrauben
   for (i = [0 : 3]) translate([i * 8, 0, 0]) head_deco();
   for (i = [0 : 1]) translate([i * 12, 12, 0]) ear_deco();
+  for (i = [0 : 3]) translate([i * 8, -12, 0]) head_deco();   // Task 3: 4 weitere Einlagen fuer die Brust
 }
+else if (part == "torso_front") translate([0, 0, t_d / 2]) rotate([90, 0, 0]) torso_front();     // Brust (y = -22) auf dem Bett
+else if (part == "torso_back")  translate([0, 0, t_d / 2]) rotate([-90, 0, 0]) torso_back();     // Rueckseite (y = +22) auf dem Bett
+else if (part == "neck")        translate([0, 0, -neck_lo_z]) neck();                              // stehend auf dem unteren Flansch
+else if (part == "arm") { if (side > 0) arm_print(); else mirror([0, 1, 0]) arm_print(); }       // liegend auf der Aussenseite
+else if (part == "hand")        translate([0, 0, hand_cut]) hand_l();                              // abgeflachte Unterseite auf dem Bett
+else if (part == "pilot_neck")  intersection() { union() { torso_front(false); torso_back(false); } neck_pilots_t(); }
+else if (part == "pilot_seat")  intersection() { union() { torso_front(false); torso_back(false); } seat_pilots_t(); }
+else if (part == "pilot_dome")  intersection() { torso_front(false); dome_pilots_t(); }
+else if (part == "collision_body") union() {
+  intersection() { place_torso() { torso_front(); torso_back(); } union() { arm(1); arm(-1); } }
+  intersection() { union() { arm(1); arm(-1); } union() { hand(1); hand(-1); } }
+  intersection() { place_torso() neck(); union() { place_torso() { torso_front(); torso_back(); } place_head() head_shells(); } }
+  intersection() { place_torso() { torso_front(); torso_back(); neck(); } place_head() head_shells(); }
+}
+else if (part == "torso_selftest")
+  intersection() { shells(); place_torso() cam_frame() scale([1.6, 1.6, 1]) translate([-xiao_w / 2, -xiao_h / 2, -xiao_face - xiao_body_d]) cube([xiao_w, xiao_h, xiao_body_d]); }
 else if (part == "assembly") assembly_parts();
 else if (part == "exploded") exploded_parts();
 else if (part == "section")

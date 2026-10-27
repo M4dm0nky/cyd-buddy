@@ -15,7 +15,7 @@ New-Item -ItemType Directory -Force $stlDir, $pngDir | Out-Null
 $script:fails = 0
 
 # Druckteile. Spaetere Tasks haengen ihre Teile hier an (Task 3: neck, torso_front, torso_back, arm, hand; Task 4: seat, bottom, foot).
-$parts = @('head_front', 'bezel', 'head_back', 'ear', 'deco')
+$parts = @("head_front", "bezel", "head_back", "ear", "deco", "torso_front", "torso_back", "neck", "arm", "hand")
 
 function Ok($m)   { Write-Host "[ OK ] $m" -ForegroundColor Green }
 function Bad($m)  { Write-Host "[FAIL] $m" -ForegroundColor Red; $script:fails++ }
@@ -107,6 +107,36 @@ else {
   $ext = ($ys | Measure-Object -Maximum).Maximum - ($ys | Measure-Object -Minimum).Minimum
   if ($ext -ge 7.5) { Ok ("Halssockel-Kernloecher: {0:N2} mm im Material (>= 7,5)" -f $ext) }
   else { Bad ("Halssockel-Kernloecher: nur {0:N2} mm im Material, verlangt >= 7,5" -f $ext) }
+}
+
+# 3d) Kernloecher im Oberkoerper (Hals-Mulde: Z, Sitz: Z, Dome: Y): Ausdehnung des Bohrvolumens im Material >= 7,5 mm
+$inv = [Globalization.CultureInfo]::InvariantCulture
+foreach ($t in @(@{ n = 'pilot_neck'; ax = 2; l = 'Oberkoerper Hals-Kernloecher (Z)' }, @{ n = 'pilot_seat'; ax = 2; l = 'Oberkoerper Sitz-Kernloecher (Z)' }, @{ n = 'pilot_dome'; ax = 1; l = 'Oberkoerper Dom-Kernloecher (Y)' })) {
+  $f = Join-Path $env:TEMP ("madbuddy_roboter_{0}.stl" -f $t.n)
+  if (Test-Path $f) { Remove-Item $f }
+  $null = Run-Scad ((PartArg $t.n) + @('-o', $f))
+  if ((FacetCount $f) -eq 0) { Bad "$($t.l): Bohrvolumen trifft kein Material (Loch liegt in der Luft)"; continue }
+  $vs = [regex]::Matches((Get-Content $f -Raw), 'vertex\s+(\S+)\s+(\S+)\s+(\S+)') | ForEach-Object { [double]::Parse($_.Groups[1 + $t.ax].Value, $inv) }
+  $ext = ($vs | Measure-Object -Maximum).Maximum - ($vs | Measure-Object -Minimum).Minimum
+  if ($ext -ge 7.5) { Ok ("{0}: {1:N2} mm im Material (>= 7,5)" -f $t.l, $ext) } else { Bad ("{0}: nur {1:N2} mm im Material, verlangt >= 7,5" -f $t.l, $ext) }
+}
+
+# 3e) Koerper-Kollisionen: Arm/Oberkoerper, Arm/Hand, Hals/Oberkoerper+Kopf, Oberkoerper/Kopf (Schnittmenge muss leer sein)
+$cb = Join-Path $env:TEMP 'madbuddy_roboter_collision_body.stl'
+if (Test-Path $cb) { Remove-Item $cb }
+$r = Run-Scad ((PartArg 'collision_body') + @('-o', $cb)) 900
+$rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
+if ($rest -match 'WARNING|ERROR') { Bad "Koerper-Kollision: WARNING/ERROR: $($rest.Trim())" }
+elseif ($r.Text -match $emptyMsg -or ($r.Code -eq 0 -and (FacetCount $cb) -eq 0)) { Ok "Koerper-Kollision: Arm/Hand/Hals/Oberkoerper/Kopf kollisionsfrei" }
+else { Bad "Koerper-Kollision: Teile schneiden sich ($(FacetCount $cb) Facetten) -> $cb" }
+
+# 3f) Positive-Kontrolle Oberkoerper: zu grosse XIAO-Platte muss die Schale treffen (nur ohne -Define)
+if (-not $custom) {
+  $ts = Join-Path $env:TEMP 'madbuddy_roboter_torso_selftest.stl'
+  if (Test-Path $ts) { Remove-Item $ts }
+  $null = Run-Scad ((PartArg 'torso_selftest') + @('-o', $ts))
+  if ((FacetCount $ts) -gt 0) { Ok "Selbsttest Oberkoerper: absichtliche Kollision wird erkannt" }
+  else { Bad "Selbsttest Oberkoerper: absichtliche Kollision NICHT erkannt" }
 }
 
 # 4) PNG-Renders
