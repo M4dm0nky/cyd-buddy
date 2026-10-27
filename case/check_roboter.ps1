@@ -194,6 +194,16 @@ else {
   $ext = ($vs | Measure-Object -Maximum).Maximum - ($vs | Measure-Object -Minimum).Minimum
   if ($ext -ge 7.5) { Ok ("Sitz-Dom-Kernloecher (Z): {0:N2} mm im Material (>= 7,5)" -f $ext) } else { Bad ("Sitz-Dom-Kernloecher: nur {0:N2} mm im Material, verlangt >= 7,5" -f $ext) }
 }
+# Sitzschrauben M3x10: muessen mindestens 6 mm in den Oberkoerper greifen (Schraube Ø3 gegen torso_front/back mit Kernloechern, Z-Ausdehnung)
+$f = Join-Path $env:TEMP 'madbuddy_roboter_screw_seat.stl'
+if (Test-Path $f) { Remove-Item $f }
+$null = Run-Scad ((PartArg 'screw_seat') + @('-o', $f)) 900
+if ((FacetCount $f) -eq 0) { Bad "Sitzschrauben: greifen nicht in den Oberkoerper" }
+else {
+  $vs = [regex]::Matches((Get-Content $f -Raw), 'vertex\s+(\S+)\s+(\S+)\s+(\S+)') | ForEach-Object { [double]::Parse($_.Groups[3].Value, $inv) }
+  $ext = ($vs | Measure-Object -Maximum).Maximum - ($vs | Measure-Object -Minimum).Minimum
+  if ($ext -ge 6) { Ok ("Sitzschrauben M3x10: greifen {0:N2} mm in den Oberkoerper (>= 6)" -f $ext) } else { Bad ("Sitzschrauben: greifen nur {0:N2} mm in den Oberkoerper, verlangt >= 6" -f $ext) }
+}
 $cs = Join-Path $env:TEMP 'madbuddy_roboter_collision_seat.stl'
 if (Test-Path $cs) { Remove-Item $cs }
 $r = Run-Scad ((PartArg 'collision_seat') + @('-o', $cs)) 900
