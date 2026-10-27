@@ -357,7 +357,7 @@ t_dome_pts = [[-16, 10], [16, 10], [-16, 41], [16, 41]];   // VORLÄUFIG (Entwur
 t_dome_d   = 7.4;    // VORLÄUFIG (Entwurf): Dom aussen; Wand um die Durchgangsbohrung (Ø3,4) 2,0
 t_dome_pilot = 9;    // VORLÄUFIG (Entwurf): Kernloch im vorderen Dom (>= 7,5)
 t_seat_pts = [for (sx = [-1, 1], sy = [-1, 1]) [sx * 24, sy * 12]];   // VORLÄUFIG (Entwurf): 4 M3-Kernloecher unten fuer den Sitz (X/Y), Schrauben von unten
-t_seat_pilot = 7.6;  // VORLÄUFIG (Entwurf): Kernloch M3 (>= 7,5)
+t_seat_pilot = 8.0;  // VORLÄUFIG (Entwurf): Kernloch M3 (>= 7,5); 8,0 damit die Sitzschraube M3x10 (Spitze bei 7,5 ab Plattenunterseite) 0,5 mm Reserve hat; Restboden 1,5
 t_seat_blk_z = 13.5; // VORLÄUFIG (Entwurf): Oberkante der Sitzpfosten ueber der Unterkante
 t_deco_pts = [for (sx = [-1, 1], z = [12, 40.8]) [sx * 23, z]];   // QUELLE: Konzept: Brust-Schrauben (Einlagen) bei 0,25 und 0,85 t_h
 // --- Kamera / XIAO: einfach gehalten und parametrisch, die Halterung wird nach Task 4 neu bestimmt
@@ -697,7 +697,7 @@ cbore_hd   = 1.65;   // VORLÄUFIG (Datenblatt): M3 Flachkopf ISO 7380, Kopfhoeh
 s_cbore_t  = 1.7;    // VORLÄUFIG (Entwurf): Senkung der Sitzschrauben im Fach (>= Kopfhoehe); Schraube M3x10 endet damit 0,1 mm vor dem Kernlochende im Oberkoerper
 seat_screw_l = 10;   // Vorgabe Auftraggeber: Sitzschrauben M3x10
 dome_off   = 2.4;    // VORLÄUFIG (Entwurf): Dom- und Schraubenmitte um dieses Mass je Achse nach aussen aus der Fach-Ecke geschoben: haelt >= 1 mm Abstand zur Platinenecke auch ohne Eckradius
-ear_r      = 5.4;    // VORLÄUFIG (Entwurf): Aussenradius der Eck-Ohren um die Domachse (Senkung Ø6,2 + 2,15 Rand)
+ear_r      = 6.0;    // VORLÄUFIG (Entwurf): Aussenradius der Eck-Ohren um die Domachse: Wand um die Bodenauflagen-Tasche (Ø7,7) 2,15, um die Senkung Ø6,2 im Boden 2,75
 op_sure    = 1.5;    // Vorgabe Auftraggeber: Zugabe >= 1,5 mm rundum an allen Bodenoeffnungen
 op_unsure  = 3.0;    // VORLÄUFIG (Entwurf): grosse Zugabe dort, wo die Lage am Modul nicht belegt ist (USB-C, DIP, LED)
 led_hole_d = 5.6;    // Vorgabe Auftraggeber: LED-Loch >= Ø5,6
@@ -747,8 +747,9 @@ assert(rib_z0 - max(cell_top(rib_f_y1), cell_top(rib_b_y0), bat_z0 + bat_pcb_t +
 assert(torso_origin[2] - fit / 2 - rib_z0 >= 2, "Rippe: weniger als 2 mm unter der Steckrand-Aussparung");
 assert(norm([chx + dome_off - bat_l / 2, dome_off + batt_clear + 0]) - dome_s_d / 2 >= 1, "Dom: Abstand zur Platinenecke (Radius 0) unter 1 mm");
 assert(batt_clear >= 1, "Fach: seitliche Zugabe unter 1 mm");
-assert(torso_origin[2] + t_plate_z + t_seat_pilot - (zc + s_cbore_t + seat_screw_l) >= 0 && zc + s_cbore_t + seat_screw_l - (torso_origin[2] + t_plate_z) >= 6, "Sitzschraube: greift weniger als 6 mm in den Oberkoerper oder ragt ueber das Kernloch");
+assert(torso_origin[2] + t_plate_z + t_seat_pilot - (zc + s_cbore_t + seat_screw_l) >= 0.4 && zc + s_cbore_t + seat_screw_l - (torso_origin[2] + t_plate_z) >= 6, "Sitzschraube: greift weniger als 6 mm in den Oberkoerper oder ragt ueber das Kernloch");
 assert(ear_r - fit / 2 - cbore_d / 2 >= 2, "Boden: Rand um die Senkung der Eckschrauben unter 2 mm");
+assert(ear_r - (dome_s_d + fit) / 2 >= 2, "Sitz-Eck-Ohr: Wand ausserhalb der Bodenauflagen-Tasche unter 2 mm");
 assert((dome_s_d - pilot_d) / 2 >= 2, "Sitz-Dom: Wand um das Kernloch unter 2 mm");
 assert((dome_s_d - screw_d) / 2 >= 2, "Sitz-Dom/Bodenauflage: Wand um die Bohrung unter 2 mm");
 assert(bot_t - cbore_t + boss_h >= 2, "Boden: Rest unter der Senkung unter 2 mm");
@@ -897,10 +898,11 @@ module switch_dummy() {
 // Kabel 5V/GND: Pads (vorn am Modul) -> Schalter in der Bucht -> hoch durch die Rippenkerbe -> Rinne -> Kabelloch Ø10 -> in den Oberkoerper
 module wire_dummy() {
   yh = torso_origin[1];
-  wire([[bat_pad[0], bat_yc + bat_pad[1], bat_z0 + bat_pcb_t], [bat_pad[0], bat_yc + bat_pad[1], 9], [sw_x + 5, bat_yc + bat_pad[1], 9], [sw_x + 5, sw_y + 2, 9]]);
+  zp = bat_z0 + bat_pcb_t;   // Platinenoberkante (Pads); Kabelebenen darueber: +5 (zum Schalter), +10 (Rueckweg), +12 (GND)
+  wire([[bat_pad[0], bat_yc + bat_pad[1], zp], [bat_pad[0], bat_yc + bat_pad[1], zp + 5], [sw_x + 5, bat_yc + bat_pad[1], zp + 5], [sw_x + 5, sw_y + 2, zp + 5]]);
   zw = zc - 0.9;   // Kabelhoehe in der Luft ueber den Zellen (Mitte; Ø1,3, also 0,25 unter der Deckenplatte)
-  wire([[sw_x - 5, sw_y + 2, 9], [sw_x - 5, sw_y + 2, 14], [sw_x - 5, -26.5, 14], [-3, -26.5, 14], [-3, -25.8, 14], [-3, -25.8, zw], [0.7, yh, zw], [0.7, yh, s_top + 1]]);
-  wire([[bat_pad[0] + 1.4, bat_yc + bat_pad[1], bat_z0 + bat_pcb_t], [bat_pad[0] + 1.4, bat_yc + bat_pad[1], 16], [bat_pad[0] + 1.4, -25.8, 16], [bat_pad[0] + 1.4, -25.8, zw], [-0.7, yh, zw], [-0.7, yh, s_top + 1]]);
+  wire([[sw_x - 5, sw_y + 2, zp + 5], [sw_x - 5, sw_y + 2, zp + 10], [sw_x - 5, -26.5, zp + 10], [-3, -26.5, zp + 10], [-3, -25.8, zp + 10], [-3, -25.8, zw], [0.7, yh, zw], [0.7, yh, s_top + 1]]);
+  wire([[bat_pad[0] + 1.4, bat_yc + bat_pad[1], zp], [bat_pad[0] + 1.4, bat_yc + bat_pad[1], zp + 12], [bat_pad[0] + 1.4, -25.8, zp + 12], [bat_pad[0] + 1.4, -25.8, zw], [-0.7, yh, zw], [-0.7, yh, s_top + 1]]);
 }
 // Auflagenachweis: Grundriss der Handflaeche (Schnitt der Hand mit einer Platte z 32..32,3) als Prisma z 31,9..32 muss ganz im Material von seat liegen
 module hand_support(dx = 0) difference() {
