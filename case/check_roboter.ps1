@@ -130,6 +130,40 @@ if ($rest -match 'WARNING|ERROR') { Bad "Koerper-Kollision: WARNING/ERROR: $($re
 elseif ($r.Text -match $emptyMsg -or ($r.Code -eq 0 -and (FacetCount $cb) -eq 0)) { Ok "Koerper-Kollision: Arm/Hand/Hals/Oberkoerper/Kopf kollisionsfrei" }
 else { Bad "Koerper-Kollision: Teile schneiden sich ($(FacetCount $cb) Facetten) -> $cb" }
 
+# 3e2) Positive-Kontrolle Koerper-Kollision: Arm 3 mm in den Oberkoerper geschoben MUSS Treffer liefern (nur ohne -Define)
+if (-not $custom) {
+  $cs = Join-Path $env:TEMP 'madbuddy_roboter_cbody_selftest.stl'
+  if (Test-Path $cs) { Remove-Item $cs }
+  $null = Run-Scad ((PartArg 'collision_body_selftest') + @('-o', $cs))
+  if ((FacetCount $cs) -gt 0) { Ok "Selbsttest Koerper-Kollision: Arm 3 mm im Oberkoerper wird erkannt" }
+  else { Bad "Selbsttest Koerper-Kollision: Arm im Oberkoerper NICHT erkannt" }
+}
+
+# 3g) Montage: untere Halsschrauben nur in torso_front, jede Schraube mit Schraubendreher Ø6 x 60 entlang der Achse erreichbar (Phase 1 und 2), plus Positiv-Kontrollen
+$pb = Join-Path $env:TEMP 'madbuddy_roboter_pilot_neck_back.stl'
+if (Test-Path $pb) { Remove-Item $pb }
+$r = Run-Scad ((PartArg 'pilot_neck_back') + @('-o', $pb))
+if ($r.Text -match 'WARNING: Current top level object is empty' -or (FacetCount $pb) -eq 0) { Ok "Montage: Kernloecher der unteren Halsschrauben liegen nicht in torso_back (nur in torso_front)" }
+else { Bad "Montage: untere Halsschraube greift in torso_back" }
+foreach ($t in @(@{ n = 'drv_p1'; l = 'Montage Phase 1 (Hals von oben, 2 Schrauben)' }, @{ n = 'drv_p2'; l = 'Montage Phase 2 (Kopfschrauben von unten, 2 Schrauben)' })) {
+  $f = Join-Path $env:TEMP ("madbuddy_roboter_{0}.stl" -f $t.n)
+  if (Test-Path $f) { Remove-Item $f }
+  $r = Run-Scad ((PartArg $t.n) + @('-o', $f)) 900
+  $rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
+  if ($rest -match 'WARNING|ERROR') { Bad "$($t.l): WARNING/ERROR: $($rest.Trim())" }
+  elseif ($r.Text -match $emptyMsg -or (FacetCount $f) -eq 0) { Ok "$($t.l): Schraubendreher Ø6 x 60 kollisionsfrei erreichbar" }
+  else { Bad "$($t.l): Schraubendreher kollidiert ($(FacetCount $f) Facetten) -> $f" }
+}
+if (-not $custom) {
+  foreach ($n in @('drv_selftest_p1', 'drv_selftest_p2')) {
+    $f = Join-Path $env:TEMP ("madbuddy_roboter_{0}.stl" -f $n)
+    if (Test-Path $f) { Remove-Item $f }
+    $null = Run-Scad ((PartArg $n) + @('-o', $f)) 900
+    if ((FacetCount $f) -gt 0) { Ok "Selbsttest $n : versetzter Schraubendreher wird als Kollision erkannt" }
+    else { Bad "Selbsttest $n : versetzter Schraubendreher NICHT erkannt" }
+  }
+}
+
 # 3f) Positive-Kontrolle Oberkoerper: zu grosse XIAO-Platte muss die Schale treffen (nur ohne -Define)
 if (-not $custom) {
   $ts = Join-Path $env:TEMP 'madbuddy_roboter_torso_selftest.stl'
@@ -142,14 +176,15 @@ if (-not $custom) {
 # 4) PNG-Renders
 if (-not $NoPng) {
   $views = @(
-    @{ n = 'assembly'; cam = '0,0,0,72,0,330,0'; part = 'assembly' },
-    @{ n = 'exploded'; cam = '0,0,0,70,0,320,0'; part = 'exploded' },
+    @{ n = 'assembly'; cam = '0,0,0,72,0,330,0'; part = 'assembly'; nodum = $true },
+    @{ n = 'exploded'; cam = '0,0,0,70,0,320,0'; part = 'exploded'; nodum = $true },
     @{ n = 'section';  cam = '0,0,0,90,0,90,0';  part = 'section'; render = $true }
   )
   foreach ($v in $views) {
     $png = Join-Path $pngDir ("roboter_{0}.png" -f $v.n)
     if (Test-Path $png) { Remove-Item $png }
-    $a = (PartArg $v.part) + @('-o', $png, '--camera', $v.cam, '--viewall', '--autocenter', '--imgsize', '1200,900', '--colorscheme', 'Tomorrow')
+    $a = (PartArg $v.part) + @('-o', $png, '--camera', $v.cam, '--viewall', '--autocenter', '--imgsize', '1400,1400', '--colorscheme', 'Tomorrow')
+    if ($v.nodum) { $a = @('-D', 'show_dummies=false') + $a }   # Ansicht ohne Pruefkoerper, damit die Figur das Bild fuellt
     if ($v.render) { $a += '--render' }   # CGAL statt Vorschau: Schnitt wird in der Vorschau nicht abgezogen
     $r = Run-Scad $a 400
     if ($r.Code -ne 0)                           { Bad "PNG $($v.n): Exitcode $($r.Code) $($r.Text.Trim())" }

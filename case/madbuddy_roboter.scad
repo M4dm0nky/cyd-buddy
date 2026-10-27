@@ -81,7 +81,7 @@ boss_r_extra = 2.0; // Steg ums Ohrloch: Radius = Tropfenspitze + 2 mm (Wand >= 
 // ---------------------------------------------------------------- Hals (Schnittstelle zu Task 3)
 neck_d       = 22;   // QUELLE: Spec: Rohr Ø 22
 neck_flange_d = 24;  // VORLÄUFIG (mit Task 3 abstimmen): Ø des Halsflansches
-neck_bolt_x  = 9;    // VORLÄUFIG (mit Task 3 abstimmen): 2 M3-Kernloecher bei X = +-9 (liegen im Rohrring, Rohr Ø22 innen >= 10)
+neck_bolt_x  = 8;    // VORLÄUFIG (mit Task 3 abgestimmt): 2 M3-Kernloecher bei X = +-8; Flansch bekommt ein Langloch 8 x 12, Wand aussen/innen je 2,3
 cable_d      = 12;   // Kabelloch (>= 10, JST-Stecker passt hindurch)
 pad_h        = 11;   // Halssockel steht so weit unten aus dem Kopf (Kernloch 7,6 + Restboden im Material)
 neck_pilot_len = 7.6; // Kernloch M3 im Material (>= 7,5)
@@ -335,84 +335,122 @@ module neck_frame() { translate(neck_pt) rotate([-head_tilt, 0, 0]) children(); 
 // ================================================================= Oberkoerper, Hals, Arme, Haende (Task 3)
 // Oberkoerper-Konstruktionslage = Weltlage um torso_origin verschoben (place_torso): X rechts, Y nach hinten, Z oben.
 // Lokaler Ursprung = Mitte der Unterkante. Teilungsebene y = 0 (Mitte): vorn = Brust mit Kamera, hinten = Rueckwand.
+// MONTAGEFOLGE (jede Schraube ist per Prueckoerper nachgewiesen erreichbar, check_roboter.ps1 Schritt 3g):
+//   Phase 1: Oberkoerper vorn + hinten sind verschraubt, der Kopf fehlt. Den Hals von OBEN mit 2 M3 auf den Oberkoerper schrauben.
+//            Beide Schrauben (neck_lo_bx, neck_lo_by) sitzen mit ihren Kernloechern vollstaendig in torso_front: das Abnehmen der Rueckwand loest den Hals nicht.
+//   Phase 2: Rueckwand des Oberkoerpers ab, XIAO noch nicht eingesetzt, Oberkoerper noch nicht auf dem Sitz. Kopf auf den Hals setzen und die
+//            2 Kopfschrauben (neck_bolt_x) von UNTEN entlang der Halsachse durch die Seitenkanaele von Hals und Oberkoerper (drv_channel) eindrehen.
+//   Phase 3: XIAO von hinten in die Brust schieben, Rueckwand schliessen, Oberkoerper auf den Sitz stecken und von unten verschrauben.
 t_w        = 64;     // QUELLE: Konzept (t_w): Breite
 t_d        = 44;     // QUELLE: Konzept (t_d): Tiefe
 t_h        = 48;     // QUELLE: Konzept (t_h): Hoehe
 t_r        = 10;     // QUELLE: Konzept (t_r): Eckradius oben (Frontansicht)
-t_ch       = 3.5;    // 45-Grad-Fase an Brust und Rueckseite (ohne Stuetzen druckbar)
-torso_origin = [0, -8, 28];   // QUELLE: Konzept: [0, t_y - t_d/2, leg_h - 4] = Mitte der Unterkante des Oberkoerpers in Weltlage (Task 4 baut darauf auf)
-t_plate_z  = 4;      // Bodenplatte liegt 4 mm ueber der Unterkante: darunter ist die Steckkante (Rand), in die der Sitz (Task 4) greift
-t_cable_d  = 11;     // Kabeldurchfuehrung unten (>= 10)
-t_dome_pts = [[-16, 10], [16, 10], [-16, 41], [16, 41]];   // M3-Dome (Teilung vorn/hinten), Lage X/Z
-t_dome_d   = 6.4;
-t_dome_pilot = 10;   // Kernloch im vorderen Dom (>= 7,5)
-t_seat_pts = [for (sx = [-1, 1], sy = [-1, 1]) [sx * 24, sy * 12]];   // 4 M3-Kernloecher unten fuer den Sitz (X/Y), Schrauben von unten
-t_seat_pilot = 7.6;
-t_seat_blk_z = 13.5; // Oberkante der Pfosten ueber der Unterkante
-t_deco_pts = [for (sx = [-1, 1], z = [12, 40.8]) [sx * 23, z]];   // QUELLE: Konzept: Brust-Schrauben (Einlagen)
+t_y        = 14;     // QUELLE: Konzept (t_y): Rueckseite des Oberkoerpers
+leg_h      = 32;     // QUELLE: Konzept (leg_h): Hoehe der Oberschenkel
+t_ch       = 3.5;    // VORLÄUFIG (Entwurf): 45-Grad-Fase an Brust und Rueckseite, ohne Stuetzen druckbar
+torso_origin = [0, t_y - t_d / 2, leg_h - 4];   // QUELLE: Konzept: [0, t_y - t_d/2, leg_h - 4] = Mitte der Unterkante des Oberkoerpers in Weltlage (Task 4 baut darauf auf)
+t_plate_z  = 4;      // VORLÄUFIG (Entwurf): Bodenplatte 4 mm ueber der Unterkante, darunter die Steckkante (Rand), in die der Sitz (Task 4) greift
+t_cable_d  = 10;     // QUELLE: Aufgabe: Kabeldurchfuehrung unten >= 10
+t_dome_pts = [[-16, 10], [16, 10], [-16, 41], [16, 41]];   // VORLÄUFIG (Entwurf): M3-Dome (Teilung vorn/hinten), Lage X/Z
+t_dome_d   = 7.4;    // VORLÄUFIG (Entwurf): Dom aussen; Wand um die Durchgangsbohrung (Ø3,4) 2,0
+t_dome_pilot = 9;    // VORLÄUFIG (Entwurf): Kernloch im vorderen Dom (>= 7,5)
+t_seat_pts = [for (sx = [-1, 1], sy = [-1, 1]) [sx * 24, sy * 12]];   // VORLÄUFIG (Entwurf): 4 M3-Kernloecher unten fuer den Sitz (X/Y), Schrauben von unten
+t_seat_pilot = 7.6;  // VORLÄUFIG (Entwurf): Kernloch M3 (>= 7,5)
+t_seat_blk_z = 13.5; // VORLÄUFIG (Entwurf): Oberkante der Sitzpfosten ueber der Unterkante
+t_deco_pts = [for (sx = [-1, 1], z = [12, 40.8]) [sx * 23, z]];   // QUELLE: Konzept: Brust-Schrauben (Einlagen) bei 0,25 und 0,85 t_h
 // --- Kamera / XIAO: einfach gehalten und parametrisch, die Halterung wird nach Task 4 neu bestimmt
 cam_tilt   = 15;     // QUELLE: Aufgabe: Kamera nach oben gekippt
-cam_z      = 24;     // Linsenhoehe ueber der Unterkante (Konzept 0,6 * t_h; tiefer, damit der Halsblock Platz hat)
+cam_z      = 24;     // VORLÄUFIG (Entwurf): Linsenhoehe ueber der Unterkante (Konzept 0,6 * t_h; tiefer, damit der Halsblock Platz hat)
 xiao_w     = 21.0;   // VORLÄUFIG (Datenblatt)
 xiao_h     = 17.8;   // VORLÄUFIG (Datenblatt)
 xiao_stack = 15.0;   // VORLÄUFIG (Datenblatt) Stapelhoehe inkl. Linsentubus
-xiao_body_d = xiao_stack - 2.2;  // Platinen-/Modultiefe hinter der Frontflaeche (wie Stufe 2: Stapel - Platte - 0,2)
+xiao_body_d = xiao_stack - 2.2;  // VORLÄUFIG (Datenblatt): Modultiefe hinter der Frontflaeche (wie Stufe 2: Stapel - Platte - 0,2)
 lens_d     = 8.0;    // VORLÄUFIG (Datenblatt) Linse
 lens_hole  = 9.0;    // VORLÄUFIG (Datenblatt) Linsenloch
 lens_fov   = 30;     // VORLÄUFIG (Datenblatt) halber Bildwinkel Freiraumkegel
-rib_t      = 1.6;    // Klemmrippen links/rechts (wie Stufe 2)
-rib_h      = 14;     // Rippenhoehe (Z)
-rib_len    = 14;     // Rippenlaenge (Y)
-stop_w     = 3.5;    // Anschlagpfosten unter dem XIAO (wie Stufe 2)
-stop_x     = 7.75;
-xiao_face  = 5.1;    // Abstand Frontflaeche XIAO hinter der Aussenebene entlang der Linsenachse: gerechnet, damit die untere Vorderkante der gekippten Platte hinter der Brustinnenwand liegt
+rib_t      = 1.6;    // QUELLE: Stufe 2 (madbuddy_case.scad rib_t): Klemmrippen links/rechts
+rib_h      = 14;     // QUELLE: Stufe 2: Rippenhoehe (Z)
+rib_len    = 10;     // VORLÄUFIG (Entwurf): Rippenlaenge (Y), kuerzer als Stufe 2, damit der Werkzeugkanal frei bleibt
+stop_w     = 3.5;    // QUELLE: Stufe 2: Anschlagpfosten unter dem XIAO
+stop_x     = 7.75;   // QUELLE: Stufe 2
+stop_len   = 6;      // VORLÄUFIG (Entwurf): Anschlagpfosten kurz, damit der Werkzeugkanal frei bleibt
+xiao_face  = 5.1;    // VORLÄUFIG (gerechnet): Abstand Frontflaeche XIAO hinter der Aussenebene entlang der Linsenachse, untere Vorderkante der gekippten Platte liegt hinter der Brustinnenwand
 // --- Hals
-neck_lo_d  = 36;     // Ø unterer Flansch (Schrauben bei y = +-14,3, ausserhalb des Kopfsockels)
-neck_fl_t  = 2.8;    // Flanschdicke (Bohrung im Kopfsockel ist 3 tief, 0,2 Luft)
+neck_lo_d  = 36;     // VORLÄUFIG (Entwurf): Ø unterer Flansch (Scheibe), dazu zwei Laschen fuer die Schrauben
+neck_lug_d = 9;      // VORLÄUFIG (Entwurf): Ø der Laschen am unteren Flansch (Wand um das Loch 2,8)
+neck_lo_bx = 16;     // VORLÄUFIG (Entwurf): untere Halsschrauben bei X = +-16 ...
+neck_lo_by = -13;    // VORLÄUFIG (Entwurf): ... und Y = -13 (beide vor der Teilungsebene, also in torso_front)
+neck_fl_t  = 2.8;    // VORLÄUFIG (Entwurf): Flanschdicke (Bohrung im Kopfsockel ist 3 tief, 0,2 Luft)
 neck_bore  = 12;     // QUELLE: Aufgabe: Innen-Ø >= 12
-neck_lobe_d = 6.6;   // Schraubenkopf-Tasche am oberen Flansch (Zugang von unten durch den Oberkoerper)
-neck_lo_bolt_y = 14.3;
-neck_rec_floor = 45; // Boden der Flanschmulde im Oberkoerper (Mulde 3 tief)
-neck_lo_z  = neck_rec_floor + 0.05;
-neck_blk_z = 35;     // Unterkante des Halsblocks im Oberkoerper
-neck_pilot_t = 7.6;  // Kernloch M3 im Halsblock (>= 7,5)
+neck_slot_w = 8;     // VORLÄUFIG (Entwurf): Langloch im oberen Flansch, 8 in X
+neck_slot_l = 12;    // VORLÄUFIG (Entwurf): Langloch im oberen Flansch, 12 in Y
+neck_lobe_d = 6.6;   // VORLÄUFIG (Entwurf): Werkzeugkanal fuer die Kopfschrauben (Schraubendreher Ø6 + 0,6)
+drv_d      = 6;      // QUELLE: Aufgabe: Schraubendreher-Pruefkoerper Ø6
+drv_l      = 60;     // QUELLE: Aufgabe: Schraubendreher-Pruefkoerper 60 lang
+screw_head_h = 3;    // VORLÄUFIG (Datenblatt): M3-Linsenkopf, Hoehe
+neck_rec_floor = 45; // VORLÄUFIG (Entwurf): Boden der Flanschmulde im Oberkoerper (Mulde 3 tief)
+neck_lo_z  = neck_rec_floor + 0.05;   // VORLÄUFIG (Entwurf): 0,05 Luft zum Muldenboden
+neck_blk_z = 35;     // VORLÄUFIG (Entwurf): Unterkante des Halsblocks im Oberkoerper
+block_hw   = 24;     // VORLÄUFIG (Entwurf): Halbbreite des Halsblocks (Mulde + Laschen 20,65 + Wand >= 2)
+neck_pilot_t = 7.6;  // VORLÄUFIG (Entwurf): Kernloch M3 im Halsblock (>= 7,5)
 // --- Arm / Hand (Weltlage)
-arm_x      = 40.5;   // Armebene |x|: Schulterkugel 1 mm neben der Seitenwand (Konzept 37, dort ragte die Kugel in den Koerper)
+arm_x      = 40.5;   // VORLÄUFIG (Entwurf): Armebene |x|; Schulterkugel 1 mm neben der Seitenwand (Konzept 37, dort ragte die Kugel in den Koerper)
 ball_r     = 8.5;    // QUELLE: Konzept: Schulterkugel R 8,5
-ball_in    = 7.5;    // Abflachung innen (zum Koerper)
-arm_flat   = 4.95;   // Abflachung aussen = Druckflaeche (45-Grad-Flanke, der Arm druckt auf der Aussenseite)
+ball_in    = 7.5;    // VORLÄUFIG (Entwurf): Abflachung innen (zum Koerper)
+arm_flat   = 4.95;   // VORLÄUFIG (gerechnet): Abflachung aussen = Druckflaeche (45-Grad-Flanke, der Arm druckt auf der Aussenseite)
 arm_r1     = 7;      // QUELLE: Konzept: Arm-Hull r 7 an der Schulter
 arm_r2     = 6;      // QUELLE: Konzept: r 6 an der Hand
 hand_r     = 8;      // QUELLE: Konzept: Hand scale([1,1.3,0.8]) sphere(r=8)
-hand_sc    = [1, 1.3, 0.8];
-hand_cut   = 3.3;    // Abflachung unten (Hand liegt auf dem Oberschenkel, Flanke >= 45 Grad)
-hand_contact_z = 32; // QUELLE: Konzept: leg_h = Oberflaeche der Oberschenkel unter den Haenden (Task 4)
-hand_c_y   = -31;    // Hand-Mitte Y (Weltlage)
-arm_S      = [arm_x, 0, hand_contact_z + hand_cut + 31];       // Schulter, Welt (rechter Arm); Arm 45 Grad nach vorn unten
-arm_H      = [arm_x, hand_c_y, hand_contact_z + hand_cut];     // Hand-Mitte, Welt (rechter Arm)
-arm_d      = [0, -sqrt(0.5), -sqrt(0.5)];                      // Achsrichtung Schulter -> Hand
+hand_sc    = [1, 1.3, 0.8];   // QUELLE: Konzept
+hand_cut   = 3.3;    // VORLÄUFIG (gerechnet): Abflachung unten (Hand liegt auf dem Oberschenkel, Flanke >= 45 Grad)
+hand_contact_z = leg_h;   // QUELLE: Konzept: leg_h = Oberflaeche der Oberschenkel unter den Haenden (Task 4)
+hand_c_y   = -31;    // VORLÄUFIG (Entwurf): Hand-Mitte Y (Weltlage)
+arm_S      = [arm_x, 0, hand_contact_z + hand_cut + 31];       // VORLÄUFIG (Entwurf): Schulter, Welt (rechter Arm); Arm 45 Grad nach vorn unten
+arm_H      = [arm_x, hand_c_y, hand_contact_z + hand_cut];     // VORLÄUFIG (Entwurf): Hand-Mitte, Welt (rechter Arm)
+arm_d      = [0, -sqrt(0.5), -sqrt(0.5)];                      // Achsrichtung Schulter -> Hand (45 Grad)
 arm_peg_d  = 5;      // QUELLE: Aufgabe: Zapfen Ø 5 fuer die Hand
-arm_s_end  = -9;     // Armende: Abstand zur Hand-Mitte entlang der Achse (Ellipsoid-Stuetzwert 8,63 + 0,37)
-arm_peg_tip = -1.3;
-hand_hole_end = -1;
-arm_sh_peg_l = 7;    // Schulterzapfen Ø 6 (peg_d), Laenge ab Innenflaeche
-sh_bore_depth = 6.5;
-sh_y_l     = arm_S[1] - torso_origin[1];   // Schulter lokal Y
-sh_z_l     = arm_S[2] - torso_origin[2];   // Schulter lokal Z
+arm_s_end  = -9;     // VORLÄUFIG (gerechnet): Armende, Abstand zur Hand-Mitte entlang der Achse (Ellipsoid-Stuetzwert 8,63 + 0,37)
+arm_peg_tip = -1.3;  // VORLÄUFIG (Entwurf): Zapfenspitze, Abstand zur Hand-Mitte (Zapfen 7,7 lang)
+hand_hole_end = -1;  // VORLÄUFIG (gerechnet): Ende des Zapfenlochs (Wand zur Unterseite >= 2)
+arm_sh_peg_l = 7;    // QUELLE: Aufgabe: Schulterzapfen Ø 6 (peg_d), >= 6 lang ab Innenflaeche
+sh_bore_depth = 6.5; // VORLÄUFIG (Entwurf): Tiefe der Schulterbohrung ab Aussenseite
+sh_y_l     = arm_S[1] - torso_origin[1];   // abgeleitet: Schulter lokal Y
+sh_z_l     = arm_S[2] - torso_origin[2];   // abgeleitet: Schulter lokal Z
 side       = 1;      // Druckzweig arm/hand: 1 = rechts, -1 = links (gespiegelt)
 
 d_cf_t = t_ch - wall + wall * sqrt(2);
 y_cf_t = t_ch + wall * (sqrt(2) - 1);
+lo_lug_hw = neck_lo_bx + neck_lug_d / 2 + fit / 2;      // Halbbreite der Flanschmulde (mit Laschen)
+// ---- Wandbilanz (Ziel >= 2 mm)
 assert(t_cable_d >= 10, "Kabeldurchfuehrung unten < 10");
 assert(neck_bore >= 12, "Hals Innen-Ø < 12");
 assert(neck_rec_floor - neck_pilot_t - neck_blk_z >= 1.5, "Halsblock: Restboden unter Kernloch < 1,5");
+assert(neck_pilot_t >= 7.5, "Halsblock-Kernloch < 7,5");
 assert(t_seat_blk_z - t_plate_z - t_seat_pilot >= 1.5, "Sitzpfosten: Kernloch zu lang");
+assert((7 - pilot_d) / 2 >= 2, "Sitzpfosten: Wand um das Kernloch unter 2 mm");
 assert(t_d / 2 - wall >= t_dome_pilot + 1.5, "Dom: Kernloch zu lang");
 assert(t_dome_pilot >= 7.5, "Dom-Kernloch < 7,5");
+assert((t_dome_d - screw_d) / 2 >= 2, "Dom: Wand um die Durchgangsbohrung unter 2 mm");
+assert((t_dome_d - pilot_d) / 2 >= 2, "Dom: Wand um das Kernloch unter 2 mm");
 assert(sh_y_l - hole_ear / 2 * sqrt(2) - 1.0 >= 2, "Schulterbohrung: Wand zur Trennebene unter 2 mm");
 assert(neck_d / 2 - neck_bore / 2 >= 2, "Halsrohr: Wand unter 2 mm");
 assert(arm_x - ball_in > t_w / 2, "Schulterkugel ragt in den Oberkoerper");
 assert(arm_sh_peg_l >= 6 && arm_peg_tip - arm_s_end >= 6, "Zapfen kuerzer als 6 mm");
+// oberer Halsflansch: Wand aussen und innen (Langloch) um das Schraubenloch
+assert(neck_flange_d / 2 - (neck_bolt_x + screw_d / 2) >= 2, "oberer Flansch: Wand aussen unter 2 mm");
+assert((neck_bolt_x - screw_d / 2) - neck_slot_w / 2 >= 2, "oberer Flansch: Wand zwischen Langloch und Schraubenloch unter 2 mm");
+assert(neck_slot_l >= neck_bore, "Langloch kuerzer als die Bohrung");
+// unterer Halsflansch: Wand um die Laschenloecher, Kopf-Freiheit zum Rohr
+assert((neck_lug_d - screw_d) / 2 >= 2, "unterer Flansch: Wand um das Schraubenloch unter 2 mm");
+assert(norm([neck_lo_bx, neck_lo_by]) - screw_d / 2 - neck_bore / 2 >= 2, "unterer Flansch: Wand zur Bohrung unter 2 mm");
+assert(norm([neck_lo_bx, neck_lo_by]) - 3.1 - neck_d / 2 >= 0, "untere Halsschraube: Kopf stoesst ans Rohr");
+assert(neck_lo_by + neck_lug_d / 2 < 0, "untere Halsschraube liegt nicht vor der Teilungsebene");
+// Halsblock: Wand um Mulde und Laschen (Dach), keine Schlitze
+assert(block_hw - lo_lug_hw >= 2, "Halsblock: Wand neben der Mulde unter 2 mm");
+assert(t_d / 2 - (-neck_lo_by + neck_lug_d / 2 + fit / 2) >= 2, "Halsblock: Wand vor der Mulde unter 2 mm");
+assert(18.5 - (-neck_lo_by + neck_lug_d / 2 + fit / 2) >= 0, "Mulde ragt in die Fase");
+assert(22 - lo_lug_hw >= 0, "Mulde ragt in die Eckrundung");
+assert(norm([neck_lo_bx - neck_bolt_x, neck_lo_by]) > neck_lug_d / 2 + neck_lobe_d / 2 + 2, "untere Halsschraube zu nah am Werkzeugkanal");
 
 module place_torso() { translate(torso_origin) children(); }
 module t_out_low() { hull() { translate([-t_w / 2, -10]) square([t_w, 11]); for (sx = [-1, 1]) translate([sx * (t_w / 2 - t_r), t_h - t_r]) circle(r = t_r); } }
@@ -434,8 +472,8 @@ module t_cavity() {
     t_ext(-t_d / 2 + y_cf_t - 0.01, -t_d / 2 + y_cf_t) t_cav2d(wall);
   }
 }
-module t_half(front) { intersection() { t_solid(); translate([-50, front ? -t_d / 2 - 1 : 0, -10]) cube([100, t_d / 2 + 1, 100]); } }
-// Innenkontur des Steckrandes (XY-Schnitt bei z < t_plate_z), fuer Task 4: der Sitz greift mit fit Spiel hinein
+module t_half(front) { intersection() { t_solid(); translate([-40, front ? -t_d / 2 - 1 : 0, -10]) cube([80, t_d / 2 + 1, 70]); } }
+// Innenkontur des Steckrandes (XY-Schnitt bei z < t_plate_z) OHNE Spiel (fit nicht abgezogen): Task 4 zieht fit/2 je Seite ab, damit der Sitz hineingreift
 module torso_pocket2d() {
   hxp = t_w / 2 - wall; hyp = t_d / 2 - wall;
   polygon([[t_w / 2 - d_cf_t, -hyp], [hxp, -(t_d / 2 - y_cf_t)], [hxp, t_d / 2 - y_cf_t], [t_w / 2 - d_cf_t, hyp],
@@ -456,7 +494,7 @@ module xiao_dummy_r() { place_torso() xiao_dummy_l(); }
 module lens_cone_r()  { place_torso() lens_cone_l(); }
 module cam_mount() {   // Klemmrippen + Anschlag, nur Vorderhaelfte
   for (sx = [-1, 1]) translate([sx * (xiao_w / 2 + 0.15 + rib_t / 2) - rib_t / 2, -t_d / 2 + wall - 0.1, cam_z - rib_h / 2]) cube([rib_t, rib_len, rib_h]);
-  for (sx = [-1, 1]) cam_frame() translate([sx * stop_x - stop_w / 2, -xiao_h / 2 - 3.4, -xiao_face - xiao_body_d]) cube([stop_w, 3.3, xiao_body_d + 0.5]);
+  for (sx = [-1, 1]) cam_frame() translate([sx * stop_x - stop_w / 2, -xiao_h / 2 - 3.4, -xiao_face - stop_len]) cube([stop_w, 3.3, stop_len + 0.5]);
 }
 module lens_cut() cam_frame() {
   translate([0, 0, -6]) cylinder(d = lens_hole, h = 10);
@@ -466,21 +504,25 @@ module lens_cut() cam_frame() {
 // ---- Einbauten
 module t_adds() {
   for (p = t_dome_pts) translate([p[0], t_d / 2 - 0.5, p[1]]) rotate([90, 0, 0]) cylinder(d = t_dome_d, h = t_d - 1);
-  translate([-18, -t_d / 2, neck_blk_z]) cube([36, t_d, t_h - neck_blk_z]);                  // Halsblock
+  translate([-block_hw, -t_d / 2, neck_blk_z]) cube([2 * block_hw, t_d, t_h - neck_blk_z]);   // Halsblock
   for (sx = [-1, 1]) translate([sx > 0 ? t_w / 2 - 8.5 : -t_w / 2, 1.0, sh_z_l - 5.1]) cube([8.5, t_d / 2 - 1.0 - 0.5, 10.2]); // Schulterbosse bis zur Rueckwand
   for (p = t_seat_pts) translate([p[0] - 3.5, p[1] < 0 ? -t_d / 2 + 0.5 : p[1] - 3.5, t_plate_z])
     cube([7, p[1] < 0 ? t_d / 2 - 0.5 + p[1] + 3.5 : t_d / 2 - 0.5 - p[1] + 3.5, t_seat_blk_z - t_plate_z]);
   cam_mount();
 }
-module neck_pilots_t()  { for (sy = [-1, 1]) translate([0, sy * neck_lo_bolt_y, neck_rec_floor - neck_pilot_t]) cylinder(d = pilot_d, h = neck_pilot_t + 0.01); }
+module neck_pilots_t()  { for (sx = [-1, 1]) translate([sx * neck_lo_bx, neck_lo_by, neck_rec_floor - neck_pilot_t]) cylinder(d = pilot_d, h = neck_pilot_t + 0.01); }
+// unterer Halsflansch: Scheibe + 2 Laschen fuer die Schrauben (beide vor der Teilungsebene)
+module neck_lo2d() { hull() { circle(d = neck_lo_d); for (sx = [-1, 1]) translate([sx * neck_lo_bx, neck_lo_by]) circle(d = neck_lug_d); } }
+// Werkzeugkanal fuer die Kopfschrauben: gerade entlang der (gekippten) Halsachse, Ø6,6, von der Flanschunterseite nach unten durch Hals, Halsblock und Bodenplatte
+module drv_channel() for (sx = [-1, 1]) neck_up() translate([sx * neck_bolt_x, 0, -80]) cylinder(d = neck_lobe_d, h = 80.05);
 module seat_pilots_t()  { for (p = t_seat_pts) translate([p[0], p[1], t_plate_z - 0.01]) cylinder(d = pilot_d, h = t_seat_pilot + 0.01); }
 module dome_pilots_t()  { for (p = t_dome_pts) translate([p[0], 0.01, p[1]]) rotate([90, 0, 0]) cylinder(d = pilot_d, h = t_dome_pilot + 0.01); }
 module sh_bore2d() { intersection() { rotate(90) tear2d(hole_ear); translate([-hole_ear, -hole_ear]) square([hole_ear + hole_ear / 2 - peg_flat, 2 * hole_ear]); } }
 module sh_bores() for (m = [0, 1]) mirror([m, 0, 0]) translate([t_w / 2 - sh_bore_depth, sh_y_l, sh_z_l]) rotate([90, 0, 90]) linear_extrude(sh_bore_depth + 1) sh_bore2d();
-module dumb2d() { circle(d = neck_bore); for (sx = [-1, 1]) translate([sx * neck_bolt_x, 0]) circle(d = neck_lobe_d); }
 module neck_cuts() {
-  translate([0, 0, neck_rec_floor]) cylinder(d = neck_lo_d + fit, h = 5);
-  translate([0, 0, neck_blk_z - 1]) linear_extrude(neck_rec_floor - neck_blk_z + 1.01) dumb2d();
+  translate([0, 0, neck_rec_floor]) linear_extrude(5) offset(delta = fit / 2) neck_lo2d();   // Mulde fuer den unteren Flansch
+  translate([0, 0, neck_blk_z - 1]) cylinder(d = neck_bore, h = neck_rec_floor - neck_blk_z + 1.01);
+  drv_channel();
 }
 module t_cuts_common(pilots) {
   neck_cuts();
@@ -493,7 +535,7 @@ module torso_front(pilots = true) {
   difference() {
     union() {
       difference() { t_half(true); t_cavity(); }
-      intersection() { t_half(true); translate([-50, -50, t_plate_z]) cube([100, 100, wall]); }
+      intersection() { t_half(true); translate([-40, -25, t_plate_z]) cube([80, 50, wall]); }
       intersection() { t_half(true); t_adds(); }
     }
     t_ext(-lip_h, 0.01) difference() { t_cav2d(a_lip); t_cav2d(wall); }     // Falz: Innenhaelfte der Wand
@@ -507,7 +549,7 @@ module torso_back(pilots = true) {
   difference() {
     union() {
       difference() { t_half(false); t_cavity(); }
-      intersection() { t_half(false); translate([-50, -50, t_plate_z]) cube([100, 100, wall]); }
+      intersection() { t_half(false); translate([-40, -25, t_plate_z]) cube([80, 50, wall]); }
       intersection() { t_half(false); t_adds(); }
       t_lip_ring();
     }
@@ -527,18 +569,17 @@ module neck_up() { translate(neck_pt - torso_origin) rotate([-head_tilt, 0, 0]) 
 module neck() {
   difference() {
     union() {
-      translate([0, 0, neck_lo_z]) cylinder(d = neck_lo_d, h = neck_fl_t);
+      translate([0, 0, neck_lo_z]) linear_extrude(neck_fl_t) neck_lo2d();
       hull() { translate([0, 0, neck_lo_z + neck_fl_t - 0.01]) cylinder(d = neck_d, h = 0.01); neck_up() translate([0, 0, -0.01]) cylinder(d = neck_d, h = 0.01); }
       // oberer Flansch mit Abflachung zur Gesichtsseite (lokal -Y): die Bohrung im Kopfsockel hat dort ein auf 12 mm gekapptes Dach (bore_roof)
       neck_up() intersection() { cylinder(d = neck_flange_d, h = neck_fl_t); translate([-neck_flange_d, -(bore_roof - 0.3), -1]) cube([2 * neck_flange_d, 2 * neck_flange_d, neck_fl_t + 2]); }
     }
-    hull() { translate([0, 0, neck_lo_z - 1]) cylinder(d = neck_bore, h = 0.01); neck_up() translate([0, 0, neck_fl_t + 1]) cylinder(d = neck_bore, h = 0.01); }
-    for (sx = [-1, 1]) hull() {
-      translate([sx * neck_bolt_x, 0, neck_lo_z - 1]) cylinder(d = neck_lobe_d, h = 0.01);
-      neck_up() translate([sx * neck_bolt_x, 0, 0]) cylinder(d = neck_lobe_d, h = 0.01);
-    }
+    // Bohrung Ø12 im Rohr bis zur Unterseite des oberen Flansches, dort Langloch 8 x 12 (Wand zum Schraubenloch 2,3)
+    hull() { translate([0, 0, neck_lo_z - 1]) cylinder(d = neck_bore, h = 0.01); neck_up() translate([0, 0, 0.01]) cylinder(d = neck_bore, h = 0.01); }
+    neck_up() translate([0, 0, -0.5]) linear_extrude(neck_fl_t + 1.5) hull() for (sy = [-1, 1]) translate([0, sy * (neck_slot_l - neck_slot_w) / 2]) circle(d = neck_slot_w);
+    drv_channel();                                   // Seitenkanaele: verschmelzen mit der Bohrung, kein Steg unter 2 mm
     for (sx = [-1, 1]) neck_up() translate([sx * neck_bolt_x, 0, -1]) cylinder(d = screw_d, h = neck_fl_t + 2);
-    for (sy = [-1, 1]) translate([0, sy * neck_lo_bolt_y, neck_lo_z - 1]) cylinder(d = screw_d, h = neck_fl_t + 2);
+    for (sx = [-1, 1]) translate([sx * neck_lo_bx, neck_lo_by, neck_lo_z - 1]) cylinder(d = screw_d, h = neck_fl_t + 2);
   }
 }
 
@@ -558,7 +599,7 @@ module arm_r() {
       translate(arm_S) sphere(r = ball_r);
       hull() { translate(arm_S) sphere(r = arm_r1); translate(e0) arm_dir() cylinder(r = arm_r2, h = 0.01); }
     }
-    translate([arm_x - ball_in, -200, -200]) cube([ball_in + arm_flat, 400, 400]);
+    translate([arm_x - ball_in, -45, 20]) cube([ball_in + arm_flat, 65, 60]);
   }
   translate(e0 - 0.01 * arm_d) arm_dir() linear_extrude(arm_peg_tip - arm_s_end + 0.01) peg2d();
   translate([arm_x - ball_in + 0.01, arm_S[1], arm_S[2]]) rotate([0, -90, 0]) sh_peg();
@@ -576,6 +617,15 @@ module arm_print() translate([-(arm_S[2] - arm_S[1]) * cos(45), 0, arm_x + arm_f
 module body_shells() { place_torso() { torso_front(); torso_back(); neck(); torso_decos(); } for (s = [1, -1]) { arm(s); hand(s); } }
 module shells()   { place_head() head_shells(); body_shells(); }
 module dummies()  { place_head() head_dummies(); xiao_dummy_r(); lens_cone_r(); }
+
+// ---- Pruefkoerper fuer die Montage (Schraubendreher Ø6, 60 lang) und Kollisionspaare
+module hits() { for (i = [1 : $children - 1]) intersection() { children(0); children(i); } }   // child 0 gegen jedes weitere Kind einzeln
+module arms_hands() { for (s = [1, -1]) { arm(s); hand(s); } }
+module drv_p1(dx = 0) for (sx = [-1, 1]) place_torso() translate([sx * neck_lo_bx + dx, neck_lo_by, neck_lo_z + neck_fl_t + screw_head_h]) cylinder(d = drv_d, h = drv_l);
+module drv_p2(dx = 0) for (sx = [-1, 1]) place_torso() neck_up() translate([sx * neck_bolt_x + dx, 0, -screw_head_h]) rotate([180, 0, 0]) cylinder(d = drv_d, h = drv_l);
+// Phase 1: Oberkoerper komplett, Hals aufgesetzt, kein Kopf. Phase 2: Rueckwand ab, kein XIAO, Kopf drauf.
+module phase1_parts() { place_torso() { torso_front(); torso_back(); neck(); } arms_hands(); }
+module phase2_parts() { place_torso() { torso_front(); neck(); } place_head() head_shells(); arms_hands(); }
 
 // ================================================================= Schwerpunkt / Standsicherheit (Schaetzung)
 // Massen in Konstruktionslage des Kopfes [g, x, y, z], VORLÄUFIG (Schaetzung)
@@ -681,11 +731,19 @@ else if (part == "pilot_neck")  intersection() { union() { torso_front(false); t
 else if (part == "pilot_seat")  intersection() { union() { torso_front(false); torso_back(false); } seat_pilots_t(); }
 else if (part == "pilot_dome")  intersection() { torso_front(false); dome_pilots_t(); }
 else if (part == "collision_body") union() {
-  intersection() { place_torso() { torso_front(); torso_back(); } union() { arm(1); arm(-1); } }
-  intersection() { union() { arm(1); arm(-1); } union() { hand(1); hand(-1); } }
-  intersection() { place_torso() neck(); union() { place_torso() { torso_front(); torso_back(); } place_head() head_shells(); } }
-  intersection() { place_torso() { torso_front(); torso_back(); neck(); } place_head() head_shells(); }
+  hits() { place_torso() { torso_front(); torso_back(); } arm(1); arm(-1); }
+  hits() { union() { arm(1); arm(-1); } hand(1); hand(-1); }
+  hits() { place_torso() neck(); place_torso() { torso_front(); torso_back(); } place_head() head_shells(); }
+  hits() { place_torso() { torso_front(); torso_back(); } place_head() head_shells(); }
+  hits() { place_head() head_shells(); arm(1); arm(-1); hand(1); hand(-1); }     // Arme und Haende gegen Kopf und Ohren
 }
+else if (part == "collision_body_selftest")   // Arm 3 mm in den Oberkoerper geschoben: MUSS Treffer liefern
+  hits() { place_torso() { torso_front(); torso_back(); } translate([-3, 0, 0]) arm(1); }
+else if (part == "drv_p1") hits() { drv_p1(); phase1_parts(); }
+else if (part == "drv_p2") hits() { drv_p2(); phase2_parts(); }
+else if (part == "drv_selftest_p1") hits() { drv_p1(-12); phase1_parts(); }   // Werkzeug 12 mm zur Seite: muss Hals/Block treffen
+else if (part == "drv_selftest_p2") hits() { drv_p2(6); phase2_parts(); }
+else if (part == "pilot_neck_back") intersection() { torso_back(false); neck_pilots_t(); }   // Kernloecher der unteren Halsschrauben duerfen NICHT in torso_back liegen
 else if (part == "torso_selftest")
   intersection() { shells(); place_torso() cam_frame() scale([1.6, 1.6, 1]) translate([-xiao_w / 2, -xiao_h / 2, -xiao_face - xiao_body_d]) cube([xiao_w, xiao_h, xiao_body_d]); }
 else if (part == "assembly") assembly_parts();
