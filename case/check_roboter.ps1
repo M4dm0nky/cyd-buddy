@@ -79,7 +79,9 @@ $col = Join-Path $env:TEMP 'madbuddy_roboter_collision.stl'
 if (Test-Path $col) { Remove-Item $col }
 $r = Run-Scad ((PartArg 'collision') + @('-o', $col))
 $n = FacetCount $col
-if ($r.Text -match 'WARNING|ERROR' -and $r.Text -notmatch $emptyMsg) { Bad "Kollision: WARNING/ERROR: $($r.Text.Trim())" }
+# Die bekannte Leer-Meldung ("WARNING: Current top level object is empty") ist erwartet und wird vorher entfernt. Alles andere mit WARNING/ERROR zaehlt immer.
+$rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
+if ($rest -match 'WARNING|ERROR') { Bad "Kollision: WARNING/ERROR: $($rest.Trim())" }
 elseif ($r.Text -match $emptyMsg) { Ok "Kollision: Schnittmenge leer (kollisionsfrei, Fenster gibt aktive Flaeche + Sichtkegel frei)" }
 elseif ($r.Code -eq 0 -and $n -eq 0) { Ok "Kollision: STL ohne Facetten (kollisionsfrei)" }
 elseif ($r.Code -eq 0) { Bad "Kollision: Gehaeuse schneidet Pruefkoerper ($n Facetten Schnittvolumen) -> $col" }
@@ -92,6 +94,19 @@ if (-not $custom) {
   $r = Run-Scad ((PartArg 'selftest') + @('-o', $st))
   if ((FacetCount $st) -gt 0) { Ok "Selbsttest: absichtliche Kollision wird erkannt" }
   else { Bad "Selbsttest: absichtliche Kollision NICHT erkannt (Pruefung taugt nichts)" }
+}
+
+# 3c) Kernloecher des Halssockels muessen im Material stecken: Bohrvolumen gegen head_back ohne Kernloecher, Y-Ausdehnung >= 7,5 mm
+$pt = Join-Path $env:TEMP 'madbuddy_roboter_pilot_test.stl'
+if (Test-Path $pt) { Remove-Item $pt }
+$r = Run-Scad ((PartArg 'pilot_test') + @('-o', $pt))
+if ((FacetCount $pt) -eq 0) { Bad "Halssockel-Kernloecher: Bohrvolumen trifft kein Material (Loch liegt in der Luft)" }
+else {
+  $inv = [Globalization.CultureInfo]::InvariantCulture
+  $ys = [regex]::Matches((Get-Content $pt -Raw), 'vertex\s+\S+\s+(\S+)\s+\S+') | ForEach-Object { [double]::Parse($_.Groups[1].Value, $inv) }
+  $ext = ($ys | Measure-Object -Maximum).Maximum - ($ys | Measure-Object -Minimum).Minimum
+  if ($ext -ge 7.5) { Ok ("Halssockel-Kernloecher: {0:N2} mm im Material (>= 7,5)" -f $ext) }
+  else { Bad ("Halssockel-Kernloecher: nur {0:N2} mm im Material, verlangt >= 7,5" -f $ext) }
 }
 
 # 4) PNG-Renders

@@ -39,7 +39,7 @@ include <cyd_common.scad>
 head_w      = 114;   // QUELLE: Konzept (h_w): Kopfbreite
 head_h      = 84;    // QUELLE: Konzept (h_h): Kopfhoehe
 head_r      = 14;    // QUELLE: Konzept (h_r): Eckradius in der Frontansicht
-rear_air    = 16;    // Zusatztiefe hinten (Kabelweg, Halssockel): der Halssockel (Bohrung 24,3) braucht in der Rueckwand ca. 28 mm Tiefe
+rear_air    = 17;    // Zusatztiefe hinten (Kabelweg, Halssockel): Rueckwand braucht Bohrung 24,3 + 2 x 2 mm Rand = 28,3 mm Tiefe
 dome_d      = 6.4;   // Schraubdom aussen (wie Stufe 2)
 dome_x      = 36.0;  // Domposition X (links/rechts), wie Stufe 2
 pilot_d     = 2.6;   // Kernloch fuer M3 in PETG
@@ -76,15 +76,16 @@ ear_screw_d = 8;     // QUELLE: Aufgabe: Zierschraube Ø 8
 ear_deco_in = 1.0;   // Einsatztiefe in der Ohrscheibe
 ear_deco_h  = 0.8;   // erhaben (VORLÄUFIG, Geschmack)
 ear_y       = 22;    // Ohr-Mitte Y: so weit oben, dass die Scheibe (Ø30) die USB-C-Oeffnung (Y bis +5) freilaesst
-boss_w      = 1.6;   // Wand des Stegs um das Ohrloch
+boss_r_extra = 2.0; // Steg ums Ohrloch: Radius = Tropfenspitze + 2 mm (Wand >= 2)
 
 // ---------------------------------------------------------------- Hals (Schnittstelle zu Task 3)
 neck_d       = 22;   // QUELLE: Spec: Rohr Ø 22
 neck_flange_d = 24;  // VORLÄUFIG (mit Task 3 abstimmen): Ø des Halsflansches
 neck_bolt_x  = 9;    // VORLÄUFIG (mit Task 3 abstimmen): 2 M3-Kernloecher bei X = +-9 (liegen im Rohrring, Rohr Ø22 innen >= 10)
 cable_d      = 12;   // Kabelloch (>= 10, JST-Stecker passt hindurch)
-pad_h        = 8;    // Halssockel steht so weit unten aus dem Kopf
-bore_t       = 3;    // Tiefe der Flanschbohrung im Sockel
+pad_h        = 11;   // Halssockel steht so weit unten aus dem Kopf (Kernloch 7,6 + Restboden im Material)
+neck_pilot_len = 7.6; // Kernloch M3 im Material (>= 7,5)
+bore_t       = 3;  // Tiefe der Flanschbohrung im Sockel
 neck_pt      = [0, -8, 82];  // QUELLE: Konzept: Anschlusspunkt des Kopfes in der Weltlage (Mitte Sockelflaeche)
 
 // ================================================================= abgeleitete Werte
@@ -98,7 +99,7 @@ z_back    = z_floor - back_t;
 dome_y    = pcb_h / 2 + fit + dome_d / 2 + 0.1;
 dome_pts  = [for (sx = [-1, 1], sy = [-1, 1]) [sx * dome_x, sy * dome_y]];
 z_neck    = (z_back + z_split) / 2;           // Hals-Mitte in Z (Konstruktionslage)
-pad_w     = neck_flange_d + 4;
+pad_w     = neck_flange_d + fit + 4;       // 2 mm Rand links/rechts der Flanschbohrung
 ear_z     = z_back / 2;                       // Ohr-Mitte in Z: Mitte der Kopftiefe
 // Innenflaeche folgt der 45-Grad-Fase parallel (Wanddicke senkrecht = wall): Einzug d(z) = ch + z + wall*sqrt(2)
 d_cf      = ch - front_t + wall * sqrt(2);    // Einzug des Hohlraums unter der Frontplatte
@@ -107,7 +108,13 @@ d_bf      = ch - back_t + wall * sqrt(2);     // Einzug des Hohlraums ueber der 
 z_bf      = z_back + ch + wall * (sqrt(2) - 1); // ab hier ist der Einzug wieder = wall
 hole_ear  = peg_d + fit_peg;
 assert(hx_in >= pcb_x1 + sock_over + usb_clear, "Kopf zu schmal fuer die Platine");
-assert(z_split - z_back >= neck_flange_d + fit + 3, "Rueckwand zu flach fuer den Halssockel");
+bore_d    = neck_flange_d + fit;
+bore_roof = bore_d / 2 * sqrt(2) - 6;         // Hoehe der gekappten Tropfenspitze ueber der Mitte (Dachbreite 12)
+assert((z_split - z_back) / 2 - bore_d / 2 >= 2, "Halssockel: unter/neben der Bohrung in Z weniger als 2 mm Wand");
+assert((z_split - z_back) / 2 - bore_roof >= 2, "Halssockel: Dach ueber der Bohrung unter 2 mm");
+assert(pad_w / 2 - bore_d / 2 >= 2, "Halssockel: neben der Bohrung in X weniger als 2 mm Wand");
+assert(pad_h - bore_t + wall - 0.5 >= neck_pilot_len + 1.5, "Halssockel: Kernloch zu lang fuer das Material (Restboden < 1,5 mm)");
+assert(boss_r_extra >= 2, "Ohrsteg: Wand unter 2 mm");
 
 // ================================================================= 2D-Formen
 module outer2d() { rrect(hx, hy, head_r); }
@@ -147,7 +154,7 @@ module front_cavity() {
   }
 }
 
-module front_shell() {
+module head_front() {
   difference() {
     union() {
       difference() {
@@ -189,7 +196,7 @@ module bezel() {
 
 module ear_boss_solid() {
   // Steg um das Ohrloch: Huelle aus Rohr und Fusspunkt auf der Rueckplatte (keine Ueberhaenge)
-  bd = hole_ear + 2 * boss_w;
+  bd = 2 * (hole_ear / 2 * sqrt(2) + boss_r_extra);
   x0 = hx - peg_l - 0.3 - 1.5;
   hull() {
     translate([x0, ear_y, ear_z]) rotate([0, 90, 0]) cylinder(d = bd, h = hx_in - x0 + 0.5);
@@ -212,7 +219,7 @@ module back_cavity() {
   }
 }
 
-module head_back() {
+module head_back(pilots = true) {
   difference() {
     union() {
       difference() {
@@ -251,9 +258,13 @@ module head_back() {
     translate([0, -hy - pad_h + bore_t, z_neck]) rotate([90, 0, 0]) linear_extrude(bore_t + 0.01)
       tear2d(neck_flange_d + fit, 12);
     translate([0, -hy + wall + 1, z_neck]) rotate([90, 0, 0]) linear_extrude(wall + pad_h + 2) tear2d(cable_d);
-    for (sx = [-1, 1]) translate([sx * neck_bolt_x, -hy - pad_h + bore_t + 0.01, z_neck]) rotate([90, 0, 0])
-      cylinder(d = pilot_d, h = 6.5);
+    if (pilots) neck_pilots();
   }
+}
+// 2 M3-Kernloecher: ab Boden der Flanschbohrung nach +Y ins Material (Richtung Kopfinneres)
+module neck_pilots() {
+  for (sx = [-1, 1]) translate([sx * neck_bolt_x, -hy - pad_h + bore_t - 0.01, z_neck]) rotate([-90, 0, 0])
+    cylinder(d = pilot_d, h = neck_pilot_len + 0.01);
 }
 
 module ear() {
@@ -303,15 +314,23 @@ module head_dummies() {
   pcb_dummy(); glass_dummy(); rear_dummy(); sockets_dummy(); plugs_dummy(); buttons_dummy();
   active_cone(); sd_dummy();
 }
-module head_shells() { front_shell(); bezel(); head_back(); ears(); decos(); }
+module head_shells() { head_front(); bezel(); head_back(); ears(); decos(); }
 
 // ================================================================= Weltlage
 // Konstruktionslage -> Welt: Sockelmitte (0, -hy-pad_h, z_neck) auf neck_pt, Gesicht nach -Y, um head_tilt nach hinten geneigt
 module place_head() {
   translate(neck_pt) rotate([-head_tilt, 0, 0]) rotate([90, 0, 0]) translate([0, hy + pad_h, -z_neck]) children();
 }
-function head_w(p) = let(q = [p[0], -(p[2] - z_neck), p[1] + hy + pad_h], c = cos(head_tilt), s = sin(head_tilt))
+function head_to_world(p) = let(q = [p[0], -(p[2] - z_neck), p[1] + hy + pad_h], c = cos(head_tilt), s = sin(head_tilt))
   neck_pt + [q[0], q[1] * c + q[2] * s, -q[1] * s + q[2] * c];
+
+// HALSACHSE FUER TASK 3: Achse und Flanschebene des Halses sind um head_tilt gegen die Senkrechte geneigt (Kopf lehnt nach hinten),
+// weil der Sockel fest am Kopf sitzt. neck_axis_w zeigt vom Sockel in den Kopf (nach oben und um head_tilt nach hinten, +Y).
+// Die Flanschebene steht senkrecht auf dieser Achse und geht durch neck_pt. Der Hals unten (Oberkoerper) ist dagegen waagerecht:
+// der Hals braucht entweder eine Schraegung/Knick oder der Kopf-Flansch wird gegen den Oberkoerper-Flansch um head_tilt gekippt.
+neck_axis_w = [0, sin(head_tilt), cos(head_tilt)];
+// Lokales Koordinatensystem am Halsflansch: Ursprung neck_pt, lokales +Z = neck_axis_w, lokales Y = Weltrichtung "hinten" in der Flanschebene.
+module neck_frame() { translate(neck_pt) rotate([-head_tilt, 0, 0]) children(); }
 
 module shells()   { place_head() head_shells(); }     // Task 3/4: weitere Gehaeuseteile hier ergaenzen
 module dummies()  { place_head() head_dummies(); }    // Task 3/4: weitere Pruefkoerper hier ergaenzen
@@ -327,7 +346,7 @@ head_masses_c = [
   [25, 0, 0, (z_pcb_bot + z_rear) / 2],       // Platine mit Bauteilen
   [10, 0, 0, z_glass_bot + disp_h / 2]        // Display
 ];
-function to_world(m) = let(w = head_w([m[1], m[2], m[3]])) [m[0], w[0], w[1], w[2]];
+function to_world(m) = let(w = head_to_world([m[1], m[2], m[3]])) [m[0], w[0], w[1], w[2]];
 // [g, x, y, z] in Weltkoordinaten. Task 3/4 haengen ihre Listen mit concat(...) an.
 masses = concat([for (m = head_masses_c) to_world(m)]);
 function msum(i, k = 0) = k >= len(masses) ? 0 : (i == 0 ? masses[k][0] : masses[k][0] * masses[k][i]) + msum(i, k + 1);
@@ -346,6 +365,7 @@ module info() {
   echo(str("HEAD_W=", head_w, " HEAD_H=", head_h, " DEPTH=", -z_back, " SPLIT=", z_split, " NECK_Z=", z_neck));
   echo(str("MASS=", mtot, " COM=[", com_x, ",", com_y, ",", com_z, "]"));
   echo(str("WINDOW=", win_w, "x", win_h));
+  echo(str("NECK_AXIS_W=", neck_axis_w, " NECK_PT=", neck_pt, " TILT=", head_tilt));
   if (has_seat) echo(str("STAND_MIN_MARGIN=", stand_margin([com_x, com_y]), " STAND_MIN=", stand_min));
   else echo("STAND_SKIPPED=kein seat vorhanden");
   cube(1);
@@ -353,7 +373,7 @@ module info() {
 
 // ================================================================= Ansichten
 module colored_head() {
-  color("#3a7bd5") { front_shell(); head_back(); }
+  color("#3a7bd5") { head_front(); head_back(); }
   color("#161616") bezel();
   color("#ffb000") ears();
   color("#c0c0c0") decos();
@@ -371,7 +391,7 @@ module exploded_parts() {
   place_head() {
     translate([0, 0, 28]) color("#161616") bezel();
     translate([0, 0, 14]) color("#c0c0c0") decos_head_only();
-    color("#3a7bd5") front_shell();
+    color("#3a7bd5") head_front();
     translate([0, 0, -34]) color("#3a7bd5") head_back();
     translate([30, 0, 0]) color("#ffb000") ear_right();
     translate([-30, 0, 0]) color("#ffb000") ear_left();
@@ -382,7 +402,7 @@ module decos_head_only() { for (p = deco_pts) translate([p[0], p[1], -deco_in]) 
 
 // ================================================================= Ausgabe
 // Druckausrichtung: Gesicht bzw. Aussenseite nach unten, kein Teil braucht Stuetzen.
-if (part == "head_front") rotate([180, 0, 0]) front_shell();                // Gesicht (Z 0) auf dem Bett
+if (part == "head_front") rotate([180, 0, 0]) head_front();                // Gesicht (Z 0) auf dem Bett
 else if (part == "bezel") translate([0, 0, bezel_t]) rotate([180, 0, 0]) bezel(); // Blendenoberseite auf dem Bett, Steg nach oben
 else if (part == "head_back") translate([0, 0, -z_back]) head_back();        // Rueckseite (Z back) auf dem Bett
 else if (part == "ear") ear();                                                 // Aussenseite auf dem Bett, Zapfen nach oben
@@ -402,4 +422,7 @@ else if (part == "collision")
 else if (part == "selftest")
   // Positive-Kontrolle fuer die Kollisionspruefung: absichtlich zu grosse Platine, MUSS Treffer liefern
   intersection() { shells(); place_head() scale([1.1, 1.1, 1]) pcb_dummy(); }
+else if (part == "pilot_test")
+  // Nachweis Kernloecher: Bohrvolumen gegen head_back OHNE Kernloecher, muss Material treffen (Y-Ausdehnung >= neck_pilot_len)
+  intersection() { head_back(false); neck_pilots(); }
 else if (part == "info") info();

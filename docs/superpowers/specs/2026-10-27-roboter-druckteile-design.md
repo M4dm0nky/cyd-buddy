@@ -20,10 +20,11 @@ Stand 2026-10-27. Baut auf `2026-10-26-roboter-gehaeuse-design.md` auf (Form, St
 ## Teile
 | Teil (`part=`) | Farbe | Inhalt und Verbindung |
 |---|---|---|
-| `head_front` | blau | Kopfschale mit Display-Fenster und CYD-Halterung wie in Stufe 2 (gleiche Parameter). 4 Schraubdome M3. Flache Mulde für die Blende. Je ein Steckloch für die Ohren. |
-| `bezel` | schwarz | Gesichtsblende, flacher Rahmen um das Fenster (≥ 1,2 mm). Sie wird in die Mulde gesteckt (Presspassung, bei Bedarf Kleber). Die Fensterkante bildet die Blende, die Fase gilt wie in Stufe 2. |
-| `head_back` | blau | Rückwand mit Falz. Öffnung für USB-C des CYD, Fenster für BOOT/RESET. Unten die Aufnahme für den Hals. 4× M3 von hinten. |
-| `ear` (2×) | gelb | Runde Scheibe Ø 30 mm mit Zapfen, wird seitlich in den Kopf gesteckt. Die Zierschraube in der Mitte ist erhaben. |
+| `head_front` | blau | Kopfschale mit Display-Fenster und CYD-Halterung wie in Stufe 2 (gleiche Parameter). 4 Schraubdome M3. Umlaufende Nut (2 mm breit, 0,8 tief) für den Steg der Blende, Einsätze für 4 Zierschrauben. |
+| `bezel` | schwarz | Gesichtsblende, flacher Rahmen um das Fenster (≥ 1,2 mm). Sie liegt 1,2 mm erhaben auf dem Gesicht und rastet mit einem Steg in die Nut (ohne Stützen druckbar: eine flächige Mulde wäre bei "Gesicht unten" ein freitragender Kragarm) (Presspassung, bei Bedarf Kleber). Die Fensterkante bildet die Blende, die Fase gilt wie in Stufe 2. |
+| `head_back` | blau | Rückwand mit Falz. Öffnung für USB-C des CYD, Fenster für BOOT/RESET. Je ein Steckloch mit Steg für die Ohren (Ohr-Mitte Y = +22, damit die Scheibe die USB-C-Öffnung freilässt). Unten der Halssockel (Bohrung Ø 24,3, Kabelloch Ø 12, 2 M3-Kernlöcher). Der SD-Slot ist nur bei abgenommener Rückwand erreichbar. 4× M3 von hinten. |
+| `ear` (2×) | gelb | Runde Scheibe Ø 30 mm mit Zapfen, wird seitlich in den Kopf gesteckt. Die Zierschraube in der Mitte ist erhaben (Einlage, Teil `deco`). |
+| `deco` | silber (eigene Farbe) | Zierschrauben als Einlagen: 4× Ø 4 (0,6 erhaben) für den Kopf, Ohr-Einlagen Ø 8 (0,8 erhaben). Sie sitzen in Taschen, weil erhabene Köpfe bei "Gesicht unten" unter der Bettebene lägen. In der AMS-3MF sind sie eigene Körper. |
 | `neck` | schwarz | Rohr Ø 22 mm mit Kabelkanal ≥ 10 mm. Oben und unten je ein Flansch mit 2× M3. Die Schrauben sind von innen erreichbar, wenn die Rückwände von Kopf bzw. Oberkörper abgenommen sind. |
 | `torso_front` | orange | Brust mit Linsenloch, Kamera um 15° nach oben gekippt, Klemmrippen und Anschlag für den XIAO. Steckaufnahmen für die Schulterzapfen. Zierschrauben erhaben. |
 | `torso_back` | orange | Rückwand mit Lüftungsschlitzen, M3. |
@@ -34,7 +35,7 @@ Stand 2026-10-27. Baut auf `2026-10-26-roboter-gehaeuse-design.md` auf (Form, St
 | `foot` (2×) | schwarz | Fuß, wird vorn auf das Bein gesteckt, Spitze nach oben. |
 
 Form und Maße kommen aus `case/konzept/roboter_konzept.scad`:
-- Kopf 114 × 84 × 32 mm, 8° nach hinten geneigt
+- Kopf 114 × 84 × 36,9 mm (Tiefe 32 im Konzept, Halssockel und Ohrscheibe brauchen mehr), 8° nach hinten geneigt
 - Oberkörper 64 × 44 × 48 mm
 - Po etwa 112 × 58 × 32 mm
 Wo der Inhalt mehr Platz braucht, gehen die Innenmaße vor. Die Außenmaße passen sich dann an.
