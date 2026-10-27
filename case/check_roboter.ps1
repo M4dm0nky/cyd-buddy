@@ -14,8 +14,8 @@ $pngDir = Join-Path $here 'render'
 New-Item -ItemType Directory -Force $stlDir, $pngDir | Out-Null
 $script:fails = 0
 
-# Druckteile. Spaetere Tasks haengen ihre Teile hier an (Task 3: neck, torso_front, torso_back, arm, hand; Task 4: seat, bottom, foot).
-$parts = @("head_front", "bezel", "head_back", "ear", "deco", "torso_front", "torso_back", "neck", "arm", "hand")
+# Druckteile. Spaetere Tasks haengen ihre Teile hier an (Task 3: neck, torso_front, torso_back, arm, hand; Task 4: seat, bottom, foot, jetzt enthalten).
+$parts = @("head_front", "bezel", "head_back", "ear", "deco", "torso_front", "torso_back", "neck", "arm", "hand", "seat", "bottom", "foot")
 
 function Ok($m)   { Write-Host "[ OK ] $m" -ForegroundColor Green }
 function Bad($m)  { Write-Host "[FAIL] $m" -ForegroundColor Red; $script:fails++ }
@@ -71,8 +71,19 @@ if ($r.Text -match 'STAND_MIN_MARGIN=([-0-9.e]+) STAND_MIN=([-0-9.e]+)') {
   if ($m -ge $mn) { Ok ("Stand: Lot des Schwerpunkts {0:N1} mm innerhalb der Sitzflaeche (verlangt >= {1})" -f $m, $mn) }
   else { Bad ("Stand: Lot des Schwerpunkts nur {0:N1} mm innerhalb der Sitzflaeche, verlangt >= {1}" -f $m, $mn) }
 } elseif ($r.Text -match 'STAND_SKIPPED') {
-  Note "Stand: uebersprungen, es gibt noch keine Sitzflaeche (seat_poly leer, kommt mit Task 4)"
+  Bad "Stand: seat_poly ist leer, die Standpruefung ist nicht aktiv"
 } else { Bad "Stand: weder STAND_MIN_MARGIN noch STAND_SKIPPED aus info gelesen" }
+
+# 2b) Positivfall Standsicherheit: 400 g weit hinter dem Po muessen die Pruefung FAIL liefern (Margin < STAND_MIN), sonst taugt sie nichts
+if (-not $custom) {
+  $r = Run-Scad ((PartArg 'info_selftest') + @('-o', (Join-Path $env:TEMP 'madbuddy_roboter_info_selftest.stl')))
+  if ($r.Text -match 'STAND_SELFTEST_MARGIN=([-0-9.e]+) STAND_MIN=([-0-9.e]+)') {
+    $inv = [Globalization.CultureInfo]::InvariantCulture
+    $m = [double]::Parse($Matches[1], $inv); $mn = [double]::Parse($Matches[2], $inv)
+    if ($m -lt $mn) { Ok ("Selbsttest Stand: Masse weit hinten wird als FAIL erkannt (Margin {0:N1} < {1})" -f $m, $mn) }
+    else { Bad ("Selbsttest Stand: Masse weit hinten bleibt im Stand (Margin {0:N1}), die Pruefung erkennt Kippen nicht" -f $m) }
+  } else { Bad "Selbsttest Stand: STAND_SELFTEST_MARGIN nicht gelesen" }
+}
 
 # 3) Kollisionspruefung: Gehaeuse gegen alle Pruefkoerper (Platine, Glas, Rueckseite, Buchsen, Stecker, aktive Flaeche + Sichtkegel)
 $col = Join-Path $env:TEMP 'madbuddy_roboter_collision.stl'
@@ -171,6 +182,63 @@ if (-not $custom) {
   $null = Run-Scad ((PartArg 'torso_selftest') + @('-o', $ts))
   if ((FacetCount $ts) -gt 0) { Ok "Selbsttest Oberkoerper: absichtliche Kollision wird erkannt" }
   else { Bad "Selbsttest Oberkoerper: absichtliche Kollision NICHT erkannt" }
+}
+
+# 3h) Task 4: Kernloecher der Bodendome im Material, Sitz gegen Oberkoerper/Arme/Haende/Fuesse, Bodenplatte gegen Sitz, Handauflage
+$f = Join-Path $env:TEMP 'madbuddy_roboter_pilot_seat_dome.stl'
+if (Test-Path $f) { Remove-Item $f }
+$null = Run-Scad ((PartArg 'pilot_seat_dome') + @('-o', $f))
+if ((FacetCount $f) -eq 0) { Bad "Sitz-Dom-Kernloecher: Bohrvolumen trifft kein Material (Loch liegt in der Luft)" }
+else {
+  $vs = [regex]::Matches((Get-Content $f -Raw), 'vertex\s+(\S+)\s+(\S+)\s+(\S+)') | ForEach-Object { [double]::Parse($_.Groups[3].Value, $inv) }
+  $ext = ($vs | Measure-Object -Maximum).Maximum - ($vs | Measure-Object -Minimum).Minimum
+  if ($ext -ge 7.5) { Ok ("Sitz-Dom-Kernloecher (Z): {0:N2} mm im Material (>= 7,5)" -f $ext) } else { Bad ("Sitz-Dom-Kernloecher: nur {0:N2} mm im Material, verlangt >= 7,5" -f $ext) }
+}
+$cs = Join-Path $env:TEMP 'madbuddy_roboter_collision_seat.stl'
+if (Test-Path $cs) { Remove-Item $cs }
+$r = Run-Scad ((PartArg 'collision_seat') + @('-o', $cs)) 900
+$rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
+if ($rest -match 'WARNING|ERROR') { Bad "Sitz-Kollision: WARNING/ERROR: $($rest.Trim())" }
+elseif ($r.Text -match $emptyMsg -or ($r.Code -eq 0 -and (FacetCount $cs) -eq 0)) { Ok "Sitz-Kollision: seat/bottom/Fuesse gegen Oberkoerper, Hals, Kopf, Arme, Haende kollisionsfrei" }
+else { Bad "Sitz-Kollision: Teile schneiden sich ($(FacetCount $cs) Facetten) -> $cs" }
+if (-not $custom) {
+  $f = Join-Path $env:TEMP 'madbuddy_roboter_collision_seat_selftest.stl'
+  if (Test-Path $f) { Remove-Item $f }
+  $null = Run-Scad ((PartArg 'collision_seat_selftest') + @('-o', $f))
+  if ((FacetCount $f) -gt 0) { Ok "Selbsttest Sitz-Kollision: Oberkoerper 3 mm im Sitz wird erkannt" } else { Bad "Selbsttest Sitz-Kollision: NICHT erkannt" }
+}
+# Handauflage: Grundriss der Handflaeche muss ganz auf dem Material von seat liegen (Differenz leer); Hand 14 mm nach aussen muss eine Luecke melden
+$f = Join-Path $env:TEMP 'madbuddy_roboter_hand_support.stl'
+if (Test-Path $f) { Remove-Item $f }
+$r = Run-Scad ((PartArg 'hand_support') + @('-o', $f)) 900
+$rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
+if ($rest -match 'WARNING|ERROR') { Bad "Handauflage: WARNING/ERROR: $($rest.Trim())" }
+elseif ($r.Text -match $emptyMsg -or (FacetCount $f) -eq 0) { Ok "Handauflage: Handflaeche liegt ganz auf dem Oberschenkel (seat)" }
+else { Bad "Handauflage: Handflaeche ragt ueber den Oberschenkel ($(FacetCount $f) Facetten) -> $f" }
+if (-not $custom) {
+  $f = Join-Path $env:TEMP 'madbuddy_roboter_hand_support_selftest.stl'
+  if (Test-Path $f) { Remove-Item $f }
+  $null = Run-Scad ((PartArg 'hand_support_selftest') + @('-o', $f)) 900
+  if ((FacetCount $f) -gt 0) { Ok "Selbsttest Handauflage: versetzte Hand (ueber der Kante) wird erkannt" } else { Bad "Selbsttest Handauflage: NICHT erkannt" }
+}
+# Montage Schritt 4 und 5: Schraubendreher Ø6 x 60 entlang der Achse gegen alle bis dahin montierten Teile
+foreach ($t in @(@{ n = 'drv_p4'; l = 'Montage Schritt 4 (Sitzschrauben von unten, 4 Schrauben)' }, @{ n = 'drv_p5'; l = 'Montage Schritt 5 (Bodenschrauben von unten, 4 Schrauben)' })) {
+  $f = Join-Path $env:TEMP ("madbuddy_roboter_{0}.stl" -f $t.n)
+  if (Test-Path $f) { Remove-Item $f }
+  $r = Run-Scad ((PartArg $t.n) + @('-o', $f)) 900
+  $rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
+  if ($rest -match 'WARNING|ERROR') { Bad "$($t.l): WARNING/ERROR: $($rest.Trim())" }
+  elseif ($r.Text -match $emptyMsg -or (FacetCount $f) -eq 0) { Ok "$($t.l): Schraubendreher Ø6 x 60 kollisionsfrei erreichbar" }
+  else { Bad "$($t.l): Schraubendreher kollidiert ($(FacetCount $f) Facetten) -> $f" }
+}
+if (-not $custom) {
+  foreach ($n in @('drv_selftest_p4', 'drv_selftest_p5')) {
+    $f = Join-Path $env:TEMP ("madbuddy_roboter_{0}.stl" -f $n)
+    if (Test-Path $f) { Remove-Item $f }
+    $null = Run-Scad ((PartArg $n) + @('-o', $f)) 900
+    if ((FacetCount $f) -gt 0) { Ok "Selbsttest $n : versetzter Schraubendreher wird als Kollision erkannt" }
+    else { Bad "Selbsttest $n : versetzter Schraubendreher NICHT erkannt" }
+  }
 }
 
 # 4) PNG-Renders

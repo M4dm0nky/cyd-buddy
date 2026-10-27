@@ -615,8 +615,8 @@ module hand(s = 1) { translate([s * arm_x, hand_c_y, arm_H[2]]) hand_l(); }
 module arm_print() translate([-(arm_S[2] - arm_S[1]) * cos(45), 0, arm_x + arm_flat]) rotate([0, 90, 0]) rotate([-45, 0, 0]) arm_r();
 
 module body_shells() { place_torso() { torso_front(); torso_back(); neck(); torso_decos(); } for (s = [1, -1]) { arm(s); hand(s); } }
-module shells()   { place_head() head_shells(); body_shells(); }
-module dummies()  { place_head() head_dummies(); xiao_dummy_r(); lens_cone_r(); }
+module shells()   { place_head() head_shells(); body_shells(); seat_shells(); }
+module dummies()  { place_head() head_dummies(); xiao_dummy_r(); lens_cone_r(); seat_dummies(); }
 
 // ---- Pruefkoerper fuer die Montage (Schraubendreher Ø6, 60 lang) und Kollisionspaare
 module hits() { for (i = [1 : $children - 1]) intersection() { children(0); children(i); } }   // child 0 gegen jedes weitere Kind einzeln
@@ -626,6 +626,279 @@ module drv_p2(dx = 0) for (sx = [-1, 1]) place_torso() neck_up() translate([sx *
 // Phase 1: Oberkoerper komplett, Hals aufgesetzt, kein Kopf. Phase 2: Rueckwand ab, kein XIAO, Kopf drauf.
 module phase1_parts() { place_torso() { torso_front(); torso_back(); neck(); } arms_hands(); }
 module phase2_parts() { place_torso() { torso_front(); neck(); } place_head() head_shells(); arms_hands(); }
+
+// ================================================================= Po, Beine, Akkufach, Boden, Fuesse (Task 4)
+// Weltlage: X rechts, Y nach hinten, Z oben. Standflaeche = Unterseite von bottom bei z = 0.
+// MONTAGEFOLGE (komplett, jede Schraube per Pruefkoerper Ø6 x 60 nachgewiesen, check_roboter.ps1 Schritt 3g/3h):
+//   1. Hals von oben mit 2 M3x10 auf den Oberkoerper (Phase 1, torso_front + torso_back sind verschraubt, kein Kopf).
+//   2. Rueckwand des Oberkoerpers ab, Kopf auf den Hals, 2 M3x10 von UNTEN durch die Halsschlitze (Phase 2, Oberkoerper noch nicht auf dem Sitz).
+//   3. XIAO von hinten einsetzen, Rueckwand schliessen (4 M3x28).
+//   4. Einheit Oberkoerper+Hals+Kopf auf seat stecken (Steckrand greift um den Sitz) und von UNTEN mit 4 M3x8 (Flachkopf) verschrauben.
+//      Der Schraubendreher kommt durch den offenen Boden (bottom ab, Akku noch nicht eingelegt).
+//   5. Akku einlegen, 5V/GND verdrahten (Schalter, Kabel nach oben), bottom mit 4 M3x10 (Flachkopf) schliessen.
+// ---- Akkumodul DFR0969 (DFRobot "2-Way 18650 Battery Holder"), Quelle: https://www.dfrobot.com/product-2578.html, Size Diagram (3_0x0.png)
+bat_l      = 103.5;  // QUELLE (Datenblatt): Size Diagram Platine 103,50 mm
+bat_w      = 48.0;   // QUELLE (Datenblatt): Size Diagram Platine 48,00 mm
+bat_hole_dx = 95.5;  // QUELLE (Datenblatt): Montagebohrungen 95,50 mm in X (nur Information, nicht verwendet)
+bat_hole_dy = 33.0;  // QUELLE (Datenblatt): Montagebohrungen 33,00 mm in Y (nur Information, nicht verwendet)
+bat_r      = 6;      // VORLÄUFIG (Schätzung): Eckradius der Platine aus der Zeichnung
+bat_pcb_t  = 1.6;    // VORLÄUFIG (Schätzung): Platinendicke, Standard
+bat_h      = 25.0;   // VORLÄUFIG (Spec 2026-10-26: ca. 25 mm mit Zellen): Platinenunterkante bis Oberkante Zellen, im Datenblatt steht keine Hoehe
+cell_d     = 18.6;   // QUELLE: Spec: 18650 Ø 18,6
+cell_l     = 69;     // QUELLE: Spec: 65 mm, mit Polkappen bis 69 mm
+cell_pitch = 19.5;   // QUELLE (Datenblatt): Zeichnung, Abstand der beiden Zellreihen ca. 19,5 (aus dem Bild abgelesen)
+holder_end_w = 6;    // VORLÄUFIG (Schätzung): Kontaktbloecke an beiden Zellenenden, 6 mm tief in X
+holder_end_h = 14;   // VORLÄUFIG (Schätzung): Hoehe der Kontaktbloecke ueber der Platine
+// Lage der Bauteile in Modulkoordinaten (Mitte der Platine, Platinenunterkante z = 0). Die Zeichnung zeigt die Platine in Draufsicht mit 5V-Reihe oben und
+// Anschluessen rechts; im Gehaeuse liegt das Modul um 180 Grad gedreht (5V-Reihe vorn, Anschluesse links). Lage der Buchsen aus der Zeichnung nur grob lesbar.
+bat_usbc_y = 3;      // VORLÄUFIG (Schätzung): USB-C Mitte Y in Modulkoordinaten (Zeichnung: Anschluesse am Rand, Mitte der Kante)
+bat_usbc_w = 8.94;   // QUELLE: USB-C Norm-Buchse, Breite (VORLÄUFIG, Teil nicht vermessen)
+bat_usbc_d = 8.65;   // VORLÄUFIG (Schätzung): Buchse reicht 8,65 mm in die Platine (buendig mit der Kante)
+bat_usbc_h = 1.6;    // VORLÄUFIG (Schätzung): Buchse sitzt auf der Unterseite und ragt 1,6 unter die Platine
+bat_dip    = [-38.8, -19.5];  // VORLÄUFIG (Schätzung aus Zeichnung): HOLD/NORMAL-Schalter, Mitte (X, Y), nach 180-Grad-Drehung
+bat_dip_w  = 11.0;   // VORLÄUFIG (Schätzung): DIP-Schalter 11 x 4
+bat_dip_d  = 4.0;    // VORLÄUFIG (Schätzung)
+bat_dip_h  = 1.8;    // VORLÄUFIG (Schätzung): ragt 1,8 unter die Platine
+bat_led    = [-46, -13];     // VORLÄUFIG (Schätzung): Lade-LED, Mitte (X, Y); Lage nicht im Datenblatt belegt
+bat_pad    = [-5.8, -22.3];  // VORLÄUFIG (Schätzung aus Zeichnung): 5V/GND-Lötpads, drittes Paar der 5V-Reihe am vorderen Rand
+batt_clear = 1.0;    // QUELLE: Spec: Zusatzspiel des Akkufachs
+bat_yc     = -6;     // VORLÄUFIG (Entwurf): Modulmitte Y (Welt); der Akku liegt unter dem Oberkoerper (torso Y -30...14)
+// ---- Sitz (seat) und Boden (bottom)
+bot_t      = 2.4;    // QUELLE: Aufgabe: Boden >= 2,4
+bat_z0     = bot_t;  // Modul liegt direkt auf dem Boden (Unterseitenbauteile stehen in den Bodenoeffnungen)
+s_top      = leg_h;  // QUELLE: Konzept: Oberflaeche der Oberschenkel (Hand liegt auf z = 32)
+s_wall     = 5.4;    // VORLÄUFIG (Entwurf): Wand des Sitzes. Die Dome Ø7,4 und die Senkungen Ø6,2 der Bodenschrauben sitzen genau in den Ecken des Fachs (Modul-Ecke R6 laesst dort Platz); unter der Senkung bleibt am Rand der Bodenplatte 2,15 mm
+s_lip      = 1.8;    // VORLÄUFIG (Entwurf): Falz zwischen Sitz und Boden (aeusserer Rand des Sitzes reicht bis z = 0)
+ceil_air   = 0.75;   // VORLÄUFIG (Entwurf): Luft ueber den Zellen (ueber bat_h)
+zc         = bat_z0 + bat_h + ceil_air;   // abgeleitet: Unterseite der Deckenplatte des Sitzes (Oberkante des Fachs)
+s_ch       = 4;      // QUELLE: wie t_ch/Kopf: 45-Grad-Fase an der Oberkante (der Sitz wird auf dem Kopf druckend gedruckt)
+s_chb      = 0;      // VORLÄUFIG (Entwurf): keine Fase an der Unterkante (Standflaeche bis zum Rand, Senkung der Eckschrauben braucht den Rand)
+chx        = bat_l / 2 + batt_clear;   // abgeleitet: Halbbreite des Fachs
+chy        = bat_w / 2 + batt_clear;   // abgeleitet: Halbtiefe des Fachs
+cav_y0     = bat_yc - chy;
+cav_y1     = bat_yc + chy;
+dome_s_d   = 7.4;    // VORLÄUFIG (Entwurf): Dom aussen, Wand um das Kernloch (Ø2,6) 2,4, um die Bohrung Ø3,4 genau 2,0 (wie t_dome_d)
+boss_h     = 2.0;    // VORLÄUFIG (Entwurf): Auflage am Boden unter den Domen (Restdicke unter der Senkung >= 2)
+dome_z0    = bat_z0 + boss_h;   // abgeleitet: Unterkante der Dome
+pilot_s_len = 7.6;   // VORLÄUFIG (Entwurf): Kernloch M3 in den Domen (>= 7,5)
+bay_x0     = -26;    // VORLÄUFIG (Entwurf): Schalterbucht vorn links, X von ...
+bay_x1     = -12;    // ... bis
+bay_y0     = -45;    // VORLÄUFIG (Entwurf): Y von ...
+bay_y1     = cav_y0 + 1;   // ... bis (1 mm Ueberlappung mit dem Akkufach)
+rib_hx     = 34;     // VORLÄUFIG (Entwurf): Halbbreite der Stuetzrippen unter dem Steckrand (vorn/hinten ueber den Rand-Streifen des Moduls)
+rib_z0     = 25.8;   // VORLÄUFIG (Entwurf): Unterkante der Rippen; 2 mm unter dem Boden der Steckrand-Aussparung (z 27,85)
+rib_f_y1   = -25.4;  // VORLÄUFIG (Entwurf): Rippe vorn bis Y (die Zellen beginnen bei Y -25,05)
+rib_b_y0   = 10;     // VORLÄUFIG (Entwurf): Rippe hinten ab Y
+notch_x0   = -10;    // VORLÄUFIG (Entwurf): Kabelkerbe in der vorderen Rippe, X von ...
+notch_x1   = 8;      // ... bis
+groove_d   = 1.6;    // VORLÄUFIG (Entwurf): Kabelrinne in der Deckenplatte (Restdicke 2,25)
+groove_x0  = -6;     // VORLÄUFIG (Entwurf): Rinne X von ...
+groove_x1  = 3;      // ... bis
+groove_y0  = -27;    // VORLÄUFIG (Entwurf): Rinne von Y ... (bis zum Kabelloch bei Y = torso_origin Y)
+cbore_hd   = 1.65;   // VORLÄUFIG (Datenblatt): M3 Flachkopf ISO 7380, Kopfhoehe 1,65
+// Schiebeschalter SS12D00 (VORLÄUFIG, nicht vermessen)
+sw_l       = 12.0;   // VORLÄUFIG (Schätzung): Gehaeuse 12 x 6 x 6
+sw_w       = 6.0;
+sw_h       = 6.0;
+sw_lev_h   = 4.0;    // VORLÄUFIG (Schätzung): Hebel 4 mm lang (zeigt nach unten durch den Boden)
+sw_lev_w   = 2.0;    // VORLÄUFIG (Schätzung): Hebelbreite
+sw_travel  = 3.5;    // VORLÄUFIG (Schätzung): Schaltweg in X
+sw_x       = -19;    // VORLÄUFIG (Entwurf): Schaltermitte X (in der Bucht)
+sw_y       = -38;    // VORLÄUFIG (Entwurf): Schaltermitte Y
+sw_slot_w  = 3.6;    // abgeleitet: Hebelbreite + 2 x 0,8 Spiel
+sw_slot_l  = sw_travel + 3 + 2;   // abgeleitet: Schaltweg + Hebel 3 + 2 x 1 Spiel
+sw_z0      = bot_t + 2.2;     // abgeleitet: Gehaeuseunterkante; Hebelspitze liegt bei z = 0,6 (>= 0, steht nicht unter der Standflaeche)
+// Fuss (foot) und Zapfen
+leg_x      = 28;     // QUELLE: Konzept (leg_x): Beinmitte
+leg_len    = 62;     // QUELLE: Konzept (leg_len): vorderes Ende der Beine bei Y = -62
+foot_w     = 44;     // QUELLE: Konzept (foot_w)
+foot_t     = 18;     // QUELLE: Konzept (foot_l): Fussdicke in Y
+foot_h     = 40;     // VORLÄUFIG (Entwurf): Konzept 44; 4 mm niedriger, damit der Sichtkegel der Kamera (Linsenkegel, 30 Grad) frei bleibt (Pruefung: Kollision)
+foot_r     = 7;      // QUELLE: Konzept: Eckradius 7
+foot_chb   = 3;      // VORLÄUFIG (Entwurf): 45-Grad-Fase an der Rueckseite (Druckflaeche des Fusses, ohne Ueberhang)
+foot_chf   = 5;      // VORLÄUFIG (Entwurf): Fase vorn
+fpeg_d     = 8;      // QUELLE: Aufgabe: Zapfen Ø 8
+fpeg_l     = 8;      // VORLÄUFIG (Entwurf): Zapfenlaenge (>= 6)
+fpeg_z     = 14;     // VORLÄUFIG (Entwurf): Zapfenhoehe ueber dem Boden
+fpeg_ch    = 0.5;    // QUELLE: Aufgabe: 0,5er Fase
+leg_stub_r = 12;     // QUELLE: Konzept: Eckradius der vorderen Beine
+leg_stub_w = 46;     // QUELLE: Konzept: Breite der vorderen Beine
+leg_stub_d = 28;     // QUELLE: Konzept: Tiefe der vorderen Beine
+seat_screw_pts = [for (p = t_seat_pts) [p[0], torso_origin[1] + p[1]]];   // abgeleitet: Welt-XY der 4 Sitzschrauben
+dome_pts_s = [for (sx = [-1, 1], y = [cav_y0, cav_y1]) [sx * chx, y]];   // abgeleitet: Dome in den Ecken des Fachs
+// ---- Wandbilanz Sitz/Boden (Ziel >= 2 mm)
+assert(s_wall >= 2, "Sitz: Wand unter 2 mm");
+assert(s_top - zc - cbore_t >= 2, "Sitz: Rest ueber der Senkung der Sitzschrauben unter 2 mm");
+assert(s_top - zc - groove_d >= 2, "Sitz: Rest ueber der Kabelrinne unter 2 mm");
+assert(cbore_t >= cbore_hd, "Senkung zu flach fuer den M3-Flachkopf");
+assert(rib_z0 - 0 >= 0 && (27.85 - rib_z0) >= 2, "Rippe: weniger als 2 mm unter der Steckrand-Aussparung");
+assert((dome_s_d - pilot_d) / 2 >= 2, "Sitz-Dom: Wand um das Kernloch unter 2 mm");
+assert((dome_s_d - screw_d) / 2 >= 2, "Sitz-Dom/Bodenauflage: Wand um die Bohrung unter 2 mm");
+assert(bot_t - cbore_t + boss_h >= 2, "Boden: Rest unter der Senkung unter 2 mm");
+assert(bot_t >= 2.4, "Boden duenner als 2,4");
+assert(s_wall - fit / 2 - cbore_d / 2 >= 2, "Boden: Rand um die Senkung der Eckschrauben unter 2 mm");
+assert(pilot_s_len >= 7.5, "Sitz-Dom-Kernloch unter 7,5");
+assert(zc - dome_z0 >= pilot_s_len + 1.5, "Sitz-Dom: Kernloch zu lang");
+assert(fpeg_d >= 6 && fpeg_l >= 6, "Fusszapfen kleiner als 6 mm");
+assert(foot_t - (fpeg_l + 0.6) >= 2, "Fuss: Wand hinter dem Zapfenloch unter 2 mm");
+assert(fpeg_z - (fpeg_d / 2 * sqrt(2) + fit_peg) >= 2, "Fuss: Wand unter dem Zapfenloch unter 2 mm");
+assert(sw_z0 - sw_lev_h >= 0, "Schalterhebel steht unter der Standflaeche");
+assert(abs(bay_x1 - bay_x0) >= sw_l + 2 && abs(bay_y1 - bay_y0) >= sw_w + 6, "Schalterbucht zu klein");
+
+// ---- 2D-Formen
+module cav_main2d() translate([-chx, cav_y0]) square([2 * chx, 2 * chy]);
+module bay2d()      translate([bay_x0, bay_y0]) square([bay_x1 - bay_x0, bay_y1 - bay_y0]);
+module cav2d()      { cav_main2d(); bay2d(); }
+// Zone des Bodens (z < bot_t): Falz-Streifen s_lip am Rand, in den vier Ecken (Dome, Senkungen) reicht der Boden bis an den Rand. d = -fit/2 fuer den Boden, 0 fuer die Aussparung im Sitz
+module plate_zone(d, e = 0) { offset(r = s_wall - s_lip + d) cav2d(); for (p = dome_pts_s) translate(p) circle(r = s_wall + d + e); }   // e: Uebermass, damit die Aussparung die Aussenflaeche des Sitzes sauber durchschneidet
+module main_out2d() offset(r = s_wall) cav_main2d();
+module bay_out2d()  offset(r = s_wall) bay2d();
+module thigh_out2d(sx) hull() {
+  for (dx = [-1, 1], cy = [-leg_len + leg_stub_r, -leg_len + leg_stub_d - leg_stub_r])
+    translate([sx * leg_x + dx * (leg_stub_w / 2 - leg_stub_r), cy]) circle(r = leg_stub_r);
+  intersection() { main_out2d(); translate([sx > 0 ? 0 : -100, cav_y0 - s_wall - 0.01]) square([100, 15]); }
+}
+module chamf3(h, ct, cb) {   // konvexe 2D-Form (children) extrudieren, oben ct, unten cb als 45-Grad-Fase
+  hull() {
+    translate([0, 0, cb]) linear_extrude(h - ct - cb) children();
+    linear_extrude(0.01) offset(delta = -cb) children();
+    translate([0, 0, h - 0.01]) linear_extrude(0.01) offset(delta = -ct) children();
+  }
+}
+module seat_outer() {
+  chamf3(s_top, s_ch, s_chb) main_out2d();
+  chamf3(s_top, s_ch, s_chb) bay_out2d();
+  for (sx = [-1, 1]) chamf3(s_top, s_ch, s_chb) thigh_out2d(sx);
+}
+// Raender der Rippen und des Faches
+module ribs() {
+  translate([-rib_hx, cav_y0 - 0.5, rib_z0]) cube([2 * rib_hx, rib_f_y1 - cav_y0 + 0.5, zc - rib_z0 + 0.01]);
+  translate([-rib_hx, rib_b_y0, rib_z0]) cube([2 * rib_hx, cav_y1 + 0.5 - rib_b_y0, zc - rib_z0 + 0.01]);
+}
+module dome_cols() for (p = dome_pts_s) translate([p[0], p[1], dome_z0]) cylinder(d = dome_s_d, h = zc - dome_z0 + 0.01);
+module cavity_cut() {
+  difference() {
+    union() {
+      translate([0, 0, bat_z0]) linear_extrude(zc - bat_z0) cav2d();
+      for (p = dome_pts_s) translate([p[0], p[1], bat_z0 - 0.01]) cylinder(d = dome_s_d + fit, h = boss_h + 0.01);   // Tasche fuer die Bodenauflage (ragt in die Wand)
+    }
+    ribs();
+    dome_cols();
+  }
+}
+// Steckrand-Aussparung: Huellkoerper des Oberkoerper-Randes (z 0..t_plate_z, plus fit/2) ohne den Zapfen (Innenkontur minus fit/2)
+module rim_env() place_torso() minkowski() {
+  intersection() { t_solid(); translate([-40, -30, 0]) cube([80, 60, t_plate_z]); }
+  cube(fit, center = true);
+}
+module plug_env() place_torso() translate([0, 0, -1]) linear_extrude(t_plate_z + 1.01) offset(delta = -fit / 2) torso_pocket2d();
+module recess_cut() difference() { rim_env(); plug_env(); }
+module dome_pilots_s() for (p = dome_pts_s) translate([p[0], p[1], dome_z0 - 0.01]) cylinder(d = pilot_d, h = pilot_s_len + 0.01);
+
+module fpeg_prof() {   // Zapfenprofil in (X, Z): Tropfen mit Spitze nach unten (-Z), oben abgeflacht
+  intersection() {
+    rotate(180) tear2d(fpeg_d);
+    translate([-fpeg_d, -fpeg_d]) square([2 * fpeg_d, fpeg_d + fpeg_d / 2 - peg_flat]);
+  }
+}
+module fpeg() {   // Zapfen am Ursprung, zeigt nach -Y (Wurzel bei Y = 0)
+  rotate([90, 0, 0]) hull() {
+    translate([0, 0, -0.1]) linear_extrude(fpeg_l - fpeg_ch + 0.1) fpeg_prof();
+    translate([0, 0, fpeg_l - 0.01]) linear_extrude(0.01) offset(delta = -fpeg_ch) fpeg_prof();
+  }
+}
+module seat(pilots = true) {
+  difference() {
+    union() {
+      difference() {
+        seat_outer();
+        translate([0, 0, -1]) linear_extrude(bat_z0 + 1) plate_zone(0, 0.5);   // Platz fuer den Boden (z < bot_t)
+        cavity_cut();
+      }
+      for (sx = [-1, 1]) translate([sx * leg_x, -leg_len + 0.1, fpeg_z]) fpeg();
+    }
+    recess_cut();
+    // Kabelkerbe in der vorderen Rippe, Rinne in der Deckenplatte, Kabelloch fluchtend mit dem Loch im Oberkoerper
+    translate([notch_x0, cav_y0 - 0.6, rib_z0 - 0.01]) cube([notch_x1 - notch_x0, rib_f_y1 - cav_y0 + 0.6, zc - rib_z0 + 0.02]);
+    translate([groove_x0, groove_y0, zc - 0.01]) cube([groove_x1 - groove_x0, torso_origin[1] - groove_y0, groove_d + 0.01]);
+    translate([0, torso_origin[1], zc - 1]) cylinder(d = t_cable_d, h = s_top - zc + 2);
+    // 4 Sitzschrauben von unten (Senkung im Fach, Flachkopf)
+    for (p = seat_screw_pts) {
+      translate([p[0], p[1], zc - 1]) cylinder(d = screw_d, h = s_top - zc + 2);
+      translate([p[0], p[1], zc - 0.01]) cylinder(d = cbore_d, h = cbore_t + 0.01);
+    }
+    if (pilots) dome_pilots_s();
+  }
+}
+module bottom() {
+  difference() {
+    union() {
+      linear_extrude(bot_t) plate_zone(-fit / 2);
+      for (p = dome_pts_s) translate([p[0], p[1], bot_t - 0.01]) cylinder(d = dome_s_d, h = boss_h + 0.01);
+      // Auflage fuer den Schalter (zwei Rippen neben dem Hebelschlitz)
+      for (m = [-1, 1]) translate([sw_x - sw_l / 2, sw_y + m * (sw_slot_w / 2 + 0.85) - 0.85, bot_t - 0.01]) cube([sw_l, 1.7, sw_z0 - bot_t - 0.01]);
+    }
+    for (p = dome_pts_s) {   // 4 x M3 von unten mit Senkung
+      translate([p[0], p[1], -1]) cylinder(d = screw_d, h = bot_t + boss_h + 2);
+      translate([p[0], p[1], -0.01]) cylinder(d = cbore_d, h = cbore_t + 0.01);
+    }
+    // USB-C (1 mm Zugabe rundum), LED Ø3, HOLD/NORMAL, Schalterschlitz
+    translate([-chx, bat_yc + bat_usbc_y - bat_usbc_w / 2 - 1, -1]) cube([bat_usbc_d + 1 + 1, bat_usbc_w + 2, bot_t + 2]);
+    translate([bat_led[0], bat_yc + bat_led[1], -1]) cylinder(d = 3, h = bot_t + 2);
+    translate([bat_dip[0] - bat_dip_w / 2 - 1, bat_yc + bat_dip[1] - bat_dip_d / 2 - 1, -1]) cube([bat_dip_w + 2, bat_dip_d + 2, bot_t + 2]);
+    translate([sw_x - sw_slot_l / 2, sw_y - sw_slot_w / 2, -1]) cube([sw_slot_l, sw_slot_w, bot_t + 2]);
+  }
+}
+module foot_sec() translate([0, foot_h / 2]) rrect(foot_w / 2, foot_h / 2, foot_r);
+module foot_w(sx = 1) {   // Weltlage: Rueckseite bei Y = -leg_len, Fuss waechst nach -Y
+  translate([sx * leg_x, -leg_len, 0]) difference() {
+    rotate([90, 0, 0]) hull() {
+      linear_extrude(0.01) offset(delta = -foot_chb) foot_sec();
+      translate([0, 0, foot_chb]) linear_extrude(foot_t - foot_chb - foot_chf) foot_sec();
+      translate([0, 0, foot_t - 0.01]) linear_extrude(0.01) offset(delta = -foot_chf) foot_sec();
+    }
+    // Zapfenloch: Profil mit fit_peg Spiel, in der Druckausrichtung senkrecht (Rueckseite auf dem Bett)
+    translate([0, 0.01, fpeg_z]) rotate([90, 0, 0]) linear_extrude(fpeg_l + 0.6 + 0.01) offset(delta = fit_peg) fpeg_prof();
+  }
+}
+module foot() foot_w(1);
+
+// ---- Pruefkoerper
+module wire(pts, d = 1.3) for (i = [0 : len(pts) - 2]) hull() { translate(pts[i]) sphere(d = d, $fn = 8); translate(pts[i + 1]) sphere(d = d, $fn = 8); }
+module battery_dummy() translate([0, bat_yc, bat_z0]) {
+  linear_extrude(bat_pcb_t) rrect(bat_l / 2, bat_w / 2, bat_r);
+  for (sy = [-1, 1]) translate([-cell_l / 2, sy * cell_pitch / 2, bat_h - cell_d / 2]) rotate([0, 90, 0]) cylinder(d = cell_d, h = cell_l);
+  for (sx = [-1, 1]) translate([sx * (cell_l / 2 + holder_end_w / 2) - holder_end_w / 2, -cell_pitch / 2 - cell_d / 2 + 0.5, bat_pcb_t - 0.01]) cube([holder_end_w, cell_pitch + cell_d - 1, holder_end_h]);
+  translate([-bat_l / 2, bat_usbc_y - bat_usbc_w / 2, -bat_usbc_h]) cube([bat_usbc_d, bat_usbc_w, bat_usbc_h + 0.01]);
+  translate([bat_dip[0] - bat_dip_w / 2, bat_dip[1] - bat_dip_d / 2, -bat_dip_h]) cube([bat_dip_w, bat_dip_d, bat_dip_h + 0.01]);
+  translate([bat_led[0] - 1, bat_led[1] - 0.8, -0.8]) cube([2, 1.6, 0.81]);
+}
+module switch_dummy() {
+  translate([sw_x - sw_l / 2, sw_y - sw_w / 2, sw_z0]) cube([sw_l, sw_w, sw_h]);
+  translate([sw_x - (sw_travel + 3) / 2, sw_y - sw_lev_w / 2, sw_z0 - sw_lev_h]) cube([sw_travel + 3, sw_lev_w, sw_lev_h + 0.01]);   // Hebel ueber den ganzen Schaltweg
+}
+// Kabel 5V/GND: Pads (vorn am Modul) -> Schalter in der Bucht -> hoch durch die Rippenkerbe -> Rinne -> Kabelloch Ø10 -> in den Oberkoerper
+module wire_dummy() {
+  yh = torso_origin[1];
+  wire([[bat_pad[0], bat_yc + bat_pad[1], bat_z0 + bat_pcb_t], [bat_pad[0], bat_yc + bat_pad[1], 9], [sw_x + 5, bat_yc + bat_pad[1], 9], [sw_x + 5, sw_y + 2, 9]]);
+  wire([[sw_x - 5, sw_y + 2, 9], [sw_x - 5, sw_y + 2, 14], [sw_x - 5, -26.5, 14], [-3, -26.5, 14], [-3, -25.8, 14], [-3, -25.8, 29.0], [0.7, yh, 29.0], [0.7, yh, 33]]);
+  wire([[bat_pad[0] + 1.4, bat_yc + bat_pad[1], bat_z0 + bat_pcb_t], [bat_pad[0] + 1.4, bat_yc + bat_pad[1], 16], [bat_pad[0] + 1.4, -25.8, 16], [bat_pad[0] + 1.4, -25.8, 28.4], [-0.7, yh, 28.4], [-0.7, yh, 33]]);
+}
+// Auflagenachweis: Grundriss der Handflaeche (Schnitt der Hand mit einer Platte z 32..32,3) als Prisma z 31,9..32 muss ganz im Material von seat liegen
+module hand_support(dx = 0) difference() {
+  translate([0, 0, leg_h - 0.1]) linear_extrude(0.09) projection() intersection() { translate([dx, 0, 0]) hand(1); translate([-100, -100, leg_h]) cube([200, 200, 0.3]); }
+  seat();
+}
+module seat_shells() { seat(); bottom(); for (sx = [1, -1]) foot_w(sx); }
+module seat_dummies() { battery_dummy(); switch_dummy(); wire_dummy(); }
+
+// Werkzeug: Schritt 4 (Sitzschrauben von unten, Boden ab, Akku fehlt) und Schritt 5 (Bodenschrauben von unten)
+head_bot_z4 = zc + cbore_t - cbore_hd;       // abgeleitet: Unterkante des Flachkopfes in der Senkung des Sitzes
+head_bot_z5 = cbore_t - cbore_hd;            // abgeleitet: Unterkante des Flachkopfes in der Senkung des Bodens
+module drv_p4(dy = 0) for (p = seat_screw_pts) translate([p[0], p[1] + dy, head_bot_z4 - drv_l]) cylinder(d = drv_d, h = drv_l);
+module drv_p5(dx = 0, dz = 0) for (p = dome_pts_s) translate([p[0] - sign(p[0]) * dx, p[1], head_bot_z5 + dz - drv_l]) cylinder(d = drv_d, h = drv_l);
+module phase4_parts() { phase1_parts(); seat(); for (sx = [1, -1]) foot_w(sx); }
+module phase5_parts() { phase1_parts(); seat(); bottom(); battery_dummy(); switch_dummy(); for (sx = [1, -1]) foot_w(sx); }
 
 // ================================================================= Schwerpunkt / Standsicherheit (Schaetzung)
 // Massen in Konstruktionslage des Kopfes [g, x, y, z], VORLÄUFIG (Schaetzung)
@@ -641,20 +914,38 @@ head_masses_c = [
 function to_world(m) = let(w = head_to_world([m[1], m[2], m[3]])) [m[0], w[0], w[1], w[2]];
 // [g, x, y, z] in Weltkoordinaten. Task 3/4 haengen ihre Listen mit concat(...) an.
 arm_masses = [for (s = [-1, 1]) each [[8, s * arm_x, (arm_S[1] + arm_H[1]) / 2, (arm_S[2] + arm_H[2]) / 2], [6, s * arm_x, hand_c_y, arm_H[2]]]];
+seat_masses = [
+  [90, 0, -12, 16],                 // seat (Wand 3,8, Deckenplatte, massive Beine, ca. 40 % Fuellung), VORLÄUFIG (Schaetzung)
+  [22, 0, bat_yc, 1.2],             // bottom
+  [100, 0, bat_yc, bat_z0 + 11],    // Akkumodul mit 2 Zellen, ganz unten (QUELLE: Spec ca. 100 g)
+  [22, leg_x, -leg_len - foot_t / 2, foot_h / 2],     // Fuss rechts
+  [22, -leg_x, -leg_len - foot_t / 2, foot_h / 2],    // Fuss links
+  [20, 0, -8, 40]                   // Schrauben (20 x M3), Kabel, Schalter
+];
 masses = concat([for (m = head_masses_c) to_world(m)],
   [[38, 0, -18, 52], [45, 0, 2, 52], [8, 0, -8, 78], [8, 0, -18, 52]],   // Oberkoerper vorn/hinten, Hals, XIAO
-  arm_masses);
-function msum(i, k = 0) = k >= len(masses) ? 0 : (i == 0 ? masses[k][0] : masses[k][0] * masses[k][i]) + msum(i, k + 1);
+  arm_masses, seat_masses);
+function mass_sum(ms, i, k = 0) = k >= len(ms) ? 0 : (i == 0 ? ms[k][0] : ms[k][0] * ms[k][i]) + mass_sum(ms, i, k + 1);
+function msum(i) = mass_sum(masses, i);
 mtot  = msum(0);
 com_x = msum(1) / mtot;
 com_y = msum(2) / mtot;
 com_z = msum(3) / mtot;
 
 stand_min = 5;      // QUELLE: Spec: Lot des Schwerpunkts >= 5 mm innerhalb der Sitzflaeche
-seat_poly = [];     // Task 4: konvexe Sitzflaeche in Welt-XY, gegen den Uhrzeigersinn [[x,y],...]. Leer = Standpruefung uebersprungen.
+// Aufstandsflaeche: konvexe Huelle der Aufstandspunkte von bottom (Unterkante mit 1 mm Fase) und beiden Fuessen (Standflaeche ohne Fasen), Welt-XY, gegen den Uhrzeigersinn
+sp_x  = chx + s_wall - s_chb;                 // abgeleitet: Halbbreite der Unterkante von bottom
+sp_y0 = cav_y0 - s_wall + s_chb;              // abgeleitet: Vorderkante von bottom (ohne Schalterbucht)
+sp_y1 = cav_y1 + s_wall - s_chb;              // abgeleitet: Hinterkante
+sp_fx = leg_x + foot_w / 2 - foot_r;          // abgeleitet: Fuss-Standflaeche ohne Eckrundung (x)
+sp_fy = -leg_len - foot_t + foot_chf;         // abgeleitet: Vorderkante der Fuss-Standflaeche (y)
+seat_poly = [[-sp_fx, sp_fy], [sp_fx, sp_fy], [sp_x, sp_y0], [sp_x, sp_y1], [-sp_x, sp_y1], [-sp_x, sp_y0]];
 has_seat  = len(seat_poly) > 2;
 function edge_d(a, b, p) = ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])) / norm(b - a);
 function stand_margin(p) = min([for (i = [0 : len(seat_poly) - 1]) edge_d(seat_poly[i], seat_poly[(i + 1) % len(seat_poly)], p)]);
+// Positivfall: eine zusaetzliche Masse weit hinten, der Schwerpunkt muss die Aufstandsflaeche verlassen (Margin < stand_min)
+ms_test = concat(masses, [[400, 0, 150, 60]]);   // 400 g bei Y = +150 (weit hinter dem Po)
+com_t   = [mass_sum(ms_test, 1) / mass_sum(ms_test, 0), mass_sum(ms_test, 2) / mass_sum(ms_test, 0)];
 
 module info() {
   echo(str("HEAD_W=", head_w, " HEAD_H=", head_h, " DEPTH=", -z_back, " SPLIT=", z_split, " NECK_Z=", z_neck));
@@ -663,6 +954,11 @@ module info() {
   echo(str("NECK_AXIS_W=", neck_axis_w, " NECK_PT=", neck_pt, " TILT=", head_tilt));
   if (has_seat) echo(str("STAND_MIN_MARGIN=", stand_margin([com_x, com_y]), " STAND_MIN=", stand_min));
   else echo("STAND_SKIPPED=kein seat vorhanden");
+  echo(str("SEAT_PLAN_X=", sp_x, " Y=", sp_y0, "..", sp_y1, " FOOT_Y=", sp_fy));
+  cube(1);
+}
+module info_selftest() {
+  echo(str("STAND_SELFTEST_MARGIN=", stand_margin(com_t), " STAND_MIN=", stand_min));
   cube(1);
 }
 
@@ -691,8 +987,11 @@ module colored_body() {
     if (show_dummies) color("#8a4fc9", 0.8) xiao_dummy_l();
   }
   for (s = [1, -1]) { color("#ff7a29") arm(s); color("#263238") hand(s); }
+  color("#3a7bd5") { seat(); bottom(); }
+  for (s = [1, -1]) color("#161616") foot_w(s);
+  if (show_dummies) { color("#2e8b4a", 0.7) battery_dummy(); color("#c0c0c0") switch_dummy(); color("#d33", 0.9) wire_dummy(); }
 }
-module exploded_parts() {
+module exploded_upper() {
   place_head() {
     translate([0, 0, 28]) color("#161616") bezel();
     translate([0, 0, 14]) color("#c0c0c0") decos_head_only();
@@ -708,6 +1007,13 @@ module exploded_parts() {
     translate([0, 0, 22]) color("#263238") neck();
   }
   for (s = [1, -1]) translate([s * 25, 0, 0]) { color("#ff7a29") arm(s); color("#263238") hand(s); }
+}
+module exploded_parts() {
+  translate([0, 0, 22]) exploded_upper();
+  color("#3a7bd5") seat();
+  translate([0, 0, -24]) color("#3a7bd5") bottom();
+  for (s = [1, -1]) translate([s * 0, -16, 0]) color("#161616") foot_w(s);
+  if (show_dummies) { translate([0, 0, -12]) { color("#2e8b4a") battery_dummy(); color("#c0c0c0") switch_dummy(); } }
 }
 module decos_head_only() { for (p = deco_pts) translate([p[0], p[1], -deco_in]) head_deco(); }
 
@@ -727,6 +1033,23 @@ else if (part == "torso_back")  translate([0, 0, t_d / 2]) rotate([-90, 0, 0]) t
 else if (part == "neck")        translate([0, 0, -neck_lo_z]) neck();                              // stehend auf dem unteren Flansch
 else if (part == "arm") { if (side > 0) arm_print(); else mirror([0, 1, 0]) arm_print(); }       // liegend auf der Aussenseite
 else if (part == "hand")        translate([0, 0, hand_cut]) hand_l();                              // abgeflachte Unterseite auf dem Bett
+else if (part == "seat")        translate([0, 0, s_top]) rotate([180, 0, 0]) seat();               // auf dem Kopf: Oberseite (z = 32) auf dem Bett, Fach nach oben offen, keine Stuetzen
+else if (part == "bottom")      bottom();                                                           // Unterseite (Standflaeche) auf dem Bett
+else if (part == "foot")        translate([0, 0, -leg_len]) rotate([-90, 0, 0]) translate([-leg_x, 0, 0]) foot_w(1);   // Rueckseite (Zapfenloch) auf dem Bett
+else if (part == "pilot_seat_dome") intersection() { seat(false); dome_pilots_s(); }
+else if (part == "hand_support") hand_support();
+else if (part == "hand_support_selftest") hand_support(14);   // Hand 14 mm nach aussen versetzt: ragt ueber die Sitzkante, MUSS Material-Luecke melden
+else if (part == "drv_p4") hits() { drv_p4(); phase4_parts(); }
+else if (part == "drv_p5") hits() { drv_p5(); phase5_parts(); }
+else if (part == "drv_selftest_p4") hits() { drv_p4(-6); phase4_parts(); }
+else if (part == "drv_selftest_p5") hits() { drv_p5(5, 1.2); phase5_parts(); }
+else if (part == "info_selftest") info_selftest();
+else if (part == "collision_seat") union() {
+  // Beruehrflaechen (Oberkante z = 32, Fuss-Rueckseite) liegen koplanar; fuer den Test den Sitz 0,02 nach unten bzw. die Fuesse 0,02 nach vorn versetzt, echte Durchdringungen bleiben sichtbar
+  hits() { translate([0, 0, -0.02]) seat(); place_torso() { torso_front(); torso_back(); neck(); } place_head() head_shells(); arms_hands(); for (sx = [1, -1]) translate([0, -0.02, 0]) foot_w(sx); }
+  hits() { translate([0, 0, 0.02]) seat(); bottom(); }
+}
+else if (part == "collision_seat_selftest") hits() { seat(); translate([0, 0, -3]) place_torso() torso_front(); }   // Oberkoerper 3 mm in den Sitz: MUSS Treffer liefern
 else if (part == "pilot_neck")  intersection() { union() { torso_front(false); torso_back(false); } neck_pilots_t(); }
 else if (part == "pilot_seat")  intersection() { union() { torso_front(false); torso_back(false); } seat_pilots_t(); }
 else if (part == "pilot_dome")  intersection() { torso_front(false); dome_pilots_t(); }
