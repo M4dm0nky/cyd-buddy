@@ -43,6 +43,7 @@ act_w      = 59.0;  // GEMESSEN: bespielte Flaeche (58,8, aufgerundet)
 act_h      = 44.3;  // VORLÄUFIG (aus Breite hochgerechnet, 320x240 Pixel) -- nachmessen
 // Die Zeichnung (AA 57,6 mittig in 64,75 Glas) passt nicht zum Geraet: AA-Lage kommt aus der Messung.
 // Quer ist der Versatz ca. 0,2 mm (vernachlaessigt).
+disp_x     = -1.0;  // Versatz des Displaymoduls (Platine+Glas+Fenster) im Gehaeuse in X, negativ = nach links
 win_off_x  = 0.0;   // Fenster-Versatz in X gegen die AA-Mitte (Variable zum Feinabgleich)
 win_off_y  = 0.0;   // Fenster-Versatz in Y gegen die AA-Mitte (Variable zum Feinabgleich)
 win_margin = 0.3;   // QUELLE: Hersteller empfiehlt Fenster = AA + 0,3 mm je Seite
@@ -113,7 +114,7 @@ stand_min   = 1.5;  // geforderter Mindestabstand des Lots zum Rand der Standfla
 
 // ================================================================= abgeleitete Werte
 a_lip     = (wall - fit) / 2;                 // Aussenhaelfte der Wand im Falzbereich
-pcb_x0    = -(aa_left + aa_meas / 2);         // Platine linke Kante (Glas buendig aussen), Ursprung = Mitte der gemessenen AA
+pcb_x0    = -(aa_left + aa_meas / 2) + disp_x; // Platine linke Kante (Glas buendig aussen), Ursprung = Mitte der gemessenen AA (vor disp_x)
 btn_x     = pcb_x0 + btn_x_from_left;
 pcb_x1    = pcb_x0 + pcb_w;                   // Platine rechte Kante (USB-Seite)
 glass_x1  = pcb_x0 + glass_w;
@@ -125,7 +126,7 @@ z_split   = z_pcb_bot;
 z_rear    = z_pcb_bot - rear_h;
 z_floor   = z_rear - rear_clear - rear_extra;
 z_back    = z_floor - back_t;
-hx_in     = max(abs(pcb_x0) + fit, pcb_x1 + sock_over + usb_clear);
+hx_in     = max(abs(pcb_x0 - disp_x) + fit, pcb_x1 - disp_x + sock_over + usb_clear); // Gehaeusemass unabhaengig von disp_x
 dome_y    = pcb_h / 2 + fit + dome_d / 2 + 0.1;
 hy_in     = dome_y + dome_d / 2;
 hx        = hx_in + wall;
@@ -187,7 +188,7 @@ module sd_cut() {
 module window_cut() {
   // Fenster: hinten (Anlage am Glas) AA+0,3/Seite, nach vorn mit view_angle aufgeweitet
   e = (front_t + 0.01) * tan(win_bevel);
-  translate([win_off_x, win_off_y, 0])
+  translate([disp_x + win_off_x, win_off_y, 0])
     hull() {
       translate([0, 0, -front_t - 0.01]) linear_extrude(0.01) rrect(win_w / 2, win_h / 2, win_r);
       translate([0, 0, 0.01]) linear_extrude(0.01) rrect(win_w / 2 + e, win_h / 2 + e, win_r);
@@ -321,7 +322,7 @@ module lens_cone() {
 module active_cone() {
   // aktive Flaeche + Sichtkegel nach vorn (view_angle)
   L = 25;
-  translate([win_off_x, win_off_y, 0]) hull() {
+  translate([disp_x + win_off_x, win_off_y, 0]) hull() {
     translate([-act_w / 2, -act_h / 2, z_glass_top - 0.01]) cube([act_w, act_h, 0.01]);
     e = (L - z_glass_top) * tan(view_angle);
     translate([-act_w / 2 - e, -act_h / 2 - e, L]) cube([act_w + 2 * e, act_h + 2 * e, 0.01]);
