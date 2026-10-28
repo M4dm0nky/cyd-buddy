@@ -635,7 +635,7 @@ module phase2_parts() { place_torso() { torso_front(); neck(); } place_head() he
 //   1. Hals von oben mit 2 M3x10 auf den Oberkoerper (Phase 1, torso_front + torso_back sind verschraubt, kein Kopf).
 //   2. Rueckwand des Oberkoerpers ab, Kopf auf den Hals, 2 M3x10 von UNTEN durch die Halsschlitze (Phase 2, Oberkoerper noch nicht auf dem Sitz).
 //   3. XIAO von hinten einsetzen, Rueckwand schliessen (4 M3x28).
-//   4. Einheit Oberkoerper+Hals+Kopf auf seat stecken (Steckrand greift um den Sitz) und von UNTEN mit 4 M3x8 (Flachkopf) verschrauben.
+//   4. Einheit Oberkoerper+Hals+Kopf auf seat stecken (Steckrand greift um den Sitz) und von UNTEN mit 4 M3x10 (Flachkopf, seat_screw_l) verschrauben.
 //      Der Schraubendreher kommt durch den offenen Boden (bottom ab, Akku noch nicht eingelegt).
 //   5. Akku einlegen, 5V/GND verdrahten (Schalter, Kabel nach oben), bottom mit 4 M3x10 (Flachkopf) schliessen.
 // ---- Akkumodul DFR0969 (DFRobot "2-Way 18650 Battery Holder"), Quelle: https://www.dfrobot.com/product-2578.html, Size Diagram (3_0x0.png)
@@ -1041,6 +1041,9 @@ module decos_head_only() { for (p = deco_pts) translate([p[0], p[1], -deco_in]) 
 // ================================================================= Ausgabe
 // Druckausrichtung: Gesicht bzw. Aussenseite nach unten, kein Teil braucht Stuetzen.
 if (part == "head_front") rotate([180, 0, 0]) head_front();                // Gesicht (Z 0) auf dem Bett
+else if (part == "head_front_ams") rotate([180, 0, 0]) head_front();           // 3MF/AMS: wie head_front (Lage identisch zu bezel_inlay und screws_inlay)
+else if (part == "bezel_inlay") rotate([180, 0, 0]) bezel();                   // 3MF/AMS: Blende am Einbauort im Kopf (gleiche Lage wie head_front)
+else if (part == "screws_inlay") rotate([180, 0, 0]) for (p = deco_pts) translate([p[0], p[1], -deco_in]) head_deco();   // 3MF/AMS: 4 Kopf-Zierschrauben am Einbauort
 else if (part == "bezel") translate([0, 0, bezel_t]) rotate([180, 0, 0]) bezel(); // Blendenoberseite auf dem Bett, Steg nach oben
 else if (part == "head_back") translate([0, 0, -z_back]) head_back();        // Rueckseite (Z back) auf dem Bett
 else if (part == "ear") ear();                                                 // Aussenseite auf dem Bett, Zapfen nach oben

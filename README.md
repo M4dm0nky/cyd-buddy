@@ -56,7 +56,7 @@ Summe zusätzlich ca. 35–45 €. Netzteil und Kabel aus Stufe 1 lassen sich of
 | 2 | Akkuzellen | 18650 Li-Ion, **Markenzellen** (keine No-Name-Zellen mit Fantasie-Kapazität) | 12 € (Schätzung) | `18650 Akku Samsung Sony Murata` |
 | 1 | Schalter | kleiner Schiebeschalter | 2 € (Schätzung) | `Mini Schiebeschalter SPDT` |
 | 1 | Litze | dünn, für 5 V/GND | 3 € (Schätzung) | `Litze 0,25 mm²` |
-| offen | Schrauben | zusätzliche M3, Anzahl offen | 3 € (Schätzung) | `M3 Schrauben Set` |
+| 20 | Schrauben | M3: 4× M3×8, 12× M3×10 (davon 8 Flachkopf), 4× M3×28 (Liste mit Belegen in `case/README.md`) | 3 € (Schätzung) | `M3 Schrauben Set` |
 | ca. 150 g | Filament | PETG, zusätzlich (geschätzt) | 4 € (Schätzung) | `PETG Filament 1,75 mm` |
 
 Summe zusätzlich ca. 35 € (vorläufig).
@@ -103,9 +103,13 @@ Beide Boards laufen mit 3,3-V-Logik, ein Pegelwandler ist nicht nötig.
 
 Details zu Druck, Maßen und offenen Punkten: [`case/README.md`](case/README.md). Design: [`docs/superpowers/specs/2026-10-26-kamera-gehaeuse-design.md`](docs/superpowers/specs/2026-10-26-kamera-gehaeuse-design.md).
 
-### Stufe 3: Roboter (Konzept)
+### Stufe 3: Roboter (druckbar, Maße des Akkumoduls vorläufig)
 
-Sitzende Roboterfigur: Kopf mit CYD, Oberkörper mit der Kamera in der Brust, Akku (DFR0969, 2×18650) in Po und Beinen, Laden per USB-C im Boden. Es gibt nur ein Konzeptmodell (`case/konzept/roboter_konzept.scad`) und Bilder, keine Druckteile. Das Akkumodul liefert 5 V an CYD (P1) und XIAO, ein Schiebeschalter im Boden trennt die Leitung. Laufzeit etwa 7–9 h (Schätzung). Spec: [`docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md`](docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md).
+Sitzende Roboterfigur: Kopf mit CYD, Oberkörper mit der Kamera in der Brust, Akku (DFR0969, 2×18650) in Po und Beinen, Laden per USB-C im Boden. **Stand: druckbar, die Maße des Akkumoduls sind vorläufig** (Datenblatt, noch nicht nachgemessen). Das Akkumodul liefert 5 V an CYD (P1) und XIAO, ein Schiebeschalter im Boden trennt die Leitung. Laufzeit etwa 7–9 h (Schätzung).
+- Teile (STL in Druckausrichtung): [`case/stl/roboter_*.stl`](case/stl/); Teileliste, Druckhinweise, Schrauben und Montage: [`case/README.md`](case/README.md#variante-2-roboter).
+- Für den Slicer: [`case/3mf/roboter_teile.3mf`](case/3mf/roboter_teile.3mf) (alle Teile getrennt) und [`case/3mf/roboter_ams.3mf`](case/3mf/roboter_ams.3mf) (Kopf mit Blende und Zierschrauben als Mehrfarbobjekt).
+- Druck: PETG, 0,2 mm, ohne Stützen, 20 M3-Schrauben (4× M3×8, 12× M3×10, 4× M3×28).
+- Spezifikationen: [`docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md`](docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md) (Form) und [`docs/superpowers/specs/2026-10-27-roboter-druckteile-design.md`](docs/superpowers/specs/2026-10-27-roboter-druckteile-design.md) (Druckteile).
 
 - Den DIP-Schalter am Akkumodul fest auf **HOLD** stellen, sonst schaltet es bei wenig Last ab.
 - **Zum Flashen per Kabel den Schalter auf Aus stellen.** Ob USB-5V und VIN (P1) am CYD gegeneinander geschützt sind, ist noch nicht am Schaltplan geprüft.

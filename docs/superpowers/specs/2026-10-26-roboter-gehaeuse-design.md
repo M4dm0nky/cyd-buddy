@@ -2,6 +2,8 @@
 
 Stand 2026-10-26. Branch `feature/kamera-gehaeuse`.
 
+Später: Die druckbaren Teile, Schrauben und 3MF sind in `2026-10-27-roboter-druckteile-design.md` beschrieben; Maße und Teileliste stehen in `case/README.md`. Diese Datei beschreibt die Form (Konzept).
+
 ## Zwei Varianten
 | | Variante 1 „Kopf mit Stirn“ | Variante 2 „Roboter“ |
 |---|---|---|

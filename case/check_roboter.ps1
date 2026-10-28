@@ -62,6 +62,24 @@ foreach ($p in $parts) {
   else                              { Ok "STL $p ($n Facetten)" }
 }
 
+# 1b) Zusatz-STL fuer die 3MF: AMS-Kopf (Schale, Blende, Zierschrauben in gleicher Lage) und linker Arm (gespiegelt, -D side=-1)
+foreach ($e in @(@{ n = 'head_front_ams'; part = 'head_front_ams'; d = @() }, @{ n = 'bezel_inlay'; part = 'bezel_inlay'; d = @() }, @{ n = 'screws_inlay'; part = 'screws_inlay'; d = @() }, @{ n = 'arm_l'; part = 'arm'; d = @('-D', 'side=-1') })) {
+  $out = Join-Path $stlDir "roboter_$($e.n).stl"
+  if (Test-Path $out) { Remove-Item $out }
+  $r = Run-Scad ($e.d + (PartArg $e.part) + @('-o', $out))
+  $n = FacetCount $out
+  if ($r.Code -ne 0)                { Bad "STL $($e.n) : Exitcode $($r.Code) $($r.Text.Trim())" }
+  elseif ($r.Text -match 'WARNING|ERROR') { Bad "STL $($e.n) : WARNING/ERROR in Ausgabe" }
+  elseif ($n -lt 100)               { Bad "STL $($e.n) : zu wenige Facetten ($n)" }
+  else                              { Ok "STL $($e.n) ($n Facetten)" }
+}
+
+# 1c) 3MF (Einzelteile + AMS) aus den STL erzeugen und pruefen (Zip lesbar, > 10 kB, Anzahl Objekte und Bauteile)
+if (-not $custom) {
+  & (Join-Path $here 'tools\make_3mf.ps1') -StlDir $stlDir -OutDir (Join-Path $here '3mf')
+  if ($LASTEXITCODE -ne 0) { Bad "3MF: make_3mf.ps1 meldet Fehler" }
+}
+
 # 2) Standsicherheit: nur, wenn das SCAD eine Sitzflaeche (seat_poly) kennt
 $r = Run-Scad ((PartArg 'info') + @('-o', (Join-Path $env:TEMP 'madbuddy_roboter_info.stl')))
 if ($r.Text -match 'WARNING|ERROR') { Bad "Info: WARNING/ERROR: $($r.Text.Trim())" }

@@ -44,7 +44,77 @@ Gegenprobe: `check.ps1 -Define window_shrink=2 -NoPng` muss fehlschlagen (Fenste
 - Fenster, Lochbild und Glas-Sitz zuerst mit `frame_test` prüfen. **Stand 2026-10-26: 1. Testdruck: Lochbild passt, Fenster lag falsch, korrigiert, 2. Testdruck steht aus.**
 - Strom über den USB-C des CYD nur mit Kabel USB-A auf USB-C (keine CC-Widerstände). Das Netzteil braucht ca. 1 A, weil die Kamera mitversorgt wird.
 
-## Variante 2: sitzender Roboter mit Akku (Konzept)
+## Variante 2 Roboter
 
-Wenn der Buddy mit Akku laufen soll, kommt diese Form: Roboterkopf mit dem CYD, Oberkörper mit der Kamera, dicke Stummelbeine mit dem Akkuhalter DFRobot DFR0969 (2 × 18650), Laden per USB-C im Boden.
-Bisher gibt es nur ein Konzept: `konzept/roboter_konzept.scad` und `render/roboter_*.png`. Spec: `docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md`.
+Sitzender Roboter mit Akku: Kopf mit dem CYD, Oberkörper mit der Kamera in der Brust, Po und Beine mit dem Akkuhalter DFRobot DFR0969 (2 × 18650), Laden per USB-C im Boden. Alle Teile werden gesteckt und teilweise verschraubt. Datei: `madbuddy_roboter.scad` (Teil wählen mit `-D 'part="seat"'`). Spec: `docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md` (Form) und `2026-10-27-roboter-druckteile-design.md` (Druckteile).
+
+Stand: druckbar, die Maße des Akkumoduls sind **vorläufig** (Datenblatt, noch nicht nachgemessen).
+
+### Teile
+
+STL liegen in `stl/roboter_<teil>.stl`, schon in Druckausrichtung (ohne Stützen). Die Farben sind der Vorschlag aus dem Entwurf.
+
+| Teil | Farbe | Menge | Hinweis |
+|---|---|---|---|
+| `head_front` | blau | 1 | Gesicht nach unten; mit eingesetzter Blende und Zierschrauben auch als `head_front_ams` |
+| `bezel` | schwarz | 1 | Blende, Steg nach oben |
+| `head_back` | blau | 1 | Rückseite auf dem Bett |
+| `ear` | gelb | 2 | Außenseite auf dem Bett, Zapfen nach oben |
+| `deco` | silber | 1 Platte | 10 flache Zierschrauben-Einlagen (4 Kopf, 4 Brust, 2 Ohr) |
+| `torso_front` | orange | 1 | Brust auf dem Bett |
+| `torso_back` | orange | 1 | Rückseite auf dem Bett |
+| `neck` | schwarz | 1 | stehend auf dem unteren Flansch |
+| `arm` | orange | 2 | links = gespiegelte Datei `roboter_arm_l.stl` |
+| `hand` | schwarz | 2 | flache Unterseite auf dem Bett |
+| `seat` | blau | 1 | auf dem Kopf gedruckt, Fach nach oben offen |
+| `bottom` | blau | 1 | Standfläche auf dem Bett |
+| `foot` | schwarz | 2 | Rückseite (Zapfenloch) auf dem Bett |
+
+3MF zum Öffnen in Bambu Studio:
+- `3mf/roboter_teile.3mf`: alle 17 Druckkörper nebeneinander, jeder bekommt im Slicer seine Farbe.
+- `3mf/roboter_ams.3mf`: Gruppe „kopf“ (Kopfschale, Blende, 4 Zierschrauben als drei Bauteile eines Objekts, in Einbaulage) plus die übrigen Teile einzeln. Im Slicer weist man den drei Bauteilen je eine Farbe zu.
+- Neu erzeugen: `check_roboter.ps1` (Schritt 1c) oder `tools/make_3mf.ps1`; Werkzeug `tools/stl2_3mf.py` (`--group NAME`, `--end`, `--arrange`).
+
+### Druck (PETG)
+
+- 0,2 mm Schichthöhe, 3 Wände, ohne Stützen, Überhänge höchstens 45°.
+- Steckzapfen sind als Presspassung gedacht (`fit_peg = 0,15 mm`). Zuerst ein Zapfen-Probestück oder den Fuß drucken und die Passung prüfen; bei Bedarf `fit_peg` ändern.
+- Kernlöcher für M3 sind Ø 2,6 mm (selbstschneidend in PETG, mindestens 7,5 mm tief).
+- Die Zierschrauben-Einlagen nur als Einlage einkleben oder pressen (Taschen sind 0,15 mm größer).
+
+### Schrauben (M3)
+
+Insgesamt 20 Stück. Jede Zahl ist aus `madbuddy_roboter.scad` belegt.
+
+| Anzahl | Länge | Wo | Beleg |
+|---|---|---|---|
+| 4 | M3×8 | Kopf: `head_back` an `head_front` | 4 Dome `dome_pts` (Z. 102, 249-251); Länge: Rückwand 2,6 abzüglich Senkung 1,8 plus Kernloch 7,5 = 8,3 (Z. 25, 48, 51) |
+| 2 | M3×10 | Hals oben an `head_back` | `neck_pilots` (Z. 266-269), Flansch 2,8 plus Kernloch 7,6 (Z. 89, 385); Montagefolge Z. 636 |
+| 2 | M3×10 | Hals unten an `torso_front` | `neck_pilots_t` (Z. 515), Kernloch 7,6 (Z. 397); Montagefolge Z. 635 |
+| 4 | M3×28 | Oberkörper: `torso_back` an `torso_front` | 4 Dome `t_dome_pts` (Z. 356, 560-563); Länge: 22 abzüglich Senkung 1,8 plus Kernloch 9 = 29,2 (Z. 347, 358); Montagefolge Z. 637 |
+| 4 | M3×10 Flachkopf | Oberkörper von unten auf `seat` | `t_seat_pts` (Z. 359), `seat_screw_l = 10` (Z. 698, 918); Einschraubtiefe geprüft (Z. 750) |
+| 4 | M3×10 Flachkopf | `bottom` an `seat` | `dome_pts_s` (Z. 736, 859-862); Länge: 2,4 − 1,8 + 2,0 + 7,6 = 10,2 (Z. 669, 683, 685); Montagefolge Z. 640 |
+
+Summe: 4 × M3×8, 12 × M3×10, 4 × M3×28. Das passt zur Massenliste „20 × M3“ (Z. 944). Die Zierschrauben sind gedruckte Einlagen, keine echten Schrauben.
+
+### Montagereihenfolge
+
+1. Hals von oben mit 2 × M3×10 auf `torso_front` schrauben (`torso_back` ist dabei verschraubt, der Kopf fehlt).
+2. Rückwand des Oberkörpers abnehmen, Kopf auf den Hals setzen, 2 × M3×10 von unten durch die Halsschlitze eindrehen.
+3. XIAO von hinten einsetzen, `torso_back` mit 4 × M3×28 schließen.
+4. Arme in den Oberkörper stecken, Hände auf die Arme stecken, Ohren in den Kopf stecken, Blende in die Nut drücken, Zierschrauben einsetzen.
+5. Oberkörper mit Hals und Kopf auf `seat` stecken und von unten mit 4 × M3×10 verschrauben (Schraubendreher durch den offenen Boden).
+6. Akku einlegen, 5 V und GND verdrahten (Schalter, Kabel nach oben), `bottom` mit 4 × M3×10 schließen. Füße vorn auf die Beine stecken.
+
+Jede Schraube ist im Modell mit einem Schraubendreher-Prüfkörper Ø 6 × 60 auf Erreichbarkeit geprüft (`check_roboter.ps1`, Schritte 3g/3h).
+
+### Prüfung
+
+`& case\check_roboter.ps1` (aus PowerShell im Repo-Ordner): STL aller Teile ohne Warnung, Standsicherheit, Kollisionen, Montage-Erreichbarkeit mit Selbsttests, 3MF (lesbar, größer als 10 kB, richtige Anzahl Objekte und Bauteile), PNG-Renders. Exitcode ungleich 0 bei jedem Fehler.
+
+### Offene Punkte
+
+- Maße des Akkumoduls DFR0969 (Platine, Lage der Buchse, des Schalters, der LED) sind **VORLÄUFIG** nach Datenblatt. Vor dem ersten Druck von `seat` und `bottom` das echte Modul nachmessen.
+- Presspassung der Zapfen (`fit_peg`) und die Länge der Schrauben sind noch nicht am gedruckten Teil getestet.
+- Die Lage von Schalter und LED im Boden hängt am Modul (siehe oben).
+- Kamera-Halter im Oberkörper: eigener Plan `docs/superpowers/plans/2026-10-27-kamera-halter.md`.
