@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1000" width="1200" height="1000" font-family="Segoe UI, Arial, sans-serif">
+  <title>Verkabelung CYD und XIAO</title>
+  <rect width="1200" height="1000" fill="#ffffff"/>
+  <text x="30" y="36" font-size="24" font-weight="bold" fill="#1a2a44">Verkabelung CYD ↔ XIAO ESP32S3 Sense</text>
+  <text x="30" y="58" font-size="14" fill="#444">Teil 1: wo die Stecker am CYD sitzen. Teil 2: welche Ader wohin geht. Lage der Stecker aus Foto geschätzt (±2 mm).</text>
+
+  <!-- ===== Teil 1: CYD Rückseite, 5 px = 1 mm ===== -->
+  <text x="30" y="92" font-size="17" font-weight="bold" fill="#1a2a44">1. CYD von hinten (86 × 50 mm, USB links)</text>
+  <g transform="translate(40,20)">
+    <rect x="100" y="90" width="430" height="250" rx="20" fill="#2b3a55" stroke="#111" stroke-width="2"/>
+    <g fill="#0d1526">
+      <circle cx="120" cy="110" r="8"/><circle cx="510" cy="110" r="8"/>
+      <circle cx="120" cy="320" r="8"/><circle cx="510" cy="320" r="8"/>
+    </g>
+    <text x="315" y="215" font-size="15" fill="#c9d4ea" text-anchor="middle">Platinenrückseite</text>
+    <text x="315" y="236" font-size="13" fill="#9fb0d0" text-anchor="middle">86 × 50 mm, Maßstab 5 px = 1 mm</text>
+
+    <!-- USB links -->
+    <rect x="88" y="245" width="30" height="40" rx="3" fill="#9aa3b2" stroke="#222"/>
+    <text x="80" y="268" font-size="14" font-weight="bold" fill="#333" text-anchor="end">USB</text>
+
+    <!-- P1 links oben -->
+    <rect x="86" y="152" width="26" height="36" rx="3" fill="#ffd34d" stroke="#222" stroke-width="1.5"/>
+    <g fill="#222"><circle cx="99" cy="159" r="2.5"/><circle cx="99" cy="167" r="2.5"/><circle cx="99" cy="175" r="2.5"/><circle cx="99" cy="183" r="2.5"/></g>
+    <text x="80" y="150" font-size="16" font-weight="bold" fill="#b8860b" text-anchor="end">P1</text>
+    <text x="80" y="164" font-size="12" fill="#333" text-anchor="end">Pin 1 oben</text>
+    <text x="80" y="190" font-size="12" fill="#333" text-anchor="end">Pin 4 unten</text>
+    <text x="80" y="203" font-size="11" fill="#666" text-anchor="end">Stecker zeigt nach links</text>
+
+    <!-- P4 oben -->
+    <rect x="240" y="78" width="22" height="14" rx="2" fill="#bbb" stroke="#222"/>
+    <text x="272" y="108" font-size="12" fill="#c9d4ea">P4 Lautsprecher (nicht benutzt)</text>
+
+    <!-- SD unten -->
+    <rect x="250" y="328" width="80" height="24" rx="2" fill="#cfd4dc" stroke="#222"/>
+    <text x="290" y="372" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">SD-Slot</text>
+
+    <!-- CN1 unten -->
+    <rect x="350" y="334" width="56" height="26" rx="3" fill="#6fd08c" stroke="#222" stroke-width="1.5"/>
+    <g fill="#222"><circle cx="361" cy="350" r="2.5"/><circle cx="371" cy="350" r="2.5"/><circle cx="381" cy="350" r="2.5"/><circle cx="395" cy="350" r="2.5"/></g>
+    <g font-size="11" fill="#222" text-anchor="middle"><text x="361" y="346">1</text><text x="371" y="346">2</text><text x="381" y="346">3</text><text x="395" y="346">4</text></g>
+    <text x="405" y="378" font-size="16" font-weight="bold" fill="#1d7a3b" text-anchor="end">CN1</text>
+    <text x="405" y="394" font-size="12" fill="#333" text-anchor="end">Pin 1 links, Pin 4 rechts</text>
+
+    <!-- P3 unten -->
+    <rect x="430" y="334" width="56" height="26" rx="3" fill="#bbb" stroke="#222"/>
+    <text x="425" y="378" font-size="14" fill="#555">P3 (nicht benutzt)</text>
+  </g>
+
+  <!-- Hinweise rechts -->
+  <g font-size="14" fill="#222">
+    <text x="680" y="130" font-weight="bold" fill="#b00020">Vor dem Löten prüfen</text>
+    <text x="680" y="156">• Pin-1-Markierung am eigenen Board prüfen.</text>
+    <text x="680" y="178">• Lage von P1 und CN1 ist aus einem Foto der</text>
+    <text x="692" y="198">1-USB-Version geschätzt. Die 2-USB-Version</text>
+    <text x="692" y="218">(USB-C + Micro-USB) ist nicht belegt.</text>
+    <text x="680" y="244">• Der Stecker ist ein 1,25-mm-Typ (PicoBlade),</text>
+    <text x="692" y="264">nicht der übliche 1,0-mm-JST-SH.</text>
+    <text x="680" y="290">• Die Belegung ist aus Foto und Schaltplan</text>
+    <text x="692" y="310">gelesen, nicht am Gerät durchgemessen.</text>
+  </g>
+
+  <!-- ===== Teil 2: Schaltbild ===== -->
+  <line x1="30" y1="408" x2="1170" y2="408" stroke="#ccc"/>
+  <text x="30" y="396" font-size="17" font-weight="bold" fill="#1a2a44">2. Welche Ader wohin</text>
+
+  <!-- P1 Kasten -->
+  <rect x="60" y="468" width="240" height="176" rx="8" fill="#fff6d6" stroke="#b8860b" stroke-width="2"/>
+  <text x="80" y="490" font-size="16" font-weight="bold" fill="#b8860b">CYD  P1</text>
+  <g font-size="14" fill="#222">
+    <text x="80" y="522">1  VIN  (5 V)</text>
+    <text x="80" y="562" fill="#888">2  TX  nicht benutzen</text>
+    <text x="80" y="602" fill="#888">3  RX  nicht benutzen</text>
+    <text x="80" y="642">4  GND</text>
+  </g>
+  <!-- Pin-Punkte P1 -->
+  <circle cx="300" cy="518" r="5" fill="#d32f2f"/>
+  <circle cx="300" cy="558" r="5" fill="#bbb"/>
+  <circle cx="300" cy="598" r="5" fill="#bbb"/>
+  <circle cx="300" cy="638" r="5" fill="#111"/>
+  <g stroke="#b00020" stroke-width="3"><line x1="272" y1="552" x2="284" y2="564"/><line x1="284" y1="552" x2="272" y2="564"/><line x1="272" y1="592" x2="284" y2="604"/><line x1="284" y1="592" x2="272" y2="604"/></g>
+
+  <!-- CN1 Kasten -->
+  <rect x="60" y="690" width="240" height="176" rx="8" fill="#e3f6e8" stroke="#1d7a3b" stroke-width="2"/>
+  <text x="80" y="712" font-size="16" font-weight="bold" fill="#1d7a3b">CYD  CN1</text>
+  <g font-size="14" fill="#222">
+    <text x="80" y="744" fill="#888">1  3V3  nicht benutzen</text>
+    <text x="80" y="784">2  IO27  (RX des CYD)</text>
+    <text x="80" y="824">3  IO22  (TX des CYD)</text>
+    <text x="80" y="864">4  GND  (optional)</text>
+  </g>
+  <circle cx="300" cy="740" r="5" fill="#bbb"/>
+  <circle cx="300" cy="780" r="5" fill="#f2c200"/>
+  <circle cx="300" cy="820" r="5" fill="#2e9e4f"/>
+  <circle cx="300" cy="860" r="5" fill="#111"/>
+  <g stroke="#b00020" stroke-width="3"><line x1="272" y1="734" x2="284" y2="746"/><line x1="284" y1="734" x2="272" y2="746"/></g>
+
+  <!-- XIAO -->
+  <rect x="760" y="458" width="200" height="300" rx="8" fill="#e8eef9" stroke="#1a2a44" stroke-width="2"/>
+  <rect x="820" y="448" width="80" height="22" rx="4" fill="#9aa3b2" stroke="#222"/>
+  <text x="860" y="464" font-size="12" font-weight="bold" fill="#111" text-anchor="middle">USB-C</text>
+  <text x="860" y="500" font-size="13" font-weight="bold" fill="#1a2a44" text-anchor="middle">XIAO ESP32S3</text>
+  <text x="860" y="518" font-size="12" fill="#1a2a44" text-anchor="middle">Bauteilseite oben,</text>
+  <text x="860" y="534" font-size="12" fill="#1a2a44" text-anchor="middle">USB-C oben</text>
+  <text x="860" y="750" font-size="11" fill="#555" text-anchor="middle">nicht maßstäblich</text>
+  <!-- Pins: y = 560 + i*28 -->
+  <g font-size="13" fill="#111">
+    <!-- links = Reihe B -->
+    <text x="780" y="565">D0</text><text x="780" y="593">D1</text><text x="780" y="621">D2</text><text x="780" y="649">D3</text><text x="780" y="677">D4</text><text x="780" y="705">D5</text>
+    <text x="780" y="733" font-weight="bold" fill="#8a6d00">D6 (TX)</text>
+    <!-- rechts = Reihe A -->
+    <text x="940" y="565" text-anchor="end" font-weight="bold" fill="#b00020">5V</text>
+    <text x="940" y="593" text-anchor="end" font-weight="bold">GND</text>
+    <text x="940" y="621" text-anchor="end">3V3</text><text x="940" y="649" text-anchor="end">D10</text><text x="940" y="677" text-anchor="end">D9</text><text x="940" y="705" text-anchor="end">D8</text>
+    <text x="940" y="733" text-anchor="end" font-weight="bold" fill="#1d7a3b">D7 (RX)</text>
+  </g>
+  <g fill="#555">
+    <circle cx="768" cy="560" r="4"/><circle cx="768" cy="588" r="4"/><circle cx="768" cy="616" r="4"/><circle cx="768" cy="644" r="4"/><circle cx="768" cy="672" r="4"/><circle cx="768" cy="700" r="4"/>
+    <circle cx="952" cy="616" r="4"/><circle cx="952" cy="644" r="4"/><circle cx="952" cy="672" r="4"/><circle cx="952" cy="700" r="4"/>
+  </g>
+  <circle cx="768" cy="728" r="5" fill="#f2c200" stroke="#222"/>
+  <circle cx="952" cy="560" r="5" fill="#d32f2f" stroke="#222"/>
+  <circle cx="952" cy="588" r="5" fill="#111"/>
+  <circle cx="952" cy="728" r="5" fill="#2e9e4f" stroke="#222"/>
+  <text x="780" y="548" font-size="11" fill="#555">Reihe B</text>
+  <text x="940" y="548" font-size="11" fill="#555" text-anchor="end">Reihe A</text>
+
+  <!-- Leitungen -->
+  <g fill="none" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 5V rot: P1 Pin 1 -> oben herum -> 5V -->
+    <path d="M300,518 H340 V426 H1000 V560 H952" stroke="#d32f2f"/>
+    <!-- GND schwarz: P1 Pin 4 -> GND -->
+    <path d="M300,638 H370 V442 H1030 V588 H952" stroke="#111"/>
+    <!-- IO27 gelb -> D6 -->
+    <path d="M300,780 H620 L660,728 H768" stroke="#f2c200"/>
+    <!-- IO22 grün -> D7 -->
+    <path d="M300,820 H1000 V728 H952" stroke="#2e9e4f"/>
+    <!-- CN1 GND optional, gestrichelt -->
+    <path d="M300,860 H1060 V588 H1030" stroke="#555" stroke-width="3" stroke-dasharray="8 6"/>
+  </g>
+  <circle cx="1030" cy="588" r="5" fill="#111"/>
+  <text x="1060" y="882" font-size="12" fill="#555" text-anchor="end">gestrichelt: zweite Masse</text>
+
+  <!-- Beschriftung an den Leitungen -->
+  <g font-size="13" font-weight="bold">
+    <text x="520" y="420" fill="#d32f2f" text-anchor="middle">rot: 5 V</text>
+    <text x="520" y="460" fill="#111" text-anchor="middle">schwarz: GND</text>
+    <text x="470" y="773" fill="#8a6d00" text-anchor="middle">gelb: IO27 ↔ D6</text>
+    <text x="640" y="842" fill="#1d7a3b" text-anchor="middle">grün: IO22 ↔ D7</text>
+  </g>
+
+  <!-- Legende / Hinweise -->
+  <rect x="30" y="900" width="1140" height="84" rx="8" fill="#f4f6fa" stroke="#ccc"/>
+  <g font-size="13" fill="#222">
+    <text x="48" y="924"><tspan font-weight="bold" fill="#b00020">Nicht benutzen:</tspan> P1 TX/RX (hängen am USB-Chip, stören Flashen) und CN1 3V3 (der Regler reicht nicht für die Kamera).</text>
+    <text x="48" y="946"><tspan font-weight="bold">Kreuz TX/RX:</tspan> D6 (TX des XIAO) geht an IO27 (RX des CYD), D7 (RX des XIAO) an IO22 (TX des CYD).</text>
+    <text x="48" y="968"><tspan font-weight="bold">Prüfen:</tspan> Pin-1-Markierung am eigenen CYD und XIAO-Beschriftung vor dem Löten ansehen. Beide Boards haben 3,3-V-Logik.</text>
+  </g>
+</svg>

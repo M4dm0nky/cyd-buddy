@@ -40,7 +40,7 @@ Summe ca. 25 €.
 | Menge | Teil | Typ/Bezeichnung | ca. Preis | Bezugsquelle |
 |---|---|---|---|---|
 | 1 | Kamera-Platine | Seeed XIAO ESP32S3 Sense, **ohne Header** | 14 € (Seeed, 13,99 US-$) bis 24 € (Händler in DE) | [Seeed](https://www.seeedstudio.com/XIAO-ESP32S3-Sense-p-5639.html); [Eckstein](https://eckstein-shop.de/Seeed-Studio-XIAO-ESP32S3-Sense-with-OV2640-Camera-Sensor-EN) (23,95 €) |
-| 1 | Kabel/Stecker | 4-polig für P1 und CN1 des CYD; Steckertyp **nicht belegt**. Den Kommentaren nach liegt manchen CYD ein kurzes 4-adriges Kabel mit 1,25-mm-JST-Stecker bei, garantiert ist es nicht. Alternativ direkt auf die Buchsenkontakte löten oder passende Stecker nach Foto bestellen | 3 € (Schätzung) | `JST 1.25 4 Pin Kabel` (nur nach Abgleich mit deinem Board) |
+| 2 | Kabel/Stecker | 1,25 mm 4-Pin Kabel mit Stecker, einseitig offen (je eines für P1 und CN1 des CYD, ca. 80 bis 100 mm). Vor dem Bestellen Steckerlage und Pin 1 am eigenen Board prüfen, siehe [`docs/verkabelung.md`](docs/verkabelung.md) | 3 € (Schätzung) | `1.25mm 4 Pin Kabel Stecker` |
 | 4 | Schrauben | M3×8 Zylinderkopf (DIN 912), selbstschneidend in PETG | 3 € (Schätzung) | `M3x8 DIN 912 Schrauben` |
 | ca. 100 g | Filament | PETG (Verbrauch geschätzt) | 3 € (Schätzung; Rolle 1 kg ca. 20 €) | `PETG Filament 1,75 mm` |
 | 1 | Netzteil | 5 V, ≥ 1 A (die Kamera hängt mit am Kabel) | 8 € (Schätzung) | `USB Netzteil 5V 2A` |
@@ -56,6 +56,7 @@ Summe zusätzlich ca. 35–45 €. Netzteil und Kabel aus Stufe 1 lassen sich of
 | 2 | Akkuzellen | 18650 Li-Ion, **Markenzellen** (keine No-Name-Zellen mit Fantasie-Kapazität) | 12 € (Schätzung) | `18650 Akku Samsung Sony Murata` |
 | 1 | Schalter | kleiner Schiebeschalter | 2 € (Schätzung) | `Mini Schiebeschalter SPDT` |
 | 1 | Litze | dünn, für 5 V/GND | 3 € (Schätzung) | `Litze 0,25 mm²` |
+| 2 | Kabel/Stecker | 1,25 mm 4-Pin Kabel mit Stecker, einseitig offen, **ca. 150 mm** (länger als in Stufe 2, durch den Hals; Länge vorläufig) | 3 € (Schätzung) | `1.25mm 4 Pin Kabel Stecker 150mm` |
 | 20 | Schrauben | M3: 4× M3×8, 12× M3×10 (davon 8 Flachkopf), 4× M3×28 (Liste mit Belegen in `case/README.md`) | 3 € (Schätzung) | `M3 Schrauben Set` |
 | ca. 150 g | Filament | PETG, zusätzlich (geschätzt) | 4 € (Schätzung) | `PETG Filament 1,75 mm` |
 
@@ -80,18 +81,9 @@ Summe zusätzlich ca. 35 € (vorläufig).
 
 Die Kamera erkennt, ob jemand da ist und wo das Gesicht ist. Die Augen sollen dir folgen, der Buddy soll dich begrüßen und einschlafen, wenn du gehst. Am CYD wird kein Kamerabild gezeigt. **Die Kamera-Firmware gibt es noch nicht**, nur die Spec: [`docs/superpowers/specs/2026-10-26-kamera-firmware-design.md`](docs/superpowers/specs/2026-10-26-kamera-firmware-design.md).
 
-**Verkabelung (4 Drähte):**
+**Verkabelung (4 Adern):** P1 VIN → XIAO 5V, P1 GND → XIAO GND, CN1 IO27 ↔ D6, CN1 IO22 ↔ D7. Nicht benutzen: P1 TX/RX und CN1 3V3. Grafik, Pinbelegung, Lötanleitung und Kabellängen: [`docs/verkabelung.md`](docs/verkabelung.md).
 
-| CYD | XIAO | Zweck |
-|---|---|---|
-| P1 VIN (5 V) | 5V | Strom (nicht den 3,3-V-Pin von CN1 nehmen, der Regler reicht nicht) |
-| P1 GND | GND | Masse |
-| CN1 GPIO 27 (RX2) | D6 / TX | Daten Kamera → CYD |
-| CN1 GPIO 22 (TX2) | D7 / RX | Befehle CYD → Kamera |
-
-Beide Boards laufen mit 3,3-V-Logik, ein Pegelwandler ist nicht nötig.
-
-> **Warnung:** Die Pinreihenfolge von P1 und CN1 vor dem Löten am Foto deines Boards prüfen. Sie ist nur aus Spec und Pinout-Seiten bekannt, nicht am Gerät gemessen.
+> **Warnung:** Lage und Pin 1 von P1 und CN1 vor dem Löten am eigenen Board prüfen. Sie sind aus Foto und Schaltplan gelesen, nicht am Gerät gemessen.
 
 **Reihenfolge:**
 
@@ -109,6 +101,7 @@ Sitzende Roboterfigur: Kopf mit CYD, Oberkörper mit der Kamera in der Brust, Ak
 - Teile (STL in Druckausrichtung): [`case/stl/roboter_*.stl`](case/stl/); Teileliste, Druckhinweise, Schrauben und Montage: [`case/README.md`](case/README.md#variante-2-roboter).
 - Für den Slicer: [`case/3mf/roboter_teile.3mf`](case/3mf/roboter_teile.3mf) (alle Teile getrennt) und [`case/3mf/roboter_ams.3mf`](case/3mf/roboter_ams.3mf) (Kopf mit Blende und Zierschrauben als Mehrfarbobjekt).
 - Druck: PETG, 0,2 mm, ohne Stützen, 20 M3-Schrauben (4× M3×8, 12× M3×10, 4× M3×28).
+- Verkabelung CYD ↔ XIAO (Kabel ca. 150 mm durch den Hals, Strom vom Schalter zu CYD und XIAO): [`docs/verkabelung.md`](docs/verkabelung.md#stufe-3-roboter).
 - Spezifikationen: [`docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md`](docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md) (Form) und [`docs/superpowers/specs/2026-10-27-roboter-druckteile-design.md`](docs/superpowers/specs/2026-10-27-roboter-druckteile-design.md) (Druckteile).
 
 - Den DIP-Schalter am Akkumodul fest auf **HOLD** stellen, sonst schaltet es bei wenig Last ab.
