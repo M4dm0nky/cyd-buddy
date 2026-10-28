@@ -3,7 +3,7 @@
 // Alle Module arbeiten in EINEM lokalen System: Innenseite der Frontwand = Z 0, Blickrichtung (nach aussen) = +Z,
 // Mitte der Linse = Ursprung (X/Y), Kamera-Horizontale (lange Bildseite) = X. Die einbindende Datei platziert/kippt das System.
 // Die Aussenflaeche der Frontwand liegt bei Z = wall_t (jedes Modul nimmt wall_t, Vorgabe cam_wall_t).
-// Erwartet aus der einbindenden Datei: nichts. Definiert hier (NICHT in der einbindenden Datei wiederholen, sonst WARNING):
+// Erwartet aus der einbindenden Datei: nichts Pflichtiges. Optional darf sie VOR dem include cam_xiao_dx (X-Versatz des XIAO-Stapels) und cam_chamfer_ang (Fasenwinkel) setzen. Definiert hier (NICHT in der einbindenden Datei wiederholen, sonst WARNING):
 //   cam_*, xiao_* (siehe unten).
 // Quellen: .superpowers/sdd/2026-10-27-roboter-druckteile/kamera-recherche.md (Seeed-Zeichnungen), Spec docs/superpowers/specs/2026-10-27-kamera-halter-design.md
 
@@ -131,8 +131,9 @@ module cam_clip_place(wall_t = cam_wall_t) {    // Riegel in Einbaulage (direkt 
 // ================================================================= XIAO-Wiege (positiv + negativ)
 // Je zwei schmale Pfosten an beiden Stirnenden (USB-Ende und Kameraende) von der Frontwand bis zur Stapelrueckseite.
 // Die Laengsseiten und die Mitte am Kamerastecker (xiao_conn_w) bleiben frei: dort sitzen die angeloeteten Draehte und der FPC.
-// Druck ohne Stuetzen: reine senkrechte Pfosten. Eingelegt wird der Stapel von hinten (Frontteil liegt mit der Aussenseite unten, Einlegen von oben);
-// gegen Herausfallen nach hinten halten ihn die Anschlagpfosten der Rueckwand.
+// Druck ohne Stuetzen: senkrechte Pfosten, dazu je ein Klemmsteg hinter dem Stapel mit 45-Grad-Lippe (xiao_lip, Schnappmass je Seite). Der Stapel wird von hinten
+// eingeschoben (Frontteil liegt mit der Aussenseite unten, Einlegen von oben): die Pfosten federn nach aussen, die Lippen rasten ueber der Stapelrueckseite ein und halten ihn
+// nach hinten. Zusaetzlich begrenzen in Stufe 2 die Anschlagpfosten der Rueckwand (0,1 mm unter der Stapelrueckseite) das Spiel; im Roboter schliesst torso_back mit Steg und Stuetzwand.
 module xiao_cradle_add(wall_t = cam_wall_t) {
   zb = xiao_zbot(wall_t);
   bx = xiao_offset[0]; by = xiao_offset[1];
@@ -140,7 +141,7 @@ module xiao_cradle_add(wall_t = cam_wall_t) {
   yo = xiao_l / 2 - xiao_post_trim;                         // Pfosten enden kurz vor der Stapelkante (nicht weiter, sonst Kopfwand)
   yb = xiao_l / 2;                                          // Steg ueberspannt die ganze Stapelbreite
   if (!cam_dbg_nocradle) for (ex = [-1, 1]) {   // cam_dbg_nocradle nur fuer die Gegenprobe der Wiege-Pruefung
-    xin =ex > 0 ? bx + xiao_w / 2 + xiao_play : bx - xiao_w / 2 - xiao_play;   // Innenflaeche des Stirnanschlags
+    xin = ex > 0 ? bx + xiao_w / 2 + xiao_play : bx - xiao_w / 2 - xiao_play;   // Innenflaeche des Stirnanschlags
     xp = ex > 0 ? xin : xin - xiao_post_t;
     for (sy = [-1, 1])
       translate([xp, sy > 0 ? by + gap_h : by - yo, zb - xiao_lip_gap]) cube([xiao_post_t, yo - gap_h, 0.5 - zb + xiao_lip_gap]);

@@ -1,4 +1,4 @@
-# MadBuddy Roboter: alle Pruefungen. Exitcode 0 = alles gruen, 1 = mindestens eine Pruefung fehlgeschlagen.
+﻿# MadBuddy Roboter: alle Pruefungen. Exitcode 0 = alles gruen, 1 = mindestens eine Pruefung fehlgeschlagen.
 # Aufruf (im PowerShell-Tool):  .\case\check_roboter.ps1 [-Define window_shrink=2] [-NoPng] [-Only '1','3','3b','3i','3j']
 param(
   [string[]]$Define = @(),   # zusaetzliche -D name=wert (nur Zahlen/Boolsche), z. B. window_shrink=2 fuer die Gegenprobe
@@ -48,6 +48,17 @@ function FacetCount([string]$file) {
   return ([regex]::Matches((Get-Content $file -Raw), 'facet normal')).Count
 }
 $emptyMsg = 'Current top level object is empty'
+$inv = [Globalization.CultureInfo]::InvariantCulture   # einmal fuer alle Abschnitte (Zahlen immer mit Punkt lesen)
+# Is-EmptyRun: ein Lauf zaehlt nur dann als "leer", wenn er wirklich ausgewertet wurde (Exitcode 0 oder Leer-Meldung). Timeout (-999) oder Absturz ohne Text ist nie "leer".
+function Is-EmptyRun($r, [int]$n) { return ($n -eq 0 -and ($r.Text -match $emptyMsg -or $r.Code -eq 0)) }
+
+# -Only: nur bekannte Abschnittsnamen zulassen (Tippfehler duerfen nicht still "alles gruen" ergeben)
+$knownSections = @('1', '1b', '1c', '2', '2b', '3', '3b', '3c', '3d', '3e', '3e2', '3g', '3f', '3h', '3i', '3j', '4')
+$unknown = @($Only | Where-Object { $knownSections -notcontains $_ })
+if ($unknown.Count -gt 0) {
+  Write-Host "[FAIL] -Only: unbekannter Abschnitt: $($unknown -join ', '). Gueltig: $($knownSections -join ', ')" -ForegroundColor Red
+  exit 1
+}
 
 Write-Host "== madbuddy_roboter check ==  Define: $($Define -join ' ')"
 
@@ -93,7 +104,6 @@ if (Want '2') {
 $r = Run-Scad ((PartArg 'info') + @('-o', (Join-Path $env:TEMP 'madbuddy_roboter_info.stl')))
 if ($r.Text -match 'WARNING|ERROR') { Bad "Info: WARNING/ERROR: $($r.Text.Trim())" }
 if ($r.Text -match 'STAND_MIN_MARGIN=([-0-9.e]+) STAND_MIN=([-0-9.e]+)') {
-  $inv = [Globalization.CultureInfo]::InvariantCulture
   $m = [double]::Parse($Matches[1], $inv); $mn = [double]::Parse($Matches[2], $inv)
   if ($m -ge $mn) { Ok ("Stand: Lot des Schwerpunkts {0:N1} mm innerhalb der Sitzflaeche (verlangt >= {1})" -f $m, $mn) }
   else { Bad ("Stand: Lot des Schwerpunkts nur {0:N1} mm innerhalb der Sitzflaeche, verlangt >= {1}" -f $m, $mn) }
@@ -107,7 +117,6 @@ if (Want '2b') {
 if (-not $custom) {
   $r = Run-Scad ((PartArg 'info_selftest') + @('-o', (Join-Path $env:TEMP 'madbuddy_roboter_info_selftest.stl')))
   if ($r.Text -match 'STAND_SELFTEST_MARGIN=([-0-9.e]+) STAND_MIN=([-0-9.e]+)') {
-    $inv = [Globalization.CultureInfo]::InvariantCulture
     $m = [double]::Parse($Matches[1], $inv); $mn = [double]::Parse($Matches[2], $inv)
     if ($m -lt $mn) { Ok ("Selbsttest Stand: Masse weit hinten wird als FAIL erkannt (Margin {0:N1} < {1})" -f $m, $mn) }
     else { Bad ("Selbsttest Stand: Masse weit hinten bleibt im Stand (Margin {0:N1}), die Pruefung erkennt Kippen nicht" -f $m) }
@@ -148,7 +157,6 @@ if (Test-Path $pt) { Remove-Item $pt }
 $r = Run-Scad ((PartArg 'pilot_test') + @('-o', $pt))
 if ((FacetCount $pt) -eq 0) { Bad "Halssockel-Kernloecher: Bohrvolumen trifft kein Material (Loch liegt in der Luft)" }
 else {
-  $inv = [Globalization.CultureInfo]::InvariantCulture
   $ys = [regex]::Matches((Get-Content $pt -Raw), 'vertex\s+\S+\s+(\S+)\s+\S+') | ForEach-Object { [double]::Parse($_.Groups[1].Value, $inv) }
   $ext = ($ys | Measure-Object -Maximum).Maximum - ($ys | Measure-Object -Minimum).Minimum
   if ($ext -ge 7.5) { Ok ("Halssockel-Kernloecher: {0:N2} mm im Material (>= 7,5)" -f $ext) }
@@ -158,7 +166,6 @@ else {
 
 # 3d) Kernloecher im Oberkoerper (Hals-Mulde: Z, Sitz: Z, Dome: Y): Ausdehnung des Bohrvolumens im Material >= 7,5 mm
 if (Want '3d') {
-$inv = [Globalization.CultureInfo]::InvariantCulture
 foreach ($t in @(@{ n = 'pilot_neck'; ax = 2; l = 'Oberkoerper Hals-Kernloecher (Z)' }, @{ n = 'pilot_seat'; ax = 2; l = 'Oberkoerper Sitz-Kernloecher (Z)' }, @{ n = 'pilot_dome'; ax = 1; l = 'Oberkoerper Dom-Kernloecher (Y)' })) {
   $f = Join-Path $env:TEMP ("madbuddy_roboter_{0}.stl" -f $t.n)
   if (Test-Path $f) { Remove-Item $f }
@@ -177,7 +184,7 @@ if (Test-Path $cb) { Remove-Item $cb }
 $r = Run-Scad ((PartArg 'collision_body') + @('-o', $cb)) 900
 $rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
 if ($rest -match 'WARNING|ERROR') { Bad "Koerper-Kollision: WARNING/ERROR: $($rest.Trim())" }
-elseif ($r.Text -match $emptyMsg -or ($r.Code -eq 0 -and (FacetCount $cb) -eq 0)) { Ok "Koerper-Kollision: Arm/Hand/Hals/Oberkoerper/Kopf kollisionsfrei" }
+elseif (Is-EmptyRun $r (FacetCount $cb)) { Ok "Koerper-Kollision: Arm/Hand/Hals/Oberkoerper/Kopf kollisionsfrei" }
 else { Bad "Koerper-Kollision: Teile schneiden sich ($(FacetCount $cb) Facetten) -> $cb" }
 }
 
@@ -197,7 +204,7 @@ if (Want '3g') {
 $pb = Join-Path $env:TEMP 'madbuddy_roboter_pilot_neck_back.stl'
 if (Test-Path $pb) { Remove-Item $pb }
 $r = Run-Scad ((PartArg 'pilot_neck_back') + @('-o', $pb))
-if ($r.Text -match 'WARNING: Current top level object is empty' -or (FacetCount $pb) -eq 0) { Ok "Montage: Kernloecher der unteren Halsschrauben liegen nicht in torso_back (nur in torso_front)" }
+if (Is-EmptyRun $r (FacetCount $pb)) { Ok "Montage: Kernloecher der unteren Halsschrauben liegen nicht in torso_back (nur in torso_front)" }
 else { Bad "Montage: untere Halsschraube greift in torso_back" }
 foreach ($t in @(@{ n = 'drv_p1'; l = 'Montage Phase 1 (Hals von oben, 2 Schrauben)' }, @{ n = 'drv_p2'; l = 'Montage Phase 2 (Kopfschrauben von unten, 2 Schrauben)' })) {
   $f = Join-Path $env:TEMP ("madbuddy_roboter_{0}.stl" -f $t.n)
@@ -205,7 +212,7 @@ foreach ($t in @(@{ n = 'drv_p1'; l = 'Montage Phase 1 (Hals von oben, 2 Schraub
   $r = Run-Scad ((PartArg $t.n) + @('-o', $f)) 900
   $rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
   if ($rest -match 'WARNING|ERROR') { Bad "$($t.l): WARNING/ERROR: $($rest.Trim())" }
-  elseif ($r.Text -match $emptyMsg -or (FacetCount $f) -eq 0) { Ok "$($t.l): Schraubendreher Ø6 x 60 kollisionsfrei erreichbar" }
+  elseif (Is-EmptyRun $r (FacetCount $f)) { Ok "$($t.l): Schraubendreher Ø6 x 60 kollisionsfrei erreichbar" }
   else { Bad "$($t.l): Schraubendreher kollidiert ($(FacetCount $f) Facetten) -> $f" }
 }
 if (-not $custom) {
@@ -256,7 +263,7 @@ if (Test-Path $cs) { Remove-Item $cs }
 $r = Run-Scad ((PartArg 'collision_seat') + @('-o', $cs)) 900
 $rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
 if ($rest -match 'WARNING|ERROR') { Bad "Sitz-Kollision: WARNING/ERROR: $($rest.Trim())" }
-elseif ($r.Text -match $emptyMsg -or ($r.Code -eq 0 -and (FacetCount $cs) -eq 0)) { Ok "Sitz-Kollision: seat/bottom/Fuesse gegen Oberkoerper, Hals, Kopf, Arme, Haende kollisionsfrei" }
+elseif (Is-EmptyRun $r (FacetCount $cs)) { Ok "Sitz-Kollision: seat/bottom/Fuesse gegen Oberkoerper, Hals, Kopf, Arme, Haende kollisionsfrei" }
 else { Bad "Sitz-Kollision: Teile schneiden sich ($(FacetCount $cs) Facetten) -> $cs" }
 if (-not $custom) {
   $f = Join-Path $env:TEMP 'madbuddy_roboter_collision_seat_selftest.stl'
@@ -270,7 +277,7 @@ if (Test-Path $f) { Remove-Item $f }
 $r = Run-Scad ((PartArg 'hand_support') + @('-o', $f)) 900
 $rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
 if ($rest -match 'WARNING|ERROR') { Bad "Handauflage: WARNING/ERROR: $($rest.Trim())" }
-elseif ($r.Text -match $emptyMsg -or (FacetCount $f) -eq 0) { Ok "Handauflage: Handflaeche liegt ganz auf dem Oberschenkel (seat)" }
+elseif (Is-EmptyRun $r (FacetCount $f)) { Ok "Handauflage: Handflaeche liegt ganz auf dem Oberschenkel (seat)" }
 else { Bad "Handauflage: Handflaeche ragt ueber den Oberschenkel ($(FacetCount $f) Facetten) -> $f" }
 if (-not $custom) {
   $f = Join-Path $env:TEMP 'madbuddy_roboter_hand_support_selftest.stl'
@@ -285,7 +292,7 @@ foreach ($t in @(@{ n = 'drv_p4'; l = 'Montage Schritt 4 (Sitzschrauben von unte
   $r = Run-Scad ((PartArg $t.n) + @('-o', $f)) 900
   $rest = ($r.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
   if ($rest -match 'WARNING|ERROR') { Bad "$($t.l): WARNING/ERROR: $($rest.Trim())" }
-  elseif ($r.Text -match $emptyMsg -or (FacetCount $f) -eq 0) { Ok "$($t.l): Schraubendreher Ø6 x 60 kollisionsfrei erreichbar" }
+  elseif (Is-EmptyRun $r (FacetCount $f)) { Ok "$($t.l): Schraubendreher Ø6 x 60 kollisionsfrei erreichbar" }
   else { Bad "$($t.l): Schraubendreher kollidiert ($(FacetCount $f) Facetten) -> $f" }
 }
 if (-not $custom) {
@@ -302,18 +309,19 @@ if (-not $custom) {
 # 3i) Kamera-Tasche, Riegel, Wiege (K2). Jede "muss leer sein"-Pruefung hat eine Positiv-Kontrolle ("muss treffen"),
 if (Want '3i') {
 #     damit eine leere/falsch sitzende Geometrie nicht still als "gruen" durchgeht. Laeuft auch mit -Define (Gegenproben).
-function Scad-Facets([string]$part, [string[]]$extra = @()) {
+function Scad-Facets([string]$part, [string[]]$extra = @(), [int]$TimeoutSec = 900) {
   $o = Join-Path $env:TEMP "madbuddy_roboter_chk_$part.stl"
   if (Test-Path $o) { Remove-Item $o }
-  $r = Run-Scad ($extra + (PartArg $part) + @('-o', $o)) 900
+  $r = Run-Scad ($extra + (PartArg $part) + @('-o', $o)) $TimeoutSec
   return @{ N = (FacetCount $o); R = $r }
 }
 # Eval-Empty: liefert die Bewertung einer "muss leer sein"-Pruefung (Ok = $true/$false, Msg). WARNING/ERROR (ausser der bekannten Leer-Meldung) zaehlt immer als Fehler.
-function Eval-Empty([string]$part, [string[]]$extra = @()) {
-  $x = Scad-Facets $part $extra
+function Eval-Empty([string]$part, [string[]]$extra = @(), [int]$TimeoutSec = 900) {
+  $x = Scad-Facets $part $extra $TimeoutSec
   $rest = ($x.R.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
   if ($rest -match 'WARNING|ERROR') { return @{ Ok = $false; Msg = "WARNING/ERROR $($rest.Trim())" } }
-  elseif ($x.N -eq 0) { return @{ Ok = $true; Msg = '' } }
+  elseif ($x.N -eq 0 -and ($x.R.Text -match $emptyMsg -or $x.R.Code -eq 0)) { return @{ Ok = $true; Msg = '' } }   # leer zaehlt nur nach echter Auswertung, nie nach Timeout/Absturz
+  elseif ($x.N -eq 0) { return @{ Ok = $false; Msg = "nicht ausgewertet, Exitcode $($x.R.Code) $($x.R.Text.Trim())" } }
   else { return @{ Ok = $false; Msg = "($($x.N) Facetten)" } }
 }
 function Chk-Empty([string]$part, [string]$okMsg, [string]$badMsg, [string[]]$extra = @()) {
@@ -323,6 +331,7 @@ function Chk-Empty([string]$part, [string]$okMsg, [string]$badMsg, [string[]]$ex
 function Chk-Hit([string]$part, [string]$okMsg, [string]$badMsg, [string[]]$extra = @()) {
   $x = Scad-Facets $part $extra
   if ($x.R.Text -match 'WARNING: (?!Current top level object is empty)|ERROR') { Bad "$badMsg : WARNING/ERROR $($x.R.Text.Trim())"; return }
+  if ($x.R.Code -ne 0) { Bad "$badMsg : Exitcode $($x.R.Code) $($x.R.Text.Trim())"; return }
   if ($x.N -gt 0) { Ok "$okMsg ($($x.N) Facetten)" } else { Bad $badMsg }
 }
 # Selbsttest der "muss leer sein"-Pruefung selbst: leere Geometrie MIT WARNING (unbekannte Variable) darf NICHT als gruen durchgehen, leere Geometrie ohne WARNING schon.
@@ -330,6 +339,9 @@ $w = Eval-Empty 'warn_ctrl'
 if (-not $w.Ok -and $w.Msg -match 'WARNING') { Ok "Selbsttest Chk-Empty: leeres Ergebnis mit WARNING wird als Fehler erkannt" } else { Bad "Selbsttest Chk-Empty: WARNING bei leerem Ergebnis NICHT erkannt (Pruefung taugt nichts)" }
 $w = Eval-Empty 'empty_ctrl'
 if ($w.Ok) { Ok "Selbsttest Chk-Empty: sauber leeres Ergebnis wird als gruen gewertet" } else { Bad "Selbsttest Chk-Empty: sauber leeres Ergebnis faelschlich als Fehler: $($w.Msg)" }
+# Selbsttest Timeout: ein erzwungener Timeout (1 s) darf bei einer "muss leer sein"-Pruefung NIE als gruen gelten.
+$w = Eval-Empty 'asm_close' @() 1
+if (-not $w.Ok -and $w.Msg -match 'TIMEOUT') { Ok "Selbsttest Chk-Empty: Timeout wird als Fehler erkannt (nie als leer = gruen)" } else { Bad "Selbsttest Chk-Empty: Timeout NICHT als Fehler erkannt (Pruefung taugt nichts): Ok=$($w.Ok) Msg=$($w.Msg)" }
 Chk-Hit   'cam_selftest' "Kamera-Selbsttest: Kamerakoerper +0,6 mm trifft die Tasche (Pruefung wirkt)" "Kamera-Selbsttest: zu grosser Kamerakoerper NICHT erkannt"
 Chk-Hit   'cam_collision_ctrl' "Kontrolle Kollision: um 0,6 mm nach vorn geschobener Kamera-Pruefkoerper trifft die Anschlagplatte" "Kontrolle Kollision: verschobener Kamera-Pruefkoerper NICHT erkannt (Pruefung taugt nichts)"
 Chk-Hit   'clip_test'    "Riegel: sitzt in den Nuten (Schnittmenge Riegel/Oberkoerper > 0)" "Riegel: keine Schnittmenge mit dem Oberkoerper (Nuten/Uebermass falsch)"
@@ -337,7 +349,7 @@ Chk-Empty 'clip_band'    "Riegel: Schnittmenge liegt nur im 0,1-mm-Uebermassband
 Chk-Hit   'clip_band'    "Gegenprobe Riegel: ohne Nuten (cam_dbg_nogroove) liegt der Riegel im vollen Material" "Gegenprobe Riegel: ohne Nuten bleibt die Obergrenze trotzdem leer (Pruefung taugt nichts)" @('-D', 'cam_dbg_nogroove=true')
 Chk-Hit   'cradle_fit'   "Wiege: Pfosten/Klemmsteg umschliessen den Stapel (Positiv-Kontrolle)" "Wiege: beruehrt den aufgeweiteten Stapel NICHT (leer oder falsche Lage)"
 Chk-Empty 'cradle_fit'   "Gegenprobe Wiege: ohne Wiege (cam_dbg_nocradle) beruehrt die Positiv-Kontrolle nichts (Kontrolle misst wirklich die Wiege)" "Gegenprobe Wiege: auch ohne Wiege trifft die Kontrolle (Pruefung taugt nichts)" @('-D', 'cam_dbg_nocradle=true')
-Chk-Empty 'cam_inside'   "Rahmen, Wiege und Rippen liegen innerhalb der Brusthaut (Abstand >= 0,3 mm)" "Rahmen/Wiege/Rippen ragt aus der Brusthaut"
+Chk-Empty 'cam_inside'   "Rahmen, Wiege und Rippen liegen innerhalb der Brusthaut (Abstand >= 0,2 mm)" "Rahmen/Wiege/Rippen ragt aus der Brusthaut"
 Chk-Hit   'inside_ctrl_z' "Kontrolle Brusthaut: um 30 mm nach oben verschobene Wiege wird erkannt" "Kontrolle Brusthaut (Z): verschobene Wiege NICHT erkannt (Pruefung taugt nichts)"
 Chk-Hit   'inside_ctrl_x' "Kontrolle Brusthaut: um 30 mm zur Seite verschobene Wiege wird erkannt" "Kontrolle Brusthaut (X): verschobene Wiege NICHT erkannt (Pruefung taugt nichts)"
 Chk-Empty 'cam_present'  "Rahmen, Wiege und Rippen sind in torso_front/torso_back vollstaendig vorhanden (nichts weggeschnitten)" "Rahmen/Wiege/Rippen fehlt teilweise in torso_front/torso_back"
@@ -367,7 +379,8 @@ foreach ($p in 'torso_front', 'torso_back') {
   $A = Join-Path $stlDir "roboter_$p.stl"
   $B = Join-Path $env:TEMP "madbuddy_roboter_${p}_nocam.stl"
   if (Test-Path $B) { Remove-Item $B }
-  $null = Run-Scad (@('-D', 'cam_off=true') + (PartArg $p) + @('-o', $B)) 900
+  $rB = Run-Scad (@('-D', 'cam_off=true') + (PartArg $p) + @('-o', $B)) 900
+  if ($rB.Code -ne 0) { Bad "Ueberhang $p : Vergleichsteil ohne Kamera nicht erzeugt, Exitcode $($rB.Code) $($rB.Text.Trim())"; continue }
   if (-not (Test-Path $A) -or -not (Test-Path $B)) { Bad "Ueberhang $p : STL fehlt"; continue }
   # Ausnahme nur fuer torso_front: Linsenloch-Fase (45 Grad zur Achse, Achse 15 Grad zur Druckrichtung geneigt = bis ca. 60 Grad Ueberhang), Entscheidung 2026-10-28:
   # Stuetzen am Linsenloch akzeptiert. Druck-Koordinaten: Achse durch (0, -cam_z, 0), nach innen (0, sin15, cos15); Zylinder R 6,5 (Fase aussen R ca. 5,1) bis 4 mm ueber dem Bett.
@@ -381,7 +394,8 @@ foreach ($p in 'torso_front', 'torso_back') {
 foreach ($c in @(@{ n = 'ovh_ctrl_steep'; l = 'steile Flanke (55 Grad)'; t = 'steep' }, @{ n = 'ovh_ctrl_flat'; l = '20-mm-Decke'; t = 'flat' })) {
   $f = Join-Path $env:TEMP "madbuddy_roboter_$($c.n).stl"
   if (Test-Path $f) { Remove-Item $f }
-  $null = Run-Scad ((PartArg $c.n) + @('-o', $f)) 900
+  $rC = Run-Scad ((PartArg $c.n) + @('-o', $f)) 900
+  if ($rC.Code -ne 0) { Bad "Kontrolle Ueberhang ($($c.l)): Exitcode $($rC.Code) $($rC.Text.Trim())"; continue }
   if (-not (Test-Path $f)) { Bad "Kontrolle Ueberhang ($($c.l)): STL fehlt"; continue }
   $o = Eval-Overhang $f $Bfront
   if (($c.t -eq 'steep' -and $o.Steep -gt 0) -or ($c.t -eq 'flat' -and $o.Worst -gt 15)) { Ok "Kontrolle Ueberhang: $($c.l) wird erkannt" }
@@ -395,9 +409,12 @@ $o0 = Eval-Overhang $Af $Bfront
 if ($o0.Steep -gt 0) { Ok "Kontrolle Ausnahme: ohne Ausnahme wird die Linsenloch-Fase erkannt ($($o0.Steep) steile Facetten)" } else { Bad "Kontrolle Ausnahme: Fase ohne Ausnahme NICHT erkannt (Ausnahme ist wirkungslos oder Pruefung blind)" }
 $fl = Join-Path $env:TEMP 'madbuddy_roboter_ovh_ctrl_steep_low.stl'
 if (Test-Path $fl) { Remove-Item $fl }
-$null = Run-Scad ((PartArg 'ovh_ctrl_steep_low') + @('-o', $fl)) 900
+$rL = Run-Scad ((PartArg 'ovh_ctrl_steep_low') + @('-o', $fl)) 900
+if ($rL.Code -ne 0 -or -not (Test-Path $fl)) { Bad "Kontrolle Ausnahme: ovh_ctrl_steep_low nicht erzeugt, Exitcode $($rL.Code) $($rL.Text.Trim())" }
+else {
 $o1 = Eval-Overhang $fl $Bfront 15 @(0, -27, 0) @(0, [math]::Sin(15 * [math]::PI / 180), [math]::Cos(15 * [math]::PI / 180)) 6.5 4.0
 if ($o1.Steep -gt 0) { Ok "Kontrolle Ausnahme: steiles Merkmal ausserhalb der Fase wird trotz Ausnahme erkannt" } else { Bad "Kontrolle Ausnahme: steiles Merkmal ausserhalb der Fase wird von der Ausnahme verschluckt" }
+}
 }
 
 # 4) PNG-Renders

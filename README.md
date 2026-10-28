@@ -81,7 +81,7 @@ Summe zusätzlich ca. 35 € (vorläufig).
 
 Die Kamera erkennt, ob jemand da ist und wo das Gesicht ist. Die Augen sollen dir folgen, der Buddy soll dich begrüßen und einschlafen, wenn du gehst. Am CYD wird kein Kamerabild gezeigt. **Die Kamera-Firmware gibt es noch nicht**, nur die Spec: [`docs/superpowers/specs/2026-10-26-kamera-firmware-design.md`](docs/superpowers/specs/2026-10-26-kamera-firmware-design.md).
 
-**Verkabelung (4 Adern):** P1 VIN → XIAO 5V, P1 GND → XIAO GND, CN1 IO27 ↔ D6, CN1 IO22 ↔ D7. Nicht benutzen: P1 TX/RX und CN1 3V3. Grafik, Pinbelegung, Lötanleitung und Kabellängen: [`docs/verkabelung.md`](docs/verkabelung.md).
+**Verkabelung (4 Adern):** P1 VIN → XIAO 5V (**VORLÄUFIG:** dass VIN am CYD als Ausgang 5 V liefert, ist unbewiesen, erst nach der Spannungsmessung in der Verkabelungsanleitung löten), P1 GND → XIAO GND, CN1 IO27 ↔ D6, CN1 IO22 ↔ D7. Nicht benutzen: P1 TX/RX und CN1 3V3. Grafik, Pinbelegung, Lötanleitung und Kabellängen: [`docs/verkabelung.md`](docs/verkabelung.md).
 
 > **Warnung:** Lage und Pin 1 von P1 und CN1 vor dem Löten am eigenen Board prüfen. Sie sind aus Foto und Schaltplan gelesen, nicht am Gerät gemessen.
 

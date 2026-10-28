@@ -111,22 +111,39 @@ if (-not $custom) {
 
 # 3c) Kamera, Riegel, Wiege, Kabelweg. Jede "muss leer sein"-Pruefung hat eine Positiv-Kontrolle ("muss treffen"),
 #     damit eine leere/falsch sitzende Geometrie nicht still als "gruen" durchgeht. Laeuft auch mit -Define (Gegenproben).
-function Scad-Facets([string]$part) {
+function Scad-Facets([string]$part, [int]$TimeoutSec = 600) {
   $o = Join-Path $env:TEMP "madbuddy_chk_$part.stl"
   if (Test-Path $o) { Remove-Item $o }
-  $r = Run-Scad ((PartArg $part) + @('-o', $o))
+  $r = Run-Scad ((PartArg $part) + @('-o', $o)) $TimeoutSec
   return @{ N = (FacetCount $o); R = $r }
 }
+# Eval-Empty: Bewertung einer "muss leer sein"-Pruefung (Ok = $true/$false, Msg). Gefiltert wird nur die Zeile mit der bekannten Leer-Meldung;
+# jede andere WARNING/ERROR zaehlt als Fehler. "Leer" gilt nur nach echter Auswertung (Leer-Meldung oder Exitcode 0), nie nach Timeout/Absturz.
+function Eval-Empty([string]$part, [int]$TimeoutSec = 600) {
+  $x = Scad-Facets $part $TimeoutSec
+  $rest = ($x.R.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
+  if ($rest -match 'WARNING|ERROR') { return @{ Ok = $false; Msg = "WARNING/ERROR $($rest.Trim())" } }
+  elseif ($x.N -eq 0 -and ($x.R.Text -match $emptyMsg -or $x.R.Code -eq 0)) { return @{ Ok = $true; Msg = '' } }
+  elseif ($x.N -eq 0) { return @{ Ok = $false; Msg = "nicht ausgewertet, Exitcode $($x.R.Code) $($x.R.Text.Trim())" } }
+  else { return @{ Ok = $false; Msg = "($($x.N) Facetten)" } }
+}
 function Chk-Empty([string]$part, [string]$okMsg, [string]$badMsg) {
-  $x = Scad-Facets $part
-  if ($x.R.Text -match 'WARNING|ERROR' -and $x.R.Text -notmatch $emptyMsg) { Bad "$badMsg : WARNING/ERROR $($x.R.Text.Trim())" }
-  elseif ($x.N -eq 0) { Ok $okMsg } else { Bad "$badMsg ($($x.N) Facetten)" }
+  $e = Eval-Empty $part
+  if ($e.Ok) { Ok $okMsg } else { Bad "$badMsg : $($e.Msg)" }
 }
 function Chk-Hit([string]$part, [string]$okMsg, [string]$badMsg) {
   $x = Scad-Facets $part
+  if ($x.R.Text -match 'WARNING: (?!Current top level object is empty)|ERROR') { Bad "$badMsg : WARNING/ERROR $($x.R.Text.Trim())"; return }
+  if ($x.R.Code -ne 0) { Bad "$badMsg : Exitcode $($x.R.Code) $($x.R.Text.Trim())"; return }
   if ($x.N -gt 0) { Ok "$okMsg ($($x.N) Facetten)" } else { Bad $badMsg }
 }
-Chk-Hit   'cam_selftest' "Kamera-Selbsttest: Kamerakoerper +0,6 mm trifft die Tasche (Pruefung wirkt)" "Kamera-Selbsttest: zu grosser Kamerakoerper NICHT erkannt"
+# Selbsttests der "muss leer sein"-Pruefung selbst: leer MIT WARNING darf nicht gruen sein, sauber leer schon, ein erzwungener Timeout (1 s) nie.
+$w = Eval-Empty 'warn_ctrl'
+if (-not $w.Ok -and $w.Msg -match 'WARNING') { Ok "Selbsttest Chk-Empty: leeres Ergebnis mit WARNING wird als Fehler erkannt" } else { Bad "Selbsttest Chk-Empty: WARNING bei leerem Ergebnis NICHT erkannt (Pruefung taugt nichts)" }
+$w = Eval-Empty 'empty_ctrl'
+if ($w.Ok) { Ok "Selbsttest Chk-Empty: sauber leeres Ergebnis wird als gruen gewertet" } else { Bad "Selbsttest Chk-Empty: sauber leeres Ergebnis faelschlich als Fehler: $($w.Msg)" }
+$w = Eval-Empty 'cable_check' 1
+if (-not $w.Ok -and $w.Msg -match 'TIMEOUT') { Ok "Selbsttest Chk-Empty: Timeout wird als Fehler erkannt (nie als leer = gruen)" } else { Bad "Selbsttest Chk-Empty: Timeout NICHT als Fehler erkannt (Pruefung taugt nichts): Ok=$($w.Ok) Msg=$($w.Msg)" }Chk-Hit   'cam_selftest' "Kamera-Selbsttest: Kamerakoerper +0,6 mm trifft die Tasche (Pruefung wirkt)" "Kamera-Selbsttest: zu grosser Kamerakoerper NICHT erkannt"
 Chk-Hit   'clip_test'    "Riegel: sitzt in den Nuten (Schnittmenge Riegel/Rahmen > 0)" "Riegel: keine Schnittmenge mit dem Rahmen (Nuten/Uebermass falsch)"
 Chk-Empty 'clip_band'    "Riegel: Schnittmenge liegt nur im 0,1-mm-Uebermassband (Obergrenze, Nut ist wirklich da)" "Riegel: Schnittmenge ausserhalb des Uebermassbands (Nut fehlt oder zu klein)"
 Chk-Hit   'cradle_fit'   "Wiege: Pfosten/Klemmsteg umschliessen den Stapel (Positiv-Kontrolle)" "Wiege: beruehrt den aufgeweiteten Stapel NICHT (leer oder falsche Lage)"

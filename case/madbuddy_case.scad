@@ -359,6 +359,8 @@ else if (part == "cable_ctrl")
     cable_dummy(9);
     union() { front_shell(); back_part(); pcb_dummy(); glass_dummy(); rear_dummy(); sockets_dummy(); buttons_dummy(); sd_dummy(); xiao_dummy(); cam_body_dummy(); }
   }
+else if (part == "warn_ctrl") { echo(k = undefined_k2_probe); intersection() { cube(1); translate([5, 5, 5]) cube(1); } }   // Kontrolle fuer Chk-Empty: leer, aber mit WARNING (unbekannte Variable)
+else if (part == "empty_ctrl") intersection() { cube(1); translate([5, 5, 5]) cube(1); }   // Kontrolle fuer Chk-Empty: sauber leer, keine WARNING
 else if (part == "fb_overlap")
   // Rahmen und Wiege (Teile der Frontschale) duerfen das Rueckteil nicht durchdringen (Ring, Falz, Pfosten, Schienen).
   // Nur die neue Geometrie wird geprueft: Front gegen Rueck insgesamt ueberlappt schon im Bestand an den Schraubdomen.

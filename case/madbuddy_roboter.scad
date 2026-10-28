@@ -368,7 +368,7 @@ cam_z      = 27;     // VORLÄUFIG (gerechnet): Linsenhoehe ueber der Unterkante
 cam_cone_l = 26;     // QUELLE: Entscheidung Auftraggeber 2026-10-28 (Spec: Roboter 26 mm statt 30 mm). Begruendung (gerechnet): Laenge des Sichtkegels (Spec: 30). Die Fuesse beginnen bei Y -62, 32 mm vor der Linse: der untere Bildrand (102 Grad diagonal) trifft sie ab etwa 27 mm Abstand; bis 26 mm ist die Sicht frei
 cam_xiao_dx = 9.0;   // VORLÄUFIG (gerechnet): X-Versatz des XIAO-Stapels (siehe xiao_cam_common.scad). Die linke Wiegen-Stirnwand muss rechts von der linken Werkzeugkanal-Kante (X -4,7) bleiben: Pfosten ab X -4,2
 // Kameratasche, Riegel, XIAO-Wiege und Pruefkoerper kommen aus xiao_cam_common.scad (lokales System: Innenseite der Wand = Z 0, Blick +Z, Linse = Ursprung).
-// Dort definiert (hier NICHT wiederholen): cam_*, xiao_w, xiao_l, xiao_stack, xiao_offset ... Die Roboter-Datei braucht von der Common-Datei nichts.
+// Dort definiert (hier NICHT wiederholen): cam_*, xiao_w, xiao_l, xiao_stack, xiao_offset ... Die Common-Datei liest von der Roboter-Datei nur die oben gesetzten, optionalen Werte (z. B. cam_xiao_dx, cam_cone_l); sie muessen VOR dem include stehen.
 include <xiao_cam_common.scad>
 cam_wt     = 3.0;    // VORLÄUFIG (Entwurf): "Wandstaerke" fuer das lokale System = Abstand Innenebene (Z 0) bis Aussenebene (Z cam_wt) entlang der Linsenachse. Die Brustwand steht senkrecht, die Achse ist 15 Grad geneigt: die Aussenflaeche liegt bei Z = cam_wt + 0,268 * (Hoehe ueber der Achse). 3,0 = Linsenspitze (zbf 0 + Tubus 2,7) liegt in der Achse 0,3 mm hinter der Aussenflaeche (Spec); der Rest zwischen Z 0 und der Aussenflaeche wird von cam_fill() massiv gefuellt (Anschlagplatte)
 // --- Hals
