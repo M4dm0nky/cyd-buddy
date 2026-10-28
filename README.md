@@ -105,7 +105,7 @@ Sitzende Roboterfigur: Kopf mit CYD, Oberkörper mit der Kamera in der Brust, Ak
 - Spezifikationen: [`docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md`](docs/superpowers/specs/2026-10-26-roboter-gehaeuse-design.md) (Form) und [`docs/superpowers/specs/2026-10-27-roboter-druckteile-design.md`](docs/superpowers/specs/2026-10-27-roboter-druckteile-design.md) (Druckteile).
 
 - Den DIP-Schalter am Akkumodul fest auf **HOLD** stellen, sonst schaltet es bei wenig Last ab.
-- **Zum Flashen per Kabel den Schalter auf Aus stellen.** Ob USB-5V und VIN (P1) am CYD gegeneinander geschützt sind, ist noch nicht am Schaltplan geprüft.
+- **Zum Flashen per Kabel den Schalter auf Aus stellen.** Laut Schaltplan (Q1 am VIN, D1 am USB-5V) sind USB-5V und VIN (P1) am CYD gegeneinander entkoppelt. VORLÄUFIG: aus dem Schaltplanbild gelesen, nicht am Gerät gemessen.
 
 ## Bedienung
 

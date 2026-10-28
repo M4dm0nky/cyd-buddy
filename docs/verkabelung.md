@@ -19,6 +19,8 @@ Die Grafik zeigt oben die Lage der Stecker auf der CYD-Rückseite und unten, wel
 
 Die Farben sind nur die Namen in dieser Anleitung und der Grafik, **nicht die Aderfarben deines gekauften Kabels**. Maßgeblich ist die Position am Stecker (Pin-Nummer).
 
+⚠️ Die Spalte „→ XIAO“ gilt direkt für Stufe 2. **Im Roboter (Stufe 3)** gehen die Stromadern (P1 Pin 1 und Pin 4) nicht direkt an XIAO 5V/GND, sondern an den Verteilerpunkt (siehe Abschnitt Stufe 3). D6 und D7 gehen in beiden Stufen direkt an den XIAO.
+
 TX und RX sind **gekreuzt**: Der Sender des XIAO (D6) geht an den Empfänger des CYD (IO27), und umgekehrt. Beide Boards laufen mit 3,3-V-Logik, ein Pegelwandler ist nicht nötig.
 
 ### Steckertyp und Lage am CYD
@@ -59,7 +61,7 @@ Mit Sense-Erweiterung ist der Stapel ca. 15 mm hoch (Seeed-Wiki, Kamera-Anteil u
 - ⚠️ **Pin 1 am eigenen Board prüfen.** Die Reihenfolge ist aus Foto und Schaltplan gelesen. Im Zweifel die Pinbeschriftung (Silkscreen) am Stecker lesen.
 - ⚠️ **XIAO vor dem Einbau flashen.** Sein USB-C ist im Gehäuse nicht erreichbar. Spätere Updates laufen per WLAN.
 - ⚠️ **Diode bei gleichzeitigem USB am XIAO.** Der 5V-Pin des XIAO ist ein Ausgang vom USB, laut Seeed-Wiki aber auch als Eingang nutzbar. Hängt dann zusätzlich USB am XIAO, gehört eine Diode (Schottky) dazwischen: Anode zur externen Quelle, Kathode zum 5V-Pin (im Roboter siehe Abschnitt Stufe 3: Diode nur im XIAO-Zweig). Im normalen Betrieb ist der XIAO-USB nicht angesteckt, dann ist keine Diode nötig.
-- ⚠️ **Zum Flashen des CYD per Kabel** die Stromzufuhr über P1 trennen (Roboter: Schalter aus). Am CYD hängt USB-5V über eine Diode am selben Netz wie VIN. Das ist laut Schaltplan entkoppelt, aber am Gerät nicht geprüft.
+- ⚠️ **Zum Flashen des CYD per Kabel** die Stromzufuhr über P1 trennen (Roboter: Schalter aus). Am CYD hängt USB-5V über eine Diode am selben Netz wie VIN. Laut Schaltplan (Q1 als P-FET am VIN, D1 am USB-5V; aus dem Schaltplanbild gelesen) ist das entkoppelt. **VORLÄUFIG:** nicht am Gerät gemessen, deshalb trotzdem trennen.
 
 ## Schritt für Schritt
 
@@ -70,7 +72,7 @@ Material: 2× 1,25 mm 4-Pin Kabel mit Stecker, einseitig offen (je ein Kabel fü
    - Am Kabel mit P1: Pin 1 (VIN) und Pin 4 (GND) abisolieren und verzinnen. Pin 2 und 3 (TX, RX) **kürzen und einzeln mit Schrumpfschlauch isolieren**, sie bleiben unbenutzt.
    - Am Kabel mit CN1: Pin 2 (IO27) und Pin 3 (IO22) abisolieren und verzinnen. Pin 1 (3V3) kürzen und isolieren. Pin 4 (GND) darf zusätzlich an XIAO GND (zweite Masse) oder wird isoliert.
    - Die Aderfarben des Kabels sind je nach Hersteller verschieden. **Nach dem Stecker zählen, nicht nach der Farbe**, und die Ader notieren (Klebeband mit Beschriftung).
-3. **An den XIAO löten.** Den XIAO **vorher flashen**. Nach Steckerposition, am Stecker gezählt: Ader von P1-Pin 1 → 5V, P1-Pin 4 → GND, CN1-Pin 2 → D6, CN1-Pin 3 → D7. Kurz löten, nicht zu heiß, die Lötstellen bleiben an der Längsseite des Stapels frei (der Halter lässt dort Platz).
+3. **An den XIAO löten.** ⚠️ **Roboter (Stufe 3): Die Stromadern (P1-Pin 1 und Pin 4) NICHT direkt an den XIAO, sondern an den Verteilerpunkt, siehe Abschnitt Stufe 3. Die Signaladern D6/D7 gehen in beiden Stufen direkt an den XIAO.** Stufe 2 und Löten: Den XIAO **vorher flashen**. Nach Steckerposition, am Stecker gezählt: Ader von P1-Pin 1 → 5V, P1-Pin 4 → GND, CN1-Pin 2 → D6, CN1-Pin 3 → D7. Kurz löten, nicht zu heiß, die Lötstellen bleiben an der Längsseite des Stapels frei (der Halter lässt dort Platz).
 4. **Prüfen mit Multimeter, bevor du einsteckst:**
    - Durchgangsprüfung zwischen **5V und GND**: Es darf **kein** Durchgang sein (kein Kurzschluss).
    - Jede Ader gegen ihre Nachbarn prüfen: kein Durchgang.
