@@ -1,0 +1,4 @@
+# Generierte Dateien: nicht als Text diffen (spart Kontext bei git show/diff)
+case/stl/*.stl -diff linguist-generated
+case/3mf/*.3mf binary
+case/render/*.png binary
