@@ -77,7 +77,7 @@ Material: 2× 1,25 mm 4-Pin Kabel mit Stecker, einseitig offen (je ein Kabel fü
    - Stecker des P1-Kabels in P1 am CYD stecken. Das CYD über **USB** mit Strom versorgen (Kabel USB-A auf USB-C).
    - Multimeter auf Gleichspannung (V=), rote Prüfspitze an die **Pin-1-Ader**, schwarze an die **Pin-4-Ader**, jeweils an den losen Enden. Die Enden dabei nicht kurzschließen.
    - **Soll: +4,5 bis +5,2 V.**
-   - **Negativer Wert:** Die Adern sind vertauscht, du hast von der falschen Seite gezählt. Stecker abziehen, Zählung am Stecker prüfen (Pin 1 an der USB-Buchse), nichts löten.
+   - **Negativer Wert:** Die Adern sind vertauscht, du hast von der falschen Seite gezählt. Stecker abziehen, Zählung am Stecker prüfen (Pin 1 zur oberen Längskante, Pin 4 zur USB-Buchse), nichts löten.
    - **Etwa 0 V oder unter 4,5 V:** P1 VIN funktioniert nicht als Ausgang. Dann trägt die Stufe-2-Stromversorgung über P1 nicht, und es braucht eine andere Lösung. **Stopp, nichts löten**, melde dich damit zurück.
    - Danach USB abziehen, Stecker aus P1 ziehen.
    - Diese Messung betrifft Stufe 2. Im Roboter speist der Akku den Verteilerpunkt, dort ist VIN ein Eingang.

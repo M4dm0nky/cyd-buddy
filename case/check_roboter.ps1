@@ -34,7 +34,8 @@ function Run-Scad([string[]]$ScadArgs, [int]$TimeoutSec = 600) {
         -RedirectStandardError $errFile -RedirectStandardOutput $outFile
   $null = $p.Handle   # Handle halten, sonst ist ExitCode leer
   if (-not $p.WaitForExit($TimeoutSec * 1000)) {
-    try { Stop-Process -Id $p.Id -Force } catch {}
+    try { & taskkill.exe /PID $p.Id /T /F 2>$null | Out-Null } catch {}
+    try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
     return @{ Code = -999; Text = "TIMEOUT nach $TimeoutSec s" }
   }
   $p.WaitForExit()

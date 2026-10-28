@@ -28,7 +28,8 @@ function Run-Scad([string[]]$ScadArgs, [int]$TimeoutSec = 600) {
         -RedirectStandardError $errFile -RedirectStandardOutput $outFile
   $null = $p.Handle   # Handle halten, sonst ist ExitCode leer
   if (-not $p.WaitForExit($TimeoutSec * 1000)) {
-    try { Stop-Process -Id $p.Id -Force } catch {}
+    try { & taskkill.exe /PID $p.Id /T /F 2>$null | Out-Null } catch {}
+    try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
     return @{ Code = -999; Text = "TIMEOUT nach $TimeoutSec s" }
   }
   $p.WaitForExit()
@@ -143,7 +144,8 @@ if (-not $w.Ok -and $w.Msg -match 'WARNING') { Ok "Selbsttest Chk-Empty: leeres 
 $w = Eval-Empty 'empty_ctrl'
 if ($w.Ok) { Ok "Selbsttest Chk-Empty: sauber leeres Ergebnis wird als gruen gewertet" } else { Bad "Selbsttest Chk-Empty: sauber leeres Ergebnis faelschlich als Fehler: $($w.Msg)" }
 $w = Eval-Empty 'cable_check' 1
-if (-not $w.Ok -and $w.Msg -match 'TIMEOUT') { Ok "Selbsttest Chk-Empty: Timeout wird als Fehler erkannt (nie als leer = gruen)" } else { Bad "Selbsttest Chk-Empty: Timeout NICHT als Fehler erkannt (Pruefung taugt nichts): Ok=$($w.Ok) Msg=$($w.Msg)" }Chk-Hit   'cam_selftest' "Kamera-Selbsttest: Kamerakoerper +0,6 mm trifft die Tasche (Pruefung wirkt)" "Kamera-Selbsttest: zu grosser Kamerakoerper NICHT erkannt"
+if (-not $w.Ok -and $w.Msg -match 'TIMEOUT') { Ok "Selbsttest Chk-Empty: Timeout wird als Fehler erkannt (nie als leer = gruen)" } else { Bad "Selbsttest Chk-Empty: Timeout NICHT als Fehler erkannt (Pruefung taugt nichts): Ok=$($w.Ok) Msg=$($w.Msg)" }
+Chk-Hit   'cam_selftest' "Kamera-Selbsttest: Kamerakoerper +0,6 mm trifft die Tasche (Pruefung wirkt)" "Kamera-Selbsttest: zu grosser Kamerakoerper NICHT erkannt"
 Chk-Hit   'clip_test'    "Riegel: sitzt in den Nuten (Schnittmenge Riegel/Rahmen > 0)" "Riegel: keine Schnittmenge mit dem Rahmen (Nuten/Uebermass falsch)"
 Chk-Empty 'clip_band'    "Riegel: Schnittmenge liegt nur im 0,1-mm-Uebermassband (Obergrenze, Nut ist wirklich da)" "Riegel: Schnittmenge ausserhalb des Uebermassbands (Nut fehlt oder zu klein)"
 Chk-Hit   'cradle_fit'   "Wiege: Pfosten/Klemmsteg umschliessen den Stapel (Positiv-Kontrolle)" "Wiege: beruehrt den aufgeweiteten Stapel NICHT (leer oder falsche Lage)"
