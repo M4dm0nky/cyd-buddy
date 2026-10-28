@@ -15,7 +15,7 @@ New-Item -ItemType Directory -Force $stlDir, $pngDir | Out-Null
 $script:fails = 0
 
 # Druckteile. Spaetere Tasks haengen ihre Teile hier an (Task 3: neck, torso_front, torso_back, arm, hand; Task 4: seat, bottom, foot, jetzt enthalten).
-$parts = @("head_front", "bezel", "head_back", "ear", "deco", "torso_front", "torso_back", "neck", "arm", "hand", "seat", "bottom", "foot")
+$parts = @("head_front", "bezel", "head_back", "ear", "deco", "torso_front", "torso_back", "neck", "arm", "hand", "seat", "bottom", "foot", "cam_clip")
 
 function Ok($m)   { Write-Host "[ OK ] $m" -ForegroundColor Green }
 function Bad($m)  { Write-Host "[FAIL] $m" -ForegroundColor Red; $script:fails++ }
@@ -58,7 +58,7 @@ foreach ($p in $parts) {
   if ($r.Code -ne 0)                { Bad "STL $p : Exitcode $($r.Code) $($r.Text.Trim())" }
   elseif ($r.Text -match 'WARNING') { Bad "STL $p : WARNING in Ausgabe: $(($r.Text -split "`n" | Select-String WARNING | Select-Object -First 3) -join ' | ')" }
   elseif ($r.Text -match 'ERROR')   { Bad "STL $p : ERROR in Ausgabe" }
-  elseif ($n -lt 100)               { Bad "STL $p : zu wenige Facetten ($n)" }
+  elseif ($n -lt $(if ($p -eq 'cam_clip') { 20 } else { 100 })) { Bad "STL $p : zu wenige Facetten ($n)" }   # Riegel ist ein einfacher U-Koerper
   else                              { Ok "STL $p ($n Facetten)" }
 }
 
@@ -269,18 +269,57 @@ if (-not $custom) {
   }
 }
 
+# 3i) Kamera-Tasche, Riegel, Wiege (K2). Jede "muss leer sein"-Pruefung hat eine Positiv-Kontrolle ("muss treffen"),
+#     damit eine leere/falsch sitzende Geometrie nicht still als "gruen" durchgeht. Laeuft auch mit -Define (Gegenproben).
+function Scad-Facets([string]$part, [string[]]$extra = @()) {
+  $o = Join-Path $env:TEMP "madbuddy_roboter_chk_$part.stl"
+  if (Test-Path $o) { Remove-Item $o }
+  $r = Run-Scad ($extra + (PartArg $part) + @('-o', $o)) 900
+  return @{ N = (FacetCount $o); R = $r }
+}
+function Chk-Empty([string]$part, [string]$okMsg, [string]$badMsg, [string[]]$extra = @()) {
+  $x = Scad-Facets $part $extra
+  $rest = ($x.R.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
+  if ($rest -match 'WARNING|ERROR') { Bad "$badMsg : WARNING/ERROR $($rest.Trim())" }
+  elseif ($x.N -eq 0) { Ok $okMsg } else { Bad "$badMsg ($($x.N) Facetten)" }
+}
+function Chk-Hit([string]$part, [string]$okMsg, [string]$badMsg, [string[]]$extra = @()) {
+  $x = Scad-Facets $part $extra
+  if ($x.R.Text -match 'WARNING: (?!Current top level object is empty)|ERROR') { Bad "$badMsg : WARNING/ERROR $($x.R.Text.Trim())"; return }
+  if ($x.N -gt 0) { Ok "$okMsg ($($x.N) Facetten)" } else { Bad $badMsg }
+}
+Chk-Hit   'cam_selftest' "Kamera-Selbsttest: Kamerakoerper +0,6 mm trifft die Tasche (Pruefung wirkt)" "Kamera-Selbsttest: zu grosser Kamerakoerper NICHT erkannt"
+Chk-Hit   'cam_collision_ctrl' "Kontrolle Kollision: um 0,6 mm nach vorn geschobener Kamera-Pruefkoerper trifft die Anschlagplatte" "Kontrolle Kollision: verschobener Kamera-Pruefkoerper NICHT erkannt (Pruefung taugt nichts)"
+Chk-Hit   'clip_test'    "Riegel: sitzt in den Nuten (Schnittmenge Riegel/Oberkoerper > 0)" "Riegel: keine Schnittmenge mit dem Oberkoerper (Nuten/Uebermass falsch)"
+Chk-Empty 'clip_band'    "Riegel: Schnittmenge liegt nur im 0,1-mm-Uebermassband (Obergrenze, Nut ist wirklich da)" "Riegel: Schnittmenge ausserhalb des Uebermassbands (Nut fehlt oder zu klein)"
+Chk-Hit   'clip_band'    "Gegenprobe Riegel: ohne Nuten (cam_dbg_nogroove) liegt der Riegel im vollen Material" "Gegenprobe Riegel: ohne Nuten bleibt die Obergrenze trotzdem leer (Pruefung taugt nichts)" @('-D', 'cam_dbg_nogroove=true')
+Chk-Hit   'cradle_fit'   "Wiege: Pfosten/Klemmsteg umschliessen den Stapel (Positiv-Kontrolle)" "Wiege: beruehrt den aufgeweiteten Stapel NICHT (leer oder falsche Lage)"
+Chk-Empty 'cradle_fit'   "Gegenprobe Wiege: ohne Wiege (cam_dbg_nocradle) beruehrt die Positiv-Kontrolle nichts (Kontrolle misst wirklich die Wiege)" "Gegenprobe Wiege: auch ohne Wiege trifft die Kontrolle (Pruefung taugt nichts)" @('-D', 'cam_dbg_nocradle=true')
+Chk-Empty 'cam_inside'   "Rahmen, Wiege und Rippen liegen innerhalb der Brusthaut (Abstand >= 0,3 mm)" "Rahmen/Wiege/Rippen ragt aus der Brusthaut"
+Chk-Hit   'inside_ctrl_z' "Kontrolle Brusthaut: um 30 mm nach oben verschobene Wiege wird erkannt" "Kontrolle Brusthaut (Z): verschobene Wiege NICHT erkannt (Pruefung taugt nichts)"
+Chk-Hit   'inside_ctrl_x' "Kontrolle Brusthaut: um 30 mm zur Seite verschobene Wiege wird erkannt" "Kontrolle Brusthaut (X): verschobene Wiege NICHT erkannt (Pruefung taugt nichts)"
+Chk-Empty 'cam_present'  "Rahmen, Wiege und Rippen sind in torso_front/torso_back vollstaendig vorhanden (nichts weggeschnitten)" "Rahmen/Wiege/Rippen fehlt teilweise in torso_front/torso_back"
+Chk-Hit   'cam_present_ctrl' "Kontrolle Vollstaendigkeit: frei im Raum stehende Wiege wird als fehlend erkannt" "Kontrolle Vollstaendigkeit: fehlende Wiege NICHT erkannt (Pruefung taugt nichts)"
+Chk-Empty 'stack_inside' "XIAO-Stapel liegt ganz im Innenraum der Brust" "XIAO-Stapel ragt aus der Brusthaut"
+Chk-Hit   'stack_inside_ctrl' "Kontrolle Stapel: um 40 mm nach vorn verschobener Stapel wird erkannt" "Kontrolle Stapel: verschobener Stapel NICHT erkannt (Pruefung taugt nichts)"
+Chk-Hit   'cone_ctrl'    "Kontrolle Sichtkegel: um 8 mm nach hinten verschobener Kegel trifft die Brustwand" "Kontrolle Sichtkegel: verschobener Kegel NICHT erkannt (Pruefung taugt nichts)"
+Chk-Empty 'cam_channels' "Werkzeugkanaele (X +-8, Y -1...-7) und Kabelloch Ø10 sind frei von Tasche, Rahmen und Wiege" "Tasche/Rahmen/Wiege ragt in Werkzeugkanal oder Kabelloch"
+Chk-Hit   'cam_channels_ctrl' "Kontrolle Kanaele: um 17 mm (Wiege-Versatz + 8) in den Kanal geschobene Wiege wird erkannt" "Kontrolle Kanaele: verschobene Wiege NICHT erkannt (Pruefung taugt nichts)"
+
 # 4) PNG-Renders
 if (-not $NoPng) {
   $views = @(
     @{ n = 'assembly'; cam = '0,0,0,72,0,330,0'; part = 'assembly'; nodum = $true },
     @{ n = 'exploded'; cam = '0,0,0,70,0,320,0'; part = 'exploded'; nodum = $true },
-    @{ n = 'section';  cam = '0,0,0,90,0,90,0';  part = 'section'; render = $true }
+    @{ n = 'section';  cam = '0,0,0,90,0,90,0';  part = 'section'; render = $true },
+    @{ n = 'kamera_schnitt'; cam = '0,0,0,0,0,0,0'; part = 'cam_section'; ortho = $true }
   )
   foreach ($v in $views) {
     $png = Join-Path $pngDir ("roboter_{0}.png" -f $v.n)
     if (Test-Path $png) { Remove-Item $png }
     $a = (PartArg $v.part) + @('-o', $png, '--camera', $v.cam, '--viewall', '--autocenter', '--imgsize', '1400,1400', '--colorscheme', 'Tomorrow')
     if ($v.nodum) { $a = @('-D', 'show_dummies=false') + $a }   # Ansicht ohne Pruefkoerper, damit die Figur das Bild fuellt
+    if ($v.ortho) { $a += '--projection'; $a += 'ortho' }
     if ($v.render) { $a += '--render' }   # CGAL statt Vorschau: Schnitt wird in der Vorschau nicht abgezogen
     $r = Run-Scad $a 400
     if ($r.Code -ne 0)                           { Bad "PNG $($v.n): Exitcode $($r.Code) $($r.Text.Trim())" }

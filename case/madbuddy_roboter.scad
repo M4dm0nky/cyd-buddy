@@ -353,7 +353,7 @@ t_ch       = 3.5;    // VORLÄUFIG (Entwurf): 45-Grad-Fase an Brust und Ruecksei
 torso_origin = [0, t_y - t_d / 2, leg_h - 4];   // QUELLE: Konzept: [0, t_y - t_d/2, leg_h - 4] = Mitte der Unterkante des Oberkoerpers in Weltlage (Task 4 baut darauf auf)
 t_plate_z  = 4;      // VORLÄUFIG (Entwurf): Bodenplatte 4 mm ueber der Unterkante, darunter die Steckkante (Rand), in die der Sitz (Task 4) greift
 t_cable_d  = 10;     // QUELLE: Aufgabe: Kabeldurchfuehrung unten >= 10
-t_dome_pts = [[-16, 10], [16, 10], [-16, 41], [16, 41]];   // VORLÄUFIG (Entwurf): M3-Dome (Teilung vorn/hinten), Lage X/Z
+t_dome_pts = [[-16, 8], [16, 8], [-16, 41], [16, 41]];   // VORLÄUFIG (Entwurf): M3-Dome (Teilung vorn/hinten), Lage X/Z; untere Dome von Z 10 auf 8 gesenkt, damit die XIAO-Wiege (Z ab 12,3) frei bleibt
 t_dome_d   = 7.4;    // VORLÄUFIG (Entwurf): Dom aussen; Wand um die Durchgangsbohrung (Ø3,4) 2,0
 t_dome_pilot = 9;    // VORLÄUFIG (Entwurf): Kernloch im vorderen Dom (>= 7,5)
 t_seat_pts = [for (sx = [-1, 1], sy = [-1, 1]) [sx * 24, sy * 12]];   // VORLÄUFIG (Entwurf): 4 M3-Kernloecher unten fuer den Sitz (X/Y), Schrauben von unten
@@ -362,21 +362,13 @@ t_seat_blk_z = 13.5; // VORLÄUFIG (Entwurf): Oberkante der Sitzpfosten ueber de
 t_deco_pts = [for (sx = [-1, 1], z = [12, 40.8]) [sx * 23, z]];   // QUELLE: Konzept: Brust-Schrauben (Einlagen) bei 0,25 und 0,85 t_h
 // --- Kamera / XIAO: einfach gehalten und parametrisch, die Halterung wird nach Task 4 neu bestimmt
 cam_tilt   = 15;     // QUELLE: Aufgabe: Kamera nach oben gekippt
-cam_z      = 24;     // VORLÄUFIG (Entwurf): Linsenhoehe ueber der Unterkante (Konzept 0,6 * t_h; tiefer, damit der Halsblock Platz hat)
-xiao_w     = 21.0;   // VORLÄUFIG (Datenblatt)
-xiao_h     = 17.8;   // VORLÄUFIG (Datenblatt)
-xiao_stack = 15.0;   // VORLÄUFIG (Datenblatt) Stapelhoehe inkl. Linsentubus
-xiao_body_d = xiao_stack - 2.2;  // VORLÄUFIG (Datenblatt): Modultiefe hinter der Frontflaeche (wie Stufe 2: Stapel - Platte - 0,2)
-lens_d     = 8.0;    // VORLÄUFIG (Datenblatt) Linse
-lens_hole  = 9.0;    // VORLÄUFIG (Datenblatt) Linsenloch
-lens_fov   = 30;     // VORLÄUFIG (Datenblatt) halber Bildwinkel Freiraumkegel
-rib_t      = 1.6;    // QUELLE: Stufe 2 (madbuddy_case.scad rib_t): Klemmrippen links/rechts
-rib_h      = 14;     // QUELLE: Stufe 2: Rippenhoehe (Z)
-rib_len    = 10;     // VORLÄUFIG (Entwurf): Rippenlaenge (Y), kuerzer als Stufe 2, damit der Werkzeugkanal frei bleibt
-stop_w     = 3.5;    // QUELLE: Stufe 2: Anschlagpfosten unter dem XIAO
-stop_x     = 7.75;   // QUELLE: Stufe 2
-stop_len   = 6;      // VORLÄUFIG (Entwurf): Anschlagpfosten kurz, damit der Werkzeugkanal frei bleibt
-xiao_face  = 5.1;    // VORLÄUFIG (gerechnet): Abstand Frontflaeche XIAO hinter der Aussenebene entlang der Linsenachse, untere Vorderkante der gekippten Platte liegt hinter der Brustinnenwand
+cam_z      = 27;     // VORLÄUFIG (gerechnet): Linsenhoehe ueber der Unterkante (Konzept 0,6 * t_h = 28,8). Der gekippte Stapel (15 Grad, 21 mm Tiefe) belegt Z cam_z-14,8 ... cam_z+6,3: oben bleiben 1,7 mm zum Halsblock (Z 35), unten 0,5 mm ueber den unteren Domen (Oberkante Z 11,7)
+cam_cone_l = 26;     // VORLÄUFIG (gerechnet): Laenge des Sichtkegels (Spec: 30). Die Fuesse beginnen bei Y -62, 32 mm vor der Linse: der untere Bildrand (102 Grad diagonal) trifft sie ab etwa 27 mm Abstand; bis 26 mm ist die Sicht frei
+cam_xiao_dx = 9.0;   // VORLÄUFIG (gerechnet): X-Versatz des XIAO-Stapels (siehe xiao_cam_common.scad). Die linke Wiegen-Stirnwand muss rechts von der linken Werkzeugkanal-Kante (X -4,7) bleiben: Pfosten ab X -4,2
+// Kameratasche, Riegel, XIAO-Wiege und Pruefkoerper kommen aus xiao_cam_common.scad (lokales System: Innenseite der Wand = Z 0, Blick +Z, Linse = Ursprung).
+// Dort definiert (hier NICHT wiederholen): cam_*, xiao_w, xiao_l, xiao_stack, xiao_offset ... Die Roboter-Datei braucht von der Common-Datei nichts.
+include <xiao_cam_common.scad>
+cam_wt     = 3.0;    // VORLÄUFIG (Entwurf): "Wandstaerke" fuer das lokale System = Abstand Innenebene (Z 0) bis Aussenebene (Z cam_wt) entlang der Linsenachse. Die Brustwand steht senkrecht, die Achse ist 15 Grad geneigt: die Aussenflaeche liegt bei Z = cam_wt + 0,268 * (Hoehe ueber der Achse). 3,0 = Linsenspitze (zbf 0 + Tubus 2,7) liegt in der Achse 0,3 mm hinter der Aussenflaeche (Spec); der Rest zwischen Z 0 und der Aussenflaeche wird von cam_fill() massiv gefuellt (Anschlagplatte)
 // --- Hals
 neck_lo_d  = 36;     // VORLÄUFIG (Entwurf): Ø unterer Flansch (Scheibe), dazu zwei Laschen fuer die Schrauben
 neck_lug_d = 9;      // VORLÄUFIG (Entwurf): Ø der Laschen am unteren Flansch (Wand um das Loch 2,8)
@@ -481,27 +473,46 @@ module torso_pocket2d() {
   polygon([[t_w / 2 - d_cf_t, -hyp], [hxp, -(t_d / 2 - y_cf_t)], [hxp, t_d / 2 - y_cf_t], [t_w / 2 - d_cf_t, hyp],
            [-(t_w / 2 - d_cf_t), hyp], [-hxp, t_d / 2 - y_cf_t], [-hxp, -(t_d / 2 - y_cf_t)], [-(t_w / 2 - d_cf_t), -hyp]]);
 }
+// ---- Kamera (lokales System aus xiao_cam_common.scad, um cam_tilt nach oben gekippt)
+// Ursprung der Achse: Punkt der Aussenflaeche der Brust (Y = -t_d/2) auf Hoehe cam_z; das System liegt cam_wt hinter dieser Stelle (Innenebene Z 0).
+module cam_frame() { translate([0, -t_d / 2, cam_z]) rotate([90 - cam_tilt, 0, 0]) translate([0, 0, -cam_wt]) children(); }
+module xiao_dummy_l()  cam_frame() xiao_stack_dummy(cam_wt);
+module camera_dummy_l() cam_frame() cam_dummy(cam_wt);
+module lens_cone_l()   cam_frame() cam_fov_cone(cam_cone_l, cam_wt);
+module xiao_dummy_r()  { place_torso() xiao_dummy_l(); }
+module camera_dummy_r() { place_torso() camera_dummy_l(); }
+module lens_cone_r()   { place_torso() lens_cone_l(); }
+module cam_clip_l()    cam_frame() cam_clip_place(cam_wt);
+// Massiver Block zwischen der Tasche und der (senkrechten) Aussenflaeche: die Wand ist senkrecht, die Achse geneigt, die Innenebene schneidet
+// die Wand schraeg. torso_front schneidet das mit der Aussenhuelle ab (t_half), die Anschlagplatte wird so an jeder Stelle der Tasche massiv.
+module cam_fill() translate([-cam_outer_h, -cam_outer_h, 0.4]) cube([2 * cam_outer_h, 2 * cam_outer_h, cam_wt + 4]);
+// Die Wiege reicht wegen der 15-Grad-Neigung ueber die Teilungsebene Y 0 hinaus (Stapel Y -15,7 ... 3,4; Klemmsteg bis Y 5): t_adds() wird in
+// torso_front UND torso_back auf die jeweilige Haelfte geschnitten, der hintere Teil der Pfosten und der Klemmsteg gehoeren also zu torso_back.
+// Damit er dort nicht in der Luft haengt, stuetzt ihn unter dem unteren Ende jedes Klemmstegs eine Rippe (Hull) von der Bodenplatte. Fuss der Rippe bei Y 6,2 ... 9,0 (hinter dem
+// Kabelloch Ø10; die +Y-Flanke der Rippe steigt mit ca. 49 Grad: in torso_back (Rueckseite unten gedruckt) ohne Stuetzen).
+module cam_ribs() for (ex = [-1, 1]) {
+  xp = ex > 0 ? xiao_offset[0] + xiao_w / 2 + xiao_play : xiao_offset[0] - xiao_w / 2 - xiao_play - xiao_post_t;
+  yo = xiao_l / 2 - xiao_post_trim;
+  hull() {
+    translate([xp, 6.2, t_plate_z + wall - 0.2]) cube([xiao_post_t, 2.8, 0.1]);
+    cam_frame() translate([xp, xiao_offset[1] - yo, xiao_zbot(cam_wt) - xiao_lip_gap - xiao_steg_t]) cube([xiao_post_t, 0.5, xiao_steg_t]);
+  }
+}
+module cam_mount() { cam_frame() { cam_pocket_add(cam_wt); cam_fill(); xiao_cradle_add(cam_wt); } cam_ribs(); }   // positiv (ungeschnitten)
+module cam_nofill() { cam_frame() { cam_pocket_add(cam_wt); xiao_cradle_add(cam_wt); } cam_ribs(); }   // Rahmen + Wiege + Rippen ohne Fuellblock (fuer die Lage-Pruefungen)
+module cam_free_volumes() { drv_channel(); translate([0, 0, t_plate_z - 1]) cylinder(d = t_cable_d, h = wall + 2); }   // Werkzeugkanaele + Kabelloch Ø10
+module t_solid_in(d) hull() {   // Brusthuelle um ca. d nach innen verkleinert (45-Grad-Fase mitgefuehrt)
+  t_ext(-t_d / 2 + t_ch + d, t_d / 2 - t_ch - d) t_inset(d);
+  t_ext(-t_d / 2 + d, -t_d / 2 + d + 0.001) t_inset(t_ch + d);
+  t_ext(t_d / 2 - d - 0.001, t_d / 2 - d) t_inset(t_ch + d);
+}
+module cam_cut() cam_frame() {   // negativ: Linsenloch 6,7 mit 45-Grad-Fase, Tasche, Nuten, FPC-Schlitz, Stapelraum
+  cam_pocket_cut(cam_wt); xiao_cradle_cut(cam_wt);
+  // Die Aussenflaeche steht senkrecht (nicht in der Linsen-Normalebene): oben ragt sie bis ca. 1,2 mm ueber Z cam_wt. Die Fase wird ueber cam_wt hinaus weitergefuehrt.
+  translate([0, 0, cam_wt]) cylinder(d = cam_hole_d + 2 * cam_chamfer, h = 4);
+  scale([1.06, 1.06, 1]) cam_fov_cone(6, cam_wt);   // Sichtpyramide als Senkung: haelt den Bildwinkel an der schraegen Aussenflaeche frei (oben ragt die Wand ueber den Kreis hinaus)
+}
 
-// ---- Kamera
-module cam_frame() { translate([0, -t_d / 2, cam_z]) rotate([90 - cam_tilt, 0, 0]) children(); }
-module xiao_dummy_l() cam_frame() {
-  translate([-xiao_w / 2, -xiao_h / 2, -xiao_face - xiao_body_d]) cube([xiao_w, xiao_h, xiao_body_d]);
-  translate([0, 0, -xiao_face - 0.01]) cylinder(d = lens_d, h = xiao_face + 0.01);
-}
-module lens_cone_l() cam_frame() hull() {
-  translate([0, 0, -0.5]) cylinder(d = lens_d, h = 0.5);
-  translate([0, 0, 30]) cylinder(r = lens_d / 2 + 30 * tan(lens_fov), h = 0.01);
-}
-module xiao_dummy_r() { place_torso() xiao_dummy_l(); }
-module lens_cone_r()  { place_torso() lens_cone_l(); }
-module cam_mount() {   // Klemmrippen + Anschlag, nur Vorderhaelfte
-  for (sx = [-1, 1]) translate([sx * (xiao_w / 2 + 0.15 + rib_t / 2) - rib_t / 2, -t_d / 2 + wall - 0.1, cam_z - rib_h / 2]) cube([rib_t, rib_len, rib_h]);
-  for (sx = [-1, 1]) cam_frame() translate([sx * stop_x - stop_w / 2, -xiao_h / 2 - 3.4, -xiao_face - stop_len]) cube([stop_w, 3.3, stop_len + 0.5]);
-}
-module lens_cut() cam_frame() {
-  translate([0, 0, -6]) cylinder(d = lens_hole, h = 10);
-  hull() { translate([0, 0, -1]) cylinder(d = lens_hole, h = 0.01); translate([0, 0, 5]) cylinder(d = lens_hole + 12, h = 0.01); }   // 45-Grad-Senkung aussen
-}
 
 // ---- Einbauten
 module t_adds() {
@@ -541,7 +552,7 @@ module torso_front(pilots = true) {
       intersection() { t_half(true); t_adds(); }
     }
     t_ext(-lip_h, 0.01) difference() { t_cav2d(a_lip); t_cav2d(wall); }     // Falz: Innenhaelfte der Wand
-    lens_cut();
+    cam_cut();
     t_cuts_common(pilots);
     if (pilots) dome_pilots_t();
     for (p = t_deco_pts) translate([p[0], -t_d / 2 - 0.01, p[1]]) rotate([-90, 0, 0]) cylinder(d = deco_d + fit_peg, h = deco_in + 0.01);
@@ -556,6 +567,7 @@ module torso_back(pilots = true) {
       t_lip_ring();
     }
     t_cuts_common(pilots);
+    cam_frame() xiao_cradle_cut(cam_wt);   // Stapelraum auch in der Rueckhaelfte freihalten
     sh_bores();
     for (p = t_dome_pts) {
       translate([p[0], t_d / 2 + 1, p[1]]) rotate([90, 0, 0]) cylinder(d = screw_d, h = t_d / 2 + 2);
@@ -618,7 +630,7 @@ module arm_print() translate([-(arm_S[2] - arm_S[1]) * cos(45), 0, arm_x + arm_f
 
 module body_shells() { place_torso() { torso_front(); torso_back(); neck(); torso_decos(); } for (s = [1, -1]) { arm(s); hand(s); } }
 module shells()   { place_head() head_shells(); body_shells(); seat_shells(); }
-module dummies()  { place_head() head_dummies(); xiao_dummy_r(); lens_cone_r(); seat_dummies(); }
+module dummies()  { place_head() head_dummies(); xiao_dummy_r(); camera_dummy_r(); lens_cone_r(); seat_dummies(); }
 
 // ---- Pruefkoerper fuer die Montage (Schraubendreher Ø6, 60 lang) und Kollisionspaare
 module hits() { for (i = [1 : $children - 1]) intersection() { children(0); children(i); } }   // child 0 gegen jedes weitere Kind einzeln
@@ -1005,7 +1017,8 @@ module colored_body() {
     color("#ff7a29") { torso_front(); torso_back(); }
     color("#263238") neck();
     color("#c0c0c0") torso_decos();
-    if (show_dummies) color("#8a4fc9", 0.8) xiao_dummy_l();
+    color("#e8e8e8") cam_clip_l();
+    if (show_dummies) { color("#8a4fc9", 0.8) xiao_dummy_l(); color("#d03030") camera_dummy_l(); }
   }
   for (s = [1, -1]) { color("#ff7a29") arm(s); color("#263238") hand(s); }
   color("#3a7bd5") { seat(); bottom(); }
@@ -1092,8 +1105,56 @@ else if (part == "drv_p2") hits() { drv_p2(); phase2_parts(); }
 else if (part == "drv_selftest_p1") hits() { drv_p1(-12); phase1_parts(); }   // Werkzeug 12 mm zur Seite: muss Hals/Block treffen
 else if (part == "drv_selftest_p2") hits() { drv_p2(6); phase2_parts(); }
 else if (part == "pilot_neck_back") intersection() { torso_back(false); neck_pilots_t(); }   // Kernloecher der unteren Halsschrauben duerfen NICHT in torso_back liegen
-else if (part == "torso_selftest")
-  intersection() { shells(); place_torso() cam_frame() scale([1.6, 1.6, 1]) translate([-xiao_w / 2, -xiao_h / 2, -xiao_face - xiao_body_d]) cube([xiao_w, xiao_h, xiao_body_d]); }
+else if (part == "cam_clip") cam_clip();     // flach (Z 0 ... cam_clip_t) auf dem Bett, Armenden nach +X
+else if (part == "torso_selftest")   // zu grosser XIAO-Stapel (1,6-fach in X/Y um seine Mitte) MUSS die Schale (Wiege, Rahmen, Wand) treffen
+  intersection() { shells(); place_torso() cam_frame() translate([xiao_offset[0], xiao_offset[1], 0]) scale([1.6, 1.6, 1]) translate([-xiao_offset[0], -xiao_offset[1], 0]) xiao_stack_dummy(cam_wt); }
+// ---- Kamera-Pruefungen (Task K2), alle in Oberkoerper-Koordinaten; jede "muss leer sein"-Pruefung hat eine Positiv-Kontrolle in check_roboter.ps1
+else if (part == "cam_selftest")     // Kamerakoerper +0,6 mm (Tasche hat +0,5) MUSS die Tasche treffen
+  intersection() { place_torso() torso_front(); place_torso() cam_frame() translate([-(cam_body + 0.6) / 2, -(cam_body + 0.6) / 2, cam_zbb(cam_wt)]) cube([cam_body + 0.6, cam_body + 0.6, cam_zbf(cam_wt) - cam_zbb(cam_wt)]); }
+else if (part == "cam_collision_ctrl")   // Kontrolle zur Kollision: Kamera-Pruefkoerper 0,6 mm nach vorn (in die Anschlagplatte) MUSS treffen
+  intersection() { place_torso() torso_front(); place_torso() cam_frame() translate([0, 0, 0.6]) cam_dummy(cam_wt); }
+else if (part == "cone_ctrl")            // Kontrolle zum Sichtkegel: 8 mm nach hinten verschoben steckt die Spitze in Wand und Tasche, MUSS treffen
+  intersection() { place_torso() torso_front(); place_torso() cam_frame() translate([0, 0, -8]) cam_fov_cone(cam_cone_l, cam_wt); }
+else if (part == "clip_test")        // Riegel in Einbaulage gegen torso_front: MUSS durch das Uebermass (0,1 mm) Schnittmenge haben
+  intersection() { place_torso() torso_front(); place_torso() cam_clip_l(); }
+else if (part == "clip_band")        // Obergrenze: die Schnittmenge darf NUR im Uebermassband (unter dem Nutboden zg1) liegen. Ohne Nuten (-D cam_dbg_nogroove=true) NICHT leer.
+  place_torso() difference() {
+    intersection() { torso_front(); cam_clip_l(); }
+    cam_frame() translate([-50, -50, cam_zbb(cam_wt) - cam_clip_t - 1]) cube([100, 100, cam_clip_t + 1 + cam_zg1(cam_wt) - cam_zbb(cam_wt) + 0.0005]);
+  }
+else if (part == "cradle_fit")       // Pfosten/Klemmsteg muessen den um 0,6 mm aufgeweiteten Stapel beruehren (ohne Wiege: leer)
+  place_torso() intersection() {
+    cam_frame() xiao_cradle_add(cam_wt);
+    cam_frame() translate([xiao_offset[0] - xiao_w / 2 - 0.6, xiao_offset[1] - xiao_l / 2 - 0.6, xiao_zbot(cam_wt) - 0.6]) cube([xiao_w + 1.2, xiao_l + 1.2, xiao_stack + 1.2]);
+  }
+else if (part == "cam_inside")       // Rahmen, Wiege und Rippen (ohne Fuellblock) muessen mindestens 0,3 mm innerhalb der Brusthaut liegen; Rahmen/Stege duerfen die Aussenhaut nicht durchstossen
+  difference() { place_torso() cam_nofill(); place_torso() t_solid_in(0.2); }
+else if (part == "inside_ctrl_z")    // Kontrolle: 30 mm nach oben verschoben ragt die Wiege aus der Brusthaut, MUSS treffen
+  difference() { place_torso() translate([0, 0, 30]) cam_nofill(); place_torso() t_solid_in(0.2); }
+else if (part == "inside_ctrl_x")    // Kontrolle: 30 mm zur Seite verschoben ragt die Wiege aus der Brusthaut, MUSS treffen
+  difference() { place_torso() translate([30, 0, 0]) cam_nofill(); place_torso() t_solid_in(0.2); }
+else if (part == "stack_inside")     // der XIAO-Stapel muss ganz im Innenraum der Brust liegen (nicht durch die Aussenhaut)
+  difference() { xiao_dummy_r(); place_torso() t_solid_in(0.2); }
+else if (part == "stack_inside_ctrl")   // Kontrolle: 40 mm nach vorn verschoben steckt der Stapel ausserhalb, MUSS treffen
+  difference() { translate([0, -40, 0]) xiao_dummy_r(); place_torso() t_solid_in(0.2); }
+else if (part == "cam_present")      // Rahmen, Wiege und Rippen (ohne Tasche) muessen in torso_front + torso_back vollstaendig vorhanden sein (nichts durch Dome, Kanaele, Bohrungen weggeschnitten)
+  difference() { difference() { place_torso() cam_nofill(); place_torso() cam_frame() { cam_pocket_cut(cam_wt); xiao_cradle_cut(cam_wt); } } place_torso() { torso_front(); torso_back(); } }
+else if (part == "cam_present_ctrl") // Kontrolle: Wiege um 60 mm zur Seite (steht frei im Raum), MUSS als fehlend gemeldet werden
+  difference() { difference() { place_torso() translate([60, 0, 0]) cam_nofill(); place_torso() cam_frame() { cam_pocket_cut(cam_wt); xiao_cradle_cut(cam_wt); } } place_torso() { torso_front(); torso_back(); } }
+else if (part == "cam_channels")     // Rahmen und Wiege (ohne Fuellblock) duerfen weder die Werkzeugkanaele der Kopfschrauben noch das Kabelloch Ø10 schneiden
+  intersection() { place_torso() cam_nofill(); place_torso() cam_free_volumes(); }
+else if (part == "cam_channels_ctrl")   // Kontrolle: Kanaele und Kabelloch 12 mm zur Kamera hin (in X) verschoben MUSS die Wiege treffen
+  intersection() { place_torso() cam_nofill(); place_torso() translate([xiao_offset[0] + 8, 0, 0]) cam_free_volumes(); }
+else if (part == "cam_section")    // Schnitt durch die Kamera-Tasche bei X = 0 (Blick von +X): jedes Teil einzeln geschnitten, damit die Schnittflaechen ihre Farbe behalten
+  rotate([0, 0, 90]) rotate([0, -90, 0]) place_torso() {
+    cb = [-25, -26, -2];   // Ausschnitt in Oberkoerper-Koordinaten, nur X <= 0
+    intersection() { color("#ff7a29") torso_front(); translate(cb) cube([25, 40, 52]); }
+    intersection() { color("#4fa8c9") torso_back(); translate(cb) cube([25, 40, 52]); }
+    intersection() { color("#e8e8e8") cam_clip_l(); translate(cb) cube([25, 40, 52]); }
+    intersection() { color("#d03030") camera_dummy_l(); translate(cb) cube([25, 40, 52]); }
+    intersection() { color("#8a4fc9") xiao_dummy_l(); translate(cb) cube([25, 40, 52]); }
+    intersection() { color("#263238") neck(); translate(cb) cube([25, 40, 52]); }
+  }
 else if (part == "assembly") assembly_parts();
 else if (part == "exploded") exploded_parts();
 else if (part == "section")

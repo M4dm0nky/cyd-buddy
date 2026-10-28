@@ -82,7 +82,7 @@ STL liegen in `stl/roboter_<teil>.stl`, schon in Druckausrichtung (ohne Stützen
 | `foot` | schwarz | 2 | Rückseite (Zapfenloch) auf dem Bett |
 
 3MF zum Öffnen in Bambu Studio:
-- `3mf/roboter_teile.3mf`: alle 17 Druckkörper nebeneinander, jeder bekommt im Slicer seine Farbe.
+- `3mf/roboter_teile.3mf`: alle 18 Druckkörper nebeneinander, jeder bekommt im Slicer seine Farbe.
 - `3mf/roboter_ams.3mf`: Gruppe „kopf“ (Kopfschale, Blende, 4 Zierschrauben als drei Bauteile eines Objekts, in Einbaulage) plus die übrigen Teile einzeln. Im Slicer weist man den drei Bauteilen je eine Farbe zu.
 - Neu erzeugen: `check_roboter.ps1` (Schritt 1c) oder `tools/make_3mf.ps1`; Werkzeug `tools/stl2_3mf.py` (`--group NAME`, `--end`, `--arrange`).
 

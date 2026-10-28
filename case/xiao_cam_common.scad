@@ -56,7 +56,8 @@ xiao_lip_gap = 0.1;   // Luft zwischen Stapelrueckseite und Lippe
 xiao_fpc_end = 0.5;   // gerades Stueck des FPC vor dem Stecker (Biegeweg endet dort)
 // Lage des Stapelmittelpunkts relativ zur Linse (X, Y): das Ende mit dem Kamerastecker zeigt nach +X zur Kamera.
 // Der Stapel liegt parallel zur Frontwand hinter dem Kamera-Rahmen (Z-Abstand wegen der Rahmentiefe), nach +X versetzt.
-xiao_offset  = [7.0, 0.0]; // VORLÄUFIG (Entwurf): Stecker <= 16 mm Luftlinie von der Koerperkante UND FPC-Bogenradius >= cam_bend_r (je weiter nach +X, desto sanfter; Grenze: Kopfwand der Stirn)
+// Die einbindende Datei darf den X-Versatz ueber cam_xiao_dx setzen (Roboter: Werkzeugkanal der Kopfschrauben); ohne Angabe gilt 7,0 (Stufe 2).
+xiao_offset  = [is_undef(cam_xiao_dx) ? 7.0 : cam_xiao_dx, 0.0]; // VORLÄUFIG (Entwurf): Stecker <= 16 mm Luftlinie von der Koerperkante UND FPC-Bogenradius >= cam_bend_r (je weiter nach +X, desto sanfter; Grenze: Kopfwand der Stirn)
 cam_fpc_air_max = 16.0;    // QUELLE: Spec (21,2 mm FPC, lockere Schleife) max. Luftlinie Koerperkante -> Stecker
 
 // ================================================================= abgeleitete Werte
