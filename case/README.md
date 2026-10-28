@@ -112,10 +112,16 @@ Summe: 4 × M3×8, 12 × M3×10, 4 × M3×28. Das passt zur Massenliste „20 ×
 
 1. Hals von oben mit 2 × M3×10 auf `torso_front` schrauben (`torso_back` ist dabei verschraubt, der Kopf fehlt).
 2. Rückwand des Oberkörpers abnehmen, Kopf auf den Hals setzen, 2 × M3×10 von unten durch die Halsschlitze eindrehen.
-3. XIAO von hinten einsetzen, `torso_back` mit 4 × M3×28 schließen.
+3. Kamera und XIAO einbauen, solange `torso_back` noch abgenommen ist (bei geschlossenem Oberkörper kommt man nicht an die Tasche):
+   1. Kameramodul von hinten in die Tasche schieben (Linse durch das Loch), FPC durch den Schlitz nach +X führen.
+   2. `cam_clip` (Riegel) von der +X-Seite in die Nuten schieben (Übermaß 0,1 mm, Presssitz).
+   3. XIAO-Stapel von hinten zwischen die Pfosten schieben, die Lippen der Pfosten rasten über die Rückseite ein (FPC in den Stecker).
+   4. `torso_back` aufschieben und mit 4 × M3×28 schließen: Klemmsteg und Stützwand in `torso_back` legen sich hinter den Stapel. Der Weg ist per Zwischenstellungen geprüft (`asm_cam`, `asm_clip`, `asm_stack`, `asm_close`).
 4. Arme in den Oberkörper stecken, Hände auf die Arme stecken, Ohren in den Kopf stecken, Blende in die Nut drücken, Zierschrauben einsetzen.
 5. Oberkörper mit Hals und Kopf auf `seat` stecken und von unten mit 4 × M3×10 verschrauben (Schraubendreher durch den offenen Boden).
 6. Akku einlegen, 5 V und GND verdrahten (Schalter, Kabel nach oben), `bottom` mit 4 × M3×10 schließen. Füße vorn auf die Beine stecken.
+
+Kamera im Roboter: Der Sichtkegel (102° diagonal, 85° horizontal) wird nur 26 mm lang geprüft, weil die Füße ab ca. 27 mm unten im Bild liegen (Entscheidung 2026-10-28). Die Linsenloch-Fase hat im Roboter 28° statt 45° zur Achse (Achse 15° geneigt, so bleibt der Überhang im Druck ≤ 45°).
 
 Jede Schraube ist im Modell mit einem Schraubendreher-Prüfkörper Ø 6 × 60 auf Erreichbarkeit geprüft (`check_roboter.ps1`, Schritte 3g/3h).
 

@@ -363,7 +363,8 @@ t_deco_pts = [for (sx = [-1, 1], z = [12, 40.8]) [sx * 23, z]];   // QUELLE: Kon
 // --- Kamera / XIAO: einfach gehalten und parametrisch, die Halterung wird nach Task 4 neu bestimmt
 cam_tilt   = 15;     // QUELLE: Aufgabe: Kamera nach oben gekippt
 cam_z      = 27;     // VORLÄUFIG (gerechnet): Linsenhoehe ueber der Unterkante (Konzept 0,6 * t_h = 28,8). Der gekippte Stapel (15 Grad, 21 mm Tiefe) belegt Z cam_z-14,8 ... cam_z+6,3: oben bleiben 1,7 mm zum Halsblock (Z 35), unten 0,5 mm ueber den unteren Domen (Oberkante Z 11,7)
-cam_cone_l = 26;     // VORLÄUFIG (gerechnet): Laenge des Sichtkegels (Spec: 30). Die Fuesse beginnen bei Y -62, 32 mm vor der Linse: der untere Bildrand (102 Grad diagonal) trifft sie ab etwa 27 mm Abstand; bis 26 mm ist die Sicht frei
+cam_chamfer_ang = 28; // VORLÄUFIG (gerechnet): Flankenwinkel der Linsenloch-Fase zur Achse (Spec 45). Achse 15 Grad zur Druckrichtung geneigt: obere Flanke 28+15 = 43 Grad Ueberhang (<= 45), mit 45 waeren es 60
+cam_cone_l = 26;     // QUELLE: Entscheidung Auftraggeber 2026-10-28 (Spec: Roboter 26 mm statt 30 mm). Begruendung (gerechnet): Laenge des Sichtkegels (Spec: 30). Die Fuesse beginnen bei Y -62, 32 mm vor der Linse: der untere Bildrand (102 Grad diagonal) trifft sie ab etwa 27 mm Abstand; bis 26 mm ist die Sicht frei
 cam_xiao_dx = 9.0;   // VORLÄUFIG (gerechnet): X-Versatz des XIAO-Stapels (siehe xiao_cam_common.scad). Die linke Wiegen-Stirnwand muss rechts von der linken Werkzeugkanal-Kante (X -4,7) bleiben: Pfosten ab X -4,2
 // Kameratasche, Riegel, XIAO-Wiege und Pruefkoerper kommen aus xiao_cam_common.scad (lokales System: Innenseite der Wand = Z 0, Blick +Z, Linse = Ursprung).
 // Dort definiert (hier NICHT wiederholen): cam_*, xiao_w, xiao_l, xiao_stack, xiao_offset ... Die Roboter-Datei braucht von der Common-Datei nichts.
@@ -485,20 +486,36 @@ module lens_cone_r()   { place_torso() lens_cone_l(); }
 module cam_clip_l()    cam_frame() cam_clip_place(cam_wt);
 // Massiver Block zwischen der Tasche und der (senkrechten) Aussenflaeche: die Wand ist senkrecht, die Achse geneigt, die Innenebene schneidet
 // die Wand schraeg. torso_front schneidet das mit der Aussenhuelle ab (t_half), die Anschlagplatte wird so an jeder Stelle der Tasche massiv.
+module cam_body_probe(grow) {   // Kamerakoerper + Tubus (ohne FPC), um grow groesser, fuer die Montagewege
+  translate([-(cam_body + grow) / 2, -(cam_body + grow) / 2, cam_zbb(cam_wt)]) cube([cam_body + grow, cam_body + grow, cam_zbf(cam_wt) - cam_zbb(cam_wt)]);
+  translate([0, 0, cam_zbf(cam_wt) - 0.01]) cylinder(d = cam_tube_d + grow, h = cam_tube_len + 0.01);
+}
+module stack_probe(w) translate([xiao_offset[0] - w / 2, xiao_offset[1] - xiao_l / 2, xiao_zbot(cam_wt)]) cube([w, xiao_l, xiao_stack]);   // XIAO-Stapel mit waehlbarer Breite (Montagewege)
 module cam_fill() translate([-cam_outer_h, -cam_outer_h, 0.4]) cube([2 * cam_outer_h, 2 * cam_outer_h, cam_wt + 4]);
 // Die Wiege reicht wegen der 15-Grad-Neigung ueber die Teilungsebene Y 0 hinaus (Stapel Y -15,7 ... 3,4; Klemmsteg bis Y 5): t_adds() wird in
 // torso_front UND torso_back auf die jeweilige Haelfte geschnitten, der hintere Teil der Pfosten und der Klemmsteg gehoeren also zu torso_back.
-// Damit er dort nicht in der Luft haengt, stuetzt ihn unter dem unteren Ende jedes Klemmstegs eine Rippe (Hull) von der Bodenplatte. Fuss der Rippe bei Y 6,2 ... 9,0 (hinter dem
-// Kabelloch Ø10; die +Y-Flanke der Rippe steigt mit ca. 49 Grad: in torso_back (Rueckseite unten gedruckt) ohne Stuetzen).
+// Der Klemmsteg ist in torso_back (Rueckseite unten gedruckt) um 15 Grad gegen die Waagerechte geneigt, seine Rueckseite waere eine fast flache, 16 mm lange Decke.
+// Darum steht hinter jedem Steg eine massive Stuetzwand (Hull: Steg-Rueckseite -> Rueckwand): ihre Seitenflaechen liegen in Ebenen Z = const (im Druck senkrecht).
 module cam_ribs() for (ex = [-1, 1]) {
   xp = ex > 0 ? xiao_offset[0] + xiao_w / 2 + xiao_play : xiao_offset[0] - xiao_w / 2 - xiao_play - xiao_post_t;
   yo = xiao_l / 2 - xiao_post_trim;
+  zw = xiao_zbot(cam_wt) - xiao_lip_gap - xiao_steg_t;          // Rueckseite des Klemmstegs (lokal)
+  zlo = cam_z - yo * cos(cam_tilt) + (zw - cam_wt) * sin(cam_tilt);   // Z (Oberkoerper) der Stegenden
+  zhi = cam_z + yo * cos(cam_tilt) + (zw - cam_wt) * sin(cam_tilt);
   hull() {
-    translate([xp, 6.2, t_plate_z + wall - 0.2]) cube([xiao_post_t, 2.8, 0.1]);
-    cam_frame() translate([xp, xiao_offset[1] - yo, xiao_zbot(cam_wt) - xiao_lip_gap - xiao_steg_t]) cube([xiao_post_t, 0.5, xiao_steg_t]);
+    cam_frame() translate([xp, xiao_offset[1] - yo, zw]) cube([xiao_post_t, 2 * yo, 0.01]);
+    translate([xp, t_d / 2 - wall - 0.3, zlo]) cube([xiao_post_t, 0.8, zhi - zlo]);
   }
 }
-module cam_mount() { cam_frame() { cam_pocket_add(cam_wt); cam_fill(); xiao_cradle_add(cam_wt); } cam_ribs(); }   // positiv (ungeschnitten)
+// Pfostenwurzeln: die Wand steht senkrecht, die Pfosten sind geneigt; oben (lokal +Y) endet der Pfosten ca. 2 mm vor der Wand. Die Wurzeln fuellen bis zur
+// Aussenhuelle (torso_front schneidet an t_half/Aussenform ab), sonst waere der Pfostenanfang im Druck eine freitragende Flaeche.
+module cam_post_roots() cam_frame() for (ex = [-1, 1], sy = [-1, 1]) {
+  xp = ex > 0 ? xiao_offset[0] + xiao_w / 2 + xiao_play : xiao_offset[0] - xiao_w / 2 - xiao_play - xiao_post_t;
+  gap_h = xiao_conn_w / 2 + 0.15; yo = xiao_l / 2 - xiao_post_trim;
+  translate([xp, sy > 0 ? xiao_offset[1] + gap_h : xiao_offset[1] - yo, 0.4]) cube([xiao_post_t, yo - gap_h, cam_wt + 4]);
+}
+cam_off     = false;  // nur Pruefhilfe (Ueberhang-Vergleich): true = ganze Kamera-Geometrie (Tasche, Wiege, Rippen) entfaellt
+module cam_mount() { if (!cam_off) cam_frame() { cam_pocket_add(cam_wt); cam_fill(); xiao_cradle_add(cam_wt); } if (!cam_off) { cam_ribs(); cam_post_roots(); } }   // positiv (ungeschnitten)
 module cam_nofill() { cam_frame() { cam_pocket_add(cam_wt); xiao_cradle_add(cam_wt); } cam_ribs(); }   // Rahmen + Wiege + Rippen ohne Fuellblock (fuer die Lage-Pruefungen)
 module cam_free_volumes() { drv_channel(); translate([0, 0, t_plate_z - 1]) cylinder(d = t_cable_d, h = wall + 2); }   // Werkzeugkanaele + Kabelloch Ø10
 module t_solid_in(d) hull() {   // Brusthuelle um ca. d nach innen verkleinert (45-Grad-Fase mitgefuehrt)
@@ -506,11 +523,10 @@ module t_solid_in(d) hull() {   // Brusthuelle um ca. d nach innen verkleinert (
   t_ext(-t_d / 2 + d, -t_d / 2 + d + 0.001) t_inset(t_ch + d);
   t_ext(t_d / 2 - d - 0.001, t_d / 2 - d) t_inset(t_ch + d);
 }
-module cam_cut() cam_frame() {   // negativ: Linsenloch 6,7 mit 45-Grad-Fase, Tasche, Nuten, FPC-Schlitz, Stapelraum
+module cam_cut() if (!cam_off) cam_frame() {   // negativ: Linsenloch 6,7 mit 45-Grad-Fase, Tasche, Nuten, FPC-Schlitz, Stapelraum
   cam_pocket_cut(cam_wt); xiao_cradle_cut(cam_wt);
-  // Die Aussenflaeche steht senkrecht (nicht in der Linsen-Normalebene): oben ragt sie bis ca. 1,2 mm ueber Z cam_wt. Die Fase wird ueber cam_wt hinaus weitergefuehrt.
-  translate([0, 0, cam_wt]) cylinder(d = cam_hole_d + 2 * cam_chamfer, h = 4);
-  scale([1.06, 1.06, 1]) cam_fov_cone(6, cam_wt);   // Sichtpyramide als Senkung: haelt den Bildwinkel an der schraegen Aussenflaeche frei (oben ragt die Wand ueber den Kreis hinaus)
+  // Die Aussenflaeche steht senkrecht (nicht in der Linsen-Normalebene): oben ragt sie bis ca. 1,2 mm ueber Z cam_wt. Die Fase wird als Kegel ueber cam_wt hinaus weitergefuehrt.
+  translate([0, 0, cam_wt]) cylinder(d1 = cam_hole_d + 2 * cam_chamfer, d2 = cam_hole_d + 2 * cam_chamfer + 8 * tan(cam_cone_ang), h = 4);   // Fase-Kegel (gleicher Flankenwinkel) ueber cam_wt hinaus
 }
 
 
@@ -558,6 +574,7 @@ module torso_front(pilots = true) {
     for (p = t_deco_pts) translate([p[0], -t_d / 2 - 0.01, p[1]]) rotate([-90, 0, 0]) cylinder(d = deco_d + fit_peg, h = deco_in + 0.01);
   }
 }
+module vent_slots() for (x = [-8, -4, 0, 4, 8]) translate([x - 0.8, t_d / 2 - wall - 1, 17]) cube([1.6, wall + 2, 14]);   // Lueftungsschlitze (schneiden auch die Stuetzwand der Wiege an)
 module torso_back(pilots = true) {
   difference() {
     union() {
@@ -567,13 +584,13 @@ module torso_back(pilots = true) {
       t_lip_ring();
     }
     t_cuts_common(pilots);
-    cam_frame() xiao_cradle_cut(cam_wt);   // Stapelraum auch in der Rueckhaelfte freihalten
+    if (!cam_off) cam_frame() xiao_cradle_cut(cam_wt);   // Stapelraum auch in der Rueckhaelfte freihalten
     sh_bores();
     for (p = t_dome_pts) {
       translate([p[0], t_d / 2 + 1, p[1]]) rotate([90, 0, 0]) cylinder(d = screw_d, h = t_d / 2 + 2);
       translate([p[0], t_d / 2 + 0.01, p[1]]) rotate([90, 0, 0]) cylinder(d = cbore_d, h = cbore_t + 0.01);
     }
-    for (x = [-8, -4, 0, 4, 8]) translate([x - 0.8, t_d / 2 - wall - 1, 17]) cube([1.6, wall + 2, 14]);   // Lueftungsschlitze
+    vent_slots();
   }
 }
 module torso_decos() for (p = t_deco_pts) translate([p[0], -t_d / 2 + deco_in, p[1]]) rotate([90, 0, 0]) head_deco();
@@ -1105,6 +1122,36 @@ else if (part == "drv_p2") hits() { drv_p2(); phase2_parts(); }
 else if (part == "drv_selftest_p1") hits() { drv_p1(-12); phase1_parts(); }   // Werkzeug 12 mm zur Seite: muss Hals/Block treffen
 else if (part == "drv_selftest_p2") hits() { drv_p2(6); phase2_parts(); }
 else if (part == "pilot_neck_back") intersection() { torso_back(false); neck_pilots_t(); }   // Kernloecher der unteren Halsschrauben duerfen NICHT in torso_back liegen
+else if (part == "warn_ctrl") { echo(k = undefined_k2_probe); intersection() { cube(1); translate([5, 5, 5]) cube(1); } }   // Kontrolle fuer Chk-Empty: leer, aber mit WARNING (unbekannte Variable)
+else if (part == "empty_ctrl") intersection() { cube(1); translate([5, 5, 5]) cube(1); }   // Kontrolle fuer Chk-Empty: sauber leer, keine WARNING
+else if (part == "ovh_ctrl_steep") translate([0, 0, 5]) rotate([35, 0, 0]) cube([10, 10, 3]);   // Kontrolle fuer die Ueberhang-Pruefung: Flanke mit 55 Grad Ueberhang (nz -0,82), MUSS als "steil" erkannt werden
+else if (part == "ovh_ctrl_flat") translate([0, 0, 5]) cube([20, 20, 2]);                       // Kontrolle: 20 mm freitragende Decke, MUSS als Bruecke > 15 mm erkannt werden
+// ---- Montagewege (Task K2, Fix-Runde): Reihenfolge Kamera -> Riegel -> XIAO-Stapel (alle bei abgenommener Rueckwand) -> torso_back schliessen. Jeder Weg ist eine Reihe von Zwischenstellungen.
+else if (part == "asm_clip")   // Riegel gleitet in lokaler +X-Richtung aus der Nut (Zwischenstellungen alle 2,5 mm bis 20 mm = Armende 26,5 mm, Seitenwand bei ca. 29,6), nur im 0,1-mm-Uebermassband (Pressung) darf er anliegen
+  place_torso() difference() {
+    intersection() { torso_front(); union() for (k = [0 : 2.5 : 20]) cam_frame() translate([k, 0, 0]) cam_clip_place(cam_wt); }
+    cam_frame() translate([-50, -50, cam_zbb(cam_wt) - cam_clip_t - 1]) cube([100, 100, cam_clip_t + 1 + cam_zg1(cam_wt) - cam_zbb(cam_wt) + 0.0005]);
+  }
+else if (part == "asm_clip_ctrl")   // Kontrolle: Riegel von der geschlossenen -X-Seite her (falsche Richtung) MUSS den Rahmen treffen
+  place_torso() difference() {
+    intersection() { torso_front(); union() for (k = [-20 : 2.5 : -2.5]) cam_frame() translate([k, 0, 0]) cam_clip_place(cam_wt); }
+    cam_frame() translate([-50, -50, cam_zbb(cam_wt) - cam_clip_t - 1]) cube([100, 100, cam_clip_t + 1 + cam_zg1(cam_wt) - cam_zbb(cam_wt) + 0.0005]);
+  }
+else if (part == "asm_cam")    // Kameramodul (Koerper + Tubus) wird von hinten in die Tasche geschoben (Zwischenstellungen alle 1,5 mm bis 30 mm)
+  place_torso() for (s = [0 : 1.5 : 30]) intersection() { torso_front(); cam_frame() translate([0, 0, -s]) cam_body_probe(0); }
+else if (part == "asm_cam_ctrl")   // Kontrolle: Koerper +0,6 mm MUSS die Tasche treffen
+  place_torso() for (s = [0 : 1.5 : 30]) intersection() { torso_front(); cam_frame() translate([0, 0, -s]) cam_body_probe(0.6); }
+else if (part == "asm_stack")  // XIAO-Stapel wird von hinten zwischen die Pfosten geschoben (alle 2 mm bis 34 mm), torso_back ist abgenommen.
+  // Die Lippen der Pfosten (xiao_lip 1,0, Spiel 0,3) werden vom Stapel beim Einrasten um 0,7 mm je Seite weggedrueckt (Schnapper, siehe asm_stack_lip): der Sondierkoerper ist deshalb um 2 x 0,7 schmaler.
+  place_torso() for (s = [0 : 2 : 34]) intersection() { torso_front(); cam_frame() translate([0, 0, -s]) stack_probe(xiao_w - 2 * (xiao_lip - xiao_play) - 0.04); }
+else if (part == "asm_stack_lip")   // Kontrolle und Nachweis: voller Stapel trifft die Lippen (Schnapp-Ueberdeckung 0,7 mm je Seite), MUSS treffen
+  place_torso() for (s = [0 : 2 : 34]) intersection() { torso_front(); cam_frame() translate([0, 0, -s]) stack_probe(xiao_w); }
+else if (part == "asm_stack_ctrl")   // Kontrolle: Stapel 1,15-fach in X/Y MUSS auch die Pfosten treffen (ohne die Lippen)
+  place_torso() for (s = [0 : 2 : 34]) intersection() { torso_front(); cam_frame() translate([0, 0, -s]) stack_probe(1.15 * xiao_w - 2 * (xiao_lip - xiao_play) - 0.04); }
+else if (part == "asm_close")  // torso_back wird in -Y auf torso_front geschoben (Zwischenstellungen bis 30 mm), Stapel und Kamera sitzen schon: Steg, Lippen und Stuetzwand duerfen sie nicht treffen
+  for (s = [0.5, 1, 2, 3, 5, 8, 12, 20, 30]) intersection() { translate([0, s, 0]) place_torso() torso_back(); union() { xiao_dummy_r(); camera_dummy_r(); } }
+else if (part == "asm_close_ctrl")   // Kontrolle: Stapel 1 mm zum Steg hin verschoben (Spiel 0,2) MUSS den Steg/die Lippen treffen
+  for (s = [0, 0.5, 1, 2, 3]) intersection() { translate([0, s, 0]) place_torso() torso_back(); place_torso() cam_frame() translate([0, 0, -1]) xiao_stack_dummy(cam_wt); }
 else if (part == "cam_clip") cam_clip();     // flach (Z 0 ... cam_clip_t) auf dem Bett, Armenden nach +X
 else if (part == "torso_selftest")   // zu grosser XIAO-Stapel (1,6-fach in X/Y um seine Mitte) MUSS die Schale (Wiege, Rahmen, Wand) treffen
   intersection() { shells(); place_torso() cam_frame() translate([xiao_offset[0], xiao_offset[1], 0]) scale([1.6, 1.6, 1]) translate([-xiao_offset[0], -xiao_offset[1], 0]) xiao_stack_dummy(cam_wt); }
@@ -1138,9 +1185,9 @@ else if (part == "stack_inside")     // der XIAO-Stapel muss ganz im Innenraum d
 else if (part == "stack_inside_ctrl")   // Kontrolle: 40 mm nach vorn verschoben steckt der Stapel ausserhalb, MUSS treffen
   difference() { translate([0, -40, 0]) xiao_dummy_r(); place_torso() t_solid_in(0.2); }
 else if (part == "cam_present")      // Rahmen, Wiege und Rippen (ohne Tasche) muessen in torso_front + torso_back vollstaendig vorhanden sein (nichts durch Dome, Kanaele, Bohrungen weggeschnitten)
-  difference() { difference() { place_torso() cam_nofill(); place_torso() cam_frame() { cam_pocket_cut(cam_wt); xiao_cradle_cut(cam_wt); } } place_torso() { torso_front(); torso_back(); } }
+  difference() { difference() { place_torso() cam_nofill(); place_torso() { cam_frame() { cam_pocket_cut(cam_wt); xiao_cradle_cut(cam_wt); } vent_slots(); } } place_torso() { torso_front(); torso_back(); } }
 else if (part == "cam_present_ctrl") // Kontrolle: Wiege um 60 mm zur Seite (steht frei im Raum), MUSS als fehlend gemeldet werden
-  difference() { difference() { place_torso() translate([60, 0, 0]) cam_nofill(); place_torso() cam_frame() { cam_pocket_cut(cam_wt); xiao_cradle_cut(cam_wt); } } place_torso() { torso_front(); torso_back(); } }
+  difference() { difference() { place_torso() translate([60, 0, 0]) cam_nofill(); place_torso() { cam_frame() { cam_pocket_cut(cam_wt); xiao_cradle_cut(cam_wt); } vent_slots(); } } place_torso() { torso_front(); torso_back(); } }
 else if (part == "cam_channels")     // Rahmen und Wiege (ohne Fuellblock) duerfen weder die Werkzeugkanaele der Kopfschrauben noch das Kabelloch Ø10 schneiden
   intersection() { place_torso() cam_nofill(); place_torso() cam_free_volumes(); }
 else if (part == "cam_channels_ctrl")   // Kontrolle: Kanaele und Kabelloch 12 mm zur Kamera hin (in X) verschoben MUSS die Wiege treffen

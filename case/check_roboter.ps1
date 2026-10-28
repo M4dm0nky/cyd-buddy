@@ -277,17 +277,28 @@ function Scad-Facets([string]$part, [string[]]$extra = @()) {
   $r = Run-Scad ($extra + (PartArg $part) + @('-o', $o)) 900
   return @{ N = (FacetCount $o); R = $r }
 }
-function Chk-Empty([string]$part, [string]$okMsg, [string]$badMsg, [string[]]$extra = @()) {
+# Eval-Empty: liefert die Bewertung einer "muss leer sein"-Pruefung (Ok = $true/$false, Msg). WARNING/ERROR (ausser der bekannten Leer-Meldung) zaehlt immer als Fehler.
+function Eval-Empty([string]$part, [string[]]$extra = @()) {
   $x = Scad-Facets $part $extra
   $rest = ($x.R.Text -split "`n" | Where-Object { $_ -notmatch [regex]::Escape($emptyMsg) }) -join "`n"
-  if ($rest -match 'WARNING|ERROR') { Bad "$badMsg : WARNING/ERROR $($rest.Trim())" }
-  elseif ($x.N -eq 0) { Ok $okMsg } else { Bad "$badMsg ($($x.N) Facetten)" }
+  if ($rest -match 'WARNING|ERROR') { return @{ Ok = $false; Msg = "WARNING/ERROR $($rest.Trim())" } }
+  elseif ($x.N -eq 0) { return @{ Ok = $true; Msg = '' } }
+  else { return @{ Ok = $false; Msg = "($($x.N) Facetten)" } }
+}
+function Chk-Empty([string]$part, [string]$okMsg, [string]$badMsg, [string[]]$extra = @()) {
+  $e = Eval-Empty $part $extra
+  if ($e.Ok) { Ok $okMsg } else { Bad "$badMsg : $($e.Msg)" }
 }
 function Chk-Hit([string]$part, [string]$okMsg, [string]$badMsg, [string[]]$extra = @()) {
   $x = Scad-Facets $part $extra
   if ($x.R.Text -match 'WARNING: (?!Current top level object is empty)|ERROR') { Bad "$badMsg : WARNING/ERROR $($x.R.Text.Trim())"; return }
   if ($x.N -gt 0) { Ok "$okMsg ($($x.N) Facetten)" } else { Bad $badMsg }
 }
+# Selbsttest der "muss leer sein"-Pruefung selbst: leere Geometrie MIT WARNING (unbekannte Variable) darf NICHT als gruen durchgehen, leere Geometrie ohne WARNING schon.
+$w = Eval-Empty 'warn_ctrl'
+if (-not $w.Ok -and $w.Msg -match 'WARNING') { Ok "Selbsttest Chk-Empty: leeres Ergebnis mit WARNING wird als Fehler erkannt" } else { Bad "Selbsttest Chk-Empty: WARNING bei leerem Ergebnis NICHT erkannt (Pruefung taugt nichts)" }
+$w = Eval-Empty 'empty_ctrl'
+if ($w.Ok) { Ok "Selbsttest Chk-Empty: sauber leeres Ergebnis wird als gruen gewertet" } else { Bad "Selbsttest Chk-Empty: sauber leeres Ergebnis faelschlich als Fehler: $($w.Msg)" }
 Chk-Hit   'cam_selftest' "Kamera-Selbsttest: Kamerakoerper +0,6 mm trifft die Tasche (Pruefung wirkt)" "Kamera-Selbsttest: zu grosser Kamerakoerper NICHT erkannt"
 Chk-Hit   'cam_collision_ctrl' "Kontrolle Kollision: um 0,6 mm nach vorn geschobener Kamera-Pruefkoerper trifft die Anschlagplatte" "Kontrolle Kollision: verschobener Kamera-Pruefkoerper NICHT erkannt (Pruefung taugt nichts)"
 Chk-Hit   'clip_test'    "Riegel: sitzt in den Nuten (Schnittmenge Riegel/Oberkoerper > 0)" "Riegel: keine Schnittmenge mit dem Oberkoerper (Nuten/Uebermass falsch)"
@@ -305,6 +316,41 @@ Chk-Hit   'stack_inside_ctrl' "Kontrolle Stapel: um 40 mm nach vorn verschobener
 Chk-Hit   'cone_ctrl'    "Kontrolle Sichtkegel: um 8 mm nach hinten verschobener Kegel trifft die Brustwand" "Kontrolle Sichtkegel: verschobener Kegel NICHT erkannt (Pruefung taugt nichts)"
 Chk-Empty 'cam_channels' "Werkzeugkanaele (X +-8, Y -1...-7) und Kabelloch Ø10 sind frei von Tasche, Rahmen und Wiege" "Tasche/Rahmen/Wiege ragt in Werkzeugkanal oder Kabelloch"
 Chk-Hit   'cam_channels_ctrl' "Kontrolle Kanaele: um 17 mm (Wiege-Versatz + 8) in den Kanal geschobene Wiege wird erkannt" "Kontrolle Kanaele: verschobene Wiege NICHT erkannt (Pruefung taugt nichts)"
+# Montagewege (Reihenfolge: Kamera, Riegel, XIAO bei abgenommener Rueckwand, dann torso_back schliessen); jede Reihe Zwischenstellungen + Kontrolle
+Chk-Empty 'asm_cam'      "Montage: Kameramodul (Koerper + Tubus) laesst sich von hinten durch Rahmen und Tasche schieben (Zwischenstellungen bis 30 mm)" "Montage: Kameramodul stoesst beim Einsetzen an"
+Chk-Hit   'asm_cam_ctrl' "Kontrolle Montage Kamera: um 0,6 mm groesserer Koerper stoesst an" "Kontrolle Montage Kamera: zu grosser Koerper NICHT erkannt (Pruefung taugt nichts)"
+Chk-Empty 'asm_clip'     "Montage: Riegel gleitet aus der Nut nach +X (nur Uebermassband beruehrt)" "Montage: Riegel stoesst beim Herausgleiten an"
+Chk-Hit   'asm_clip_ctrl' "Kontrolle Montage Riegel: Weg von der geschlossenen Seite stoesst an" "Kontrolle Montage Riegel: falsche Richtung NICHT erkannt (Pruefung taugt nichts)"
+Chk-Empty 'asm_stack'    "Montage: XIAO-Stapel laesst sich von hinten zwischen die Pfosten schieben (Lippen weichen um 0,7 mm je Seite aus)" "Montage: XIAO-Stapel stoesst beim Einsetzen an"
+Chk-Hit   'asm_stack_lip' "Kontrolle Montage Stapel: voller Stapel trifft die Pfostenlippen (Schnapp-Ueberdeckung wird gemessen)" "Kontrolle Montage Stapel: Lippen werden NICHT getroffen (Pruefung taugt nichts)"
+Chk-Hit   'asm_stack_ctrl' "Kontrolle Montage Stapel: 1,15-fach breiter Stapel trifft die Pfosten" "Kontrolle Montage Stapel: zu breiter Stapel NICHT erkannt (Pruefung taugt nichts)"
+Chk-Empty 'asm_close'    "Montage: torso_back (Steg, Lippen, Stuetzwand) laesst sich bei sitzendem Stapel und Kamera aufschieben" "Montage: torso_back stoesst beim Schliessen an Stapel/Kamera"
+Chk-Hit   'asm_close_ctrl' "Kontrolle Montage Schliessen: um 1 mm zum Steg verschobener Stapel wird getroffen" "Kontrolle Montage Schliessen: verschobener Stapel NICHT erkannt (Pruefung taugt nichts)"
+
+# 3j) Druckbarkeit der Kamera-Geometrie in torso_front/torso_back (Druckausrichtung, ohne Stuetzen): neue Ueberhaenge > 45 Grad und Bruecken > 15 mm (tools\overhang.ps1).
+#     Vergleich mit demselben Teil ohne Kamera (-D cam_off=true). Positiv-Kontrollen: steile Flanke und 20-mm-Decke muessen erkannt werden.
+. (Join-Path $here 'tools\overhang.ps1')
+foreach ($p in 'torso_front', 'torso_back') {
+  $A = Join-Path $stlDir "roboter_$p.stl"
+  $B = Join-Path $env:TEMP "madbuddy_roboter_${p}_nocam.stl"
+  if (Test-Path $B) { Remove-Item $B }
+  $null = Run-Scad (@('-D', 'cam_off=true') + (PartArg $p) + @('-o', $B)) 900
+  if (-not (Test-Path $A) -or -not (Test-Path $B)) { Bad "Ueberhang $p : STL fehlt"; continue }
+  $o = Eval-Overhang $A $B
+  if ($o.Steep -gt 0) { Bad "Ueberhang $p : $($o.Steep) neue Facetten mit > 45 Grad Ueberhang bei$($o.SteepAt)" }
+  elseif ($o.Worst -gt 15) { Bad "Ueberhang $p : Bruecke $([math]::Round($o.Worst,1)) mm > 15 mm: $($o.WorstBox)" }
+  else { Ok ("Ueberhang {0}: Kamera-Geometrie ohne Flanke > 45 Grad, {1} Decken, laengste Bruecke {2:N1} mm (<= 15)" -f $p, $o.Ceilings, $o.Worst) }
+  if ($p -eq 'torso_front') { $Bfront = $B }
+}
+foreach ($c in @(@{ n = 'ovh_ctrl_steep'; l = 'steile Flanke (55 Grad)'; t = 'steep' }, @{ n = 'ovh_ctrl_flat'; l = '20-mm-Decke'; t = 'flat' })) {
+  $f = Join-Path $env:TEMP "madbuddy_roboter_$($c.n).stl"
+  if (Test-Path $f) { Remove-Item $f }
+  $null = Run-Scad ((PartArg $c.n) + @('-o', $f)) 900
+  if (-not (Test-Path $f)) { Bad "Kontrolle Ueberhang ($($c.l)): STL fehlt"; continue }
+  $o = Eval-Overhang $f $Bfront
+  if (($c.t -eq 'steep' -and $o.Steep -gt 0) -or ($c.t -eq 'flat' -and $o.Worst -gt 15)) { Ok "Kontrolle Ueberhang: $($c.l) wird erkannt" }
+  else { Bad "Kontrolle Ueberhang: $($c.l) NICHT erkannt (Pruefung taugt nichts)" }
+}
 
 # 4) PNG-Renders
 if (-not $NoPng) {

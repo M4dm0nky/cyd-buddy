@@ -29,7 +29,10 @@ cam_dbg_nogroove = false; // nur Pruefhilfe (Gegenprobe): true = Riegelnuten wer
 cam_play       = 0.25;  // Spiel je Seite um den Kamerakoerper (Vorgabe Spec: Koerper + 0,25 mm je Seite)
 cam_hole_play  = 0.5;   // Linsenloch = Tubus + 0,5 (OV3660: 6,7) -- QUELLE: Recherche
 cam_lens_rec   = 0.3;   // Linse endet 0,3 mm hinter der Aussenflaeche -- QUELLE: Spec
-cam_chamfer    = 1.0;   // Fase aussen am Linsenloch, 45 Grad (Tiefe = Aufweitung je Seite)
+cam_chamfer    = 1.0;   // Fase aussen am Linsenloch: Aufweitung je Seite (Winkel siehe cam_cone_ang)
+// Flankenwinkel der Fase zur Linsenachse: 45 Grad (Spec). Die einbindende Datei darf cam_chamfer_ang setzen (Roboter: Achse 15 Grad zur Druckrichtung geneigt, deshalb 28 Grad, damit die obere Flanke <= 45 Grad Ueberhang bleibt).
+cam_cone_ang   = is_undef(cam_chamfer_ang) ? 45 : cam_chamfer_ang;
+cam_cone_h     = cam_chamfer / tan(cam_cone_ang);   // Tiefe der Fase entlang der Achse
 cam_frame_wall = 2.0;   // Wandstaerke des Rahmens um die Tasche (>= 2 mm)
 cam_groove     = 1.0;   // Tiefe der seitlichen Riegelnuten ueber die Tasche hinaus
 cam_clip_t     = 1.2;   // Dicke des Riegels (Ausnahme von der 2-mm-Regel) -- QUELLE: Spec
@@ -94,8 +97,8 @@ module cam_pocket_cut(wall_t = cam_wall_t) {
   gh = cam_half + cam_groove;
   sw = cam_fpc_w + cam_slot_extra;
   // Linsenloch durch Anschlagplatte und Wand, aussen 45 Grad gefast
-  translate([0, 0, zbf - 0.01]) cylinder(d = cam_hole_d, h = wall_t - cam_chamfer - zbf + 0.02);
-  translate([0, 0, wall_t - cam_chamfer]) cylinder(d1 = cam_hole_d, d2 = cam_hole_d + 2 * cam_chamfer, h = cam_chamfer + 0.01);
+  translate([0, 0, zbf - 0.01]) cylinder(d = cam_hole_d, h = wall_t - cam_cone_h - zbf + 0.02);
+  translate([0, 0, wall_t - cam_cone_h]) cylinder(d1 = cam_hole_d, d2 = cam_hole_d + 2 * cam_chamfer, h = cam_cone_h + 0.01);
   translate([0, 0, wall_t]) cylinder(d = cam_hole_d + 2 * cam_chamfer, h = 1);
   // Koerpertasche: von der Anschlagflaeche nach hinten offen (Kamera wird von hinten eingesetzt)
   translate([-cam_half, -cam_half, zr - 1]) cube([2 * cam_half, 2 * cam_half, zbf - zr + 1]);

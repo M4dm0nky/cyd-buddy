@@ -45,7 +45,7 @@ Stufe 2 (`madbuddy_case.scad`) und Roboter (`madbuddy_roboter.scad`) binden sie 
   - Ein Steg über der Sense-Platine bzw. eine Klemmlasche hält den Stapel. Er wird von oben eingelegt.
   - **Die Längsseiten bleiben frei**, weil dort die angelöteten Drähte sitzen. Daher keine Schienen an den Längsseiten.
   - Lage: Das Ende mit dem Kamerastecker zeigt zur Kamera. Der Abstand ist so gewählt, dass das 21,2-mm-FPC mit einer lockeren Schleife reicht, also Stecker zu Kameratasche ≤ 16 mm Luftlinie.
-- **Prüfkörper:** `cam_dummy()` (Körper, Tubus, FPC-Band), `xiao_dummy()` (Stapel), `cam_fov_cone()` (Sichtkegel 102° diagonal bzw. 85° horizontal, 30 mm lang).
+- **Prüfkörper:** `cam_dummy()` (Körper, Tubus, FPC-Band), `xiao_dummy()` (Stapel), `cam_fov_cone()` (Sichtkegel 102° diagonal bzw. 85° horizontal, 30 mm lang; Roboter: 26 mm, weil die Füße ab ca. 27 mm unten im Bild liegen; Entscheidung 2026-10-28).
   - Der Kegel darf das Gehäuse nicht schneiden. Prüfung mit `collision`.
 
 ### 2. Einbau
