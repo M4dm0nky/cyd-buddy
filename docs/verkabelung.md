@@ -70,14 +70,24 @@ Material: 2× 1,25 mm 4-Pin Kabel mit Stecker, einseitig offen (je ein Kabel fü
 1. **Kabel ablängen.** Längen siehe unten (Stufe 2 oder Roboter). Lieber 1 cm zu lang als zu kurz.
 2. **Adern isolieren.**
    - Am Kabel mit P1: Pin 1 (VIN) und Pin 4 (GND) abisolieren und verzinnen. Pin 2 und 3 (TX, RX) **kürzen und einzeln mit Schrumpfschlauch isolieren**, sie bleiben unbenutzt.
-   - Am Kabel mit CN1: Pin 2 (IO27) und Pin 3 (IO22) abisolieren und verzinnen. Pin 1 (3V3) kürzen und isolieren. Pin 4 (GND) darf zusätzlich an XIAO GND (zweite Masse) oder wird isoliert.
+   - Am Kabel mit CN1: Pin 2 (IO27) und Pin 3 (IO22) abisolieren und verzinnen. Pin 1 (3V3) kürzen und isolieren. Pin 4 (GND) wird **nicht gelötet**, sondern gekürzt und isoliert (die Masse kommt schon über P1 Pin 4; eine zweite Masse ist optional und für den Betrieb nicht nötig). Wer sie trotzdem an XIAO GND löten will, nimmt sie in die Prüfungen von Schritt 5 auf.
    - Die Aderfarben des Kabels sind je nach Hersteller verschieden. **Nach dem Stecker zählen, nicht nach der Farbe**, und die Ader notieren (Klebeband mit Beschriftung).
-3. **An den XIAO löten.** ⚠️ **Roboter (Stufe 3): Die Stromadern (P1-Pin 1 und Pin 4) NICHT direkt an den XIAO, sondern an den Verteilerpunkt, siehe Abschnitt Stufe 3. Die Signaladern D6/D7 gehen in beiden Stufen direkt an den XIAO.** Stufe 2 und Löten: Den XIAO **vorher flashen**. Nach Steckerposition, am Stecker gezählt: Ader von P1-Pin 1 → 5V, P1-Pin 4 → GND, CN1-Pin 2 → D6, CN1-Pin 3 → D7. Kurz löten, nicht zu heiß, die Lötstellen bleiben an der Längsseite des Stapels frei (der Halter lässt dort Platz).
-4. **Prüfen mit Multimeter, bevor du einsteckst:**
-   - Durchgangsprüfung zwischen **5V und GND**: Es darf **kein** Durchgang sein (kein Kurzschluss).
+3. **Spannung messen, bevor am XIAO etwas gelötet wird (live).** ⚠️ Das beantwortet die Frage, ob P1 VIN am CYD überhaupt als **Ausgang** 5 V liefert. Laut Schaltplan ist das nur gelesen, nicht gemessen.
+   - Beide Adern TX und RX (P1 Pin 2 und 3) sind einzeln isoliert (Schritt 2), die Enden von Pin 1 und Pin 4 liegen blank, aber nichts berührt sich.
+   - Stecker des P1-Kabels in P1 am CYD stecken. Das CYD über **USB** mit Strom versorgen (Kabel USB-A auf USB-C).
+   - Multimeter auf Gleichspannung (V=), rote Prüfspitze an die **Pin-1-Ader**, schwarze an die **Pin-4-Ader**, jeweils an den losen Enden. Die Enden dabei nicht kurzschließen.
+   - **Soll: +4,5 bis +5,2 V.**
+   - **Negativer Wert:** Die Adern sind vertauscht, du hast von der falschen Seite gezählt. Stecker abziehen, Zählung am Stecker prüfen (Pin 1 an der USB-Buchse), nichts löten.
+   - **Etwa 0 V oder unter 4,5 V:** P1 VIN funktioniert nicht als Ausgang. Dann trägt die Stufe-2-Stromversorgung über P1 nicht, und es braucht eine andere Lösung. **Stopp, nichts löten**, melde dich damit zurück.
+   - Danach USB abziehen, Stecker aus P1 ziehen.
+   - Diese Messung betrifft Stufe 2. Im Roboter speist der Akku den Verteilerpunkt, dort ist VIN ein Eingang.
+4. **An den XIAO löten.** ⚠️ **Roboter (Stufe 3): Die Stromadern (P1-Pin 1 und Pin 4) NICHT direkt an den XIAO, sondern an den Verteilerpunkt, siehe Abschnitt Stufe 3. Die Signaladern D6/D7 gehen in beiden Stufen direkt an den XIAO.** **In beiden Stufen: XIAO vor dem Löten flashen.** Nach Steckerposition, am Stecker gezählt: Ader von P1-Pin 1 → 5V, P1-Pin 4 → GND, CN1-Pin 2 → D6, CN1-Pin 3 → D7. Kurz löten, nicht zu heiß, die Lötstellen bleiben an der Längsseite des Stapels frei (der Halter lässt dort Platz).
+5. **Prüfen mit Multimeter, bevor du einsteckst** (Stecker noch nicht eingesteckt, CYD ohne Strom):
+   - Durchgangsprüfung zwischen **5V und GND**, gemessen am **Steckerende**: P1 Pin 1 gegen P1 Pin 4. Es darf **kein** Durchgang sein (kein Kurzschluss). Ein kurzes Piepen beim Anlegen kann von den Kondensatoren kommen, es darf dann aber nicht dauerhaft durchgehen.
+   - Falls CN1 Pin 4 (GND) doch gelötet wurde: Steckerende CN1 Pin 4 gegen XIAO GND hat Durchgang, gegen XIAO 5V keinen.
    - Jede Ader gegen ihre Nachbarn prüfen: kein Durchgang.
    - Jede Ader vom Stecker bis zum XIAO-Pin hat Durchgang.
-5. **Einstecken.** Stecker bis zum Anschlag in P1 und CN1 drücken. Er passt nur in einer Richtung, nicht mit Gewalt. Dann erst Strom anschließen.
+6. **Einstecken.** Stecker bis zum Anschlag in P1 und CN1 drücken. Er passt nur in einer Richtung, nicht mit Gewalt. Dann erst Strom anschließen.
 
 ## Stufe 2: Desktop-Kopf
 
@@ -91,6 +101,7 @@ Der XIAO-Stapel liegt in der Wiege hinter der Kamera in der Stirn, `xiao_offset`
 - **VORLÄUFIG:** Die Wege sind aus den geschätzten Steckerlagen (±2 mm) und einem groben Linienzug gerechnet, dazu kommen ca. 10 mm zum Abisolieren und Löten. Beide Kabel in einer Länge zu kaufen (80 bis 100 mm) ist einfacher. Am eigenen Aufbau mit einem Faden vorher abmessen.
 - Der Weg liegt hinter den Rückseitenbauteilen. Die Kabel nicht über die SD-Karte oder die USB-Buchse legen.
 - Strom kommt vom USB-Netzteil am CYD. Der XIAO hängt über die rote Ader an P1 VIN mit am Netzteil (mind. 1 A).
+- **VORLÄUFIG:** Dass P1 VIN am CYD als **Ausgang** 5 V für den XIAO liefert, ist **unbewiesen**, bis die Messung in Schritt 3 bestanden ist. Es widerspricht außerdem der Begründung in den Warnungen (Q1/D1 entkoppeln VIN und USB-5V): Wenn Q1 VIN vom USB-Netz trennt, steht an VIN eventuell keine Spannung. Die Messung entscheidet.
 
 ## Stufe 3: Roboter
 
@@ -113,4 +124,5 @@ Der XIAO liegt in der Brust (Kamera 15° nach oben gekippt), das CYD im Kopf. Di
 
 - Die Lage von P1 und CN1 am eigenen Board und bei der 2-USB-Version.
 - Die Kabellängen beider Aufbauten (VORLÄUFIG, siehe oben).
+- **Stufe 2: Versorgung des XIAO über P1 VIN (VIN als Ausgang) ist unbewiesen.** Sie gilt erst nach bestandener Spannungsmessung (Schritt 3, +4,5 bis +5,2 V). Fällt die Messung durch, braucht Stufe 2 eine andere Stromlösung.
 - Die Strombelastbarkeit von P1 VIN ist nicht belegt. Für CYD plus Kamera mit ca. 1 A rechnen und am eigenen Aufbau testen.

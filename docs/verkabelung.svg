@@ -16,8 +16,8 @@
     <text x="315" y="236" font-size="13" fill="#9fb0d0" text-anchor="middle">86 × 50 mm, Maßstab 5 px = 1 mm</text>
 
     <!-- USB links -->
-    <rect x="88" y="245" width="30" height="40" rx="3" fill="#9aa3b2" stroke="#222"/>
-    <text x="80" y="268" font-size="14" font-weight="bold" fill="#333" text-anchor="end">USB</text>
+    <rect x="88" y="204" width="30" height="47" rx="3" fill="#9aa3b2" stroke="#222"/>
+    <text x="80" y="232" font-size="14" font-weight="bold" fill="#333" text-anchor="end">USB</text>
 
     <!-- P1 links oben -->
     <rect x="86" y="152" width="26" height="36" rx="3" fill="#ffd34d" stroke="#222" stroke-width="1.5"/>
@@ -37,10 +37,10 @@
 
     <!-- CN1 unten -->
     <rect x="350" y="334" width="56" height="26" rx="3" fill="#6fd08c" stroke="#222" stroke-width="1.5"/>
-    <g fill="#222"><circle cx="361" cy="350" r="2.5"/><circle cx="371" cy="350" r="2.5"/><circle cx="381" cy="350" r="2.5"/><circle cx="395" cy="350" r="2.5"/></g>
-    <g font-size="11" fill="#222" text-anchor="middle"><text x="361" y="346">1</text><text x="371" y="346">2</text><text x="381" y="346">3</text><text x="395" y="346">4</text></g>
+    <g fill="#222"><circle cx="363" cy="350" r="2.5"/><circle cx="373" cy="350" r="2.5"/><circle cx="383" cy="350" r="2.5"/><circle cx="393" cy="350" r="2.5"/></g>
+    <g font-size="11" fill="#222" text-anchor="middle"><text x="363" y="346">1</text><text x="373" y="346">2</text><text x="383" y="346">3</text><text x="393" y="346">4</text></g>
     <text x="405" y="378" font-size="16" font-weight="bold" fill="#1d7a3b" text-anchor="end">CN1</text>
-    <text x="405" y="394" font-size="12" fill="#333" text-anchor="end">Pin 1 links, Pin 4 rechts</text>
+    <text x="405" y="323" font-size="12" fill="#c9d4ea" text-anchor="end">CN1: Pin 1 links, Pin 4 rechts</text>
 
     <!-- P3 unten -->
     <rect x="430" y="334" width="56" height="26" rx="3" fill="#bbb" stroke="#222"/>

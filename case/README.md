@@ -23,15 +23,15 @@ Alle Maße stehen oben in der Datei mit Kommentar: `QUELLE: Originalzeichnung`, 
 - frame_test: Gesicht nach unten.
 - cam_clip: flach auf dem Bett (1,2 mm dick, 1 Lage Wandlinie genügt nicht, 3 Wände einstellen).
 - Schrauben: 4× M3×8 (Senkung hinten, Kernloch 2,6 mm in den Domen; bei PETG selbstschneidend).
+- Mindestwand 2,4 mm, Passungsspiel `fit = 0,3 mm` (Variable).
 - **Wer `front` schon gedruckt hat, muss es neu drucken** (Linsenloch, Tasche und Wiege sind neu).
 
 ## Kamera und XIAO einbauen (Stufe 2)
 
 1. `front` liegt mit dem Gesicht nach unten. Kamera von hinten in die Tasche legen: Linse (Tubus) durch das Loch Ø 6,7, Körper 8 × 8 an den Anschlag, das FPC zeigt nach +X (rechts im Blick von vorn) und läuft durch den Schlitz.
 2. Riegel `cam_clip` von der FPC-Seite in die beiden Nuten schieben, bis der Quersteg am Tascheneck anliegt. Er klemmt mit 0,1 mm Übermaß, kein Kleber nötig (optional ein dünnes Klebepad auf der Kamerarückseite). Das FPC liegt im Riegel-Ausschnitt.
-3. XIAO-Stapel (Sense-Platine zur Kamera, Stecker am Ende zur Kamera) von oben zwischen die Pfosten legen. Das FPC in den Klappstecker der Sense-Platine stecken: lockere Schleife, nicht knicken (Biegeradius mindestens 2 mm; die Luftlinie Körperkante bis Stecker ist laut `check.ps1` unter 16 mm). Die Längsseiten des Stapels bleiben für die angelöteten Drähte frei.
+3. XIAO-Stapel (Sense-Platine zur Kamera, Stecker am Ende zur Kamera) zwischen die Pfosten einschieben, bis die Lippen der Klemmstege (je 0,7 mm Schnappmaß) über der Rückseite einrasten. Das FPC in den Klappstecker der Sense-Platine stecken: lockere Schleife, nicht knicken (Biegeradius mindestens 2 mm; die Luftlinie Körperkante bis Stecker ist laut `check.ps1` unter 16 mm). Die Längsseiten des Stapels bleiben für die angelöteten Drähte frei.
 4. Rückwand aufsetzen: Ihre Anschlagpfosten enden 0,1 mm unter der Stapelrückseite und halten den Stapel nach hinten. Die Lage des Stapels relativ zur Linse ist `xiao_offset`.
-- Mindestwand 2,4 mm, Passungsspiel `fit = 0,3 mm` (Variable).
 
 ## Prüfung
 
@@ -96,18 +96,18 @@ STL liegen in `stl/roboter_<teil>.stl`, schon in Druckausrichtung (ohne Stützen
 
 ### Schrauben (M3)
 
-Insgesamt 20 Stück. Jede Zahl ist aus `madbuddy_roboter.scad` belegt.
+Insgesamt 20 Stück. Jede Zahl ist aus `madbuddy_roboter.scad` belegt; der Beleg nennt Variablen- und Modulnamen (in der Datei suchen), keine Zeilen, weil die Datei wächst.
 
 | Anzahl | Länge | Wo | Beleg |
 |---|---|---|---|
-| 4 | M3×8 | Kopf: `head_back` an `head_front` | 4 Dome `dome_pts` (Z. 102, 249-251); Länge: Rückwand 2,6 abzüglich Senkung 1,8 plus Kernloch 7,5 = 8,3 (Z. 25, 48, 51) |
-| 2 | M3×10 | Hals oben an `head_back` | `neck_pilots` (Z. 266-269), Flansch 2,8 plus Kernloch 7,6 (Z. 89, 385); Montagefolge Z. 636 |
-| 2 | M3×10 | Hals unten an `torso_front` | `neck_pilots_t` (Z. 515), Kernloch 7,6 (Z. 397); Montagefolge Z. 635 |
-| 4 | M3×28 | Oberkörper: `torso_back` an `torso_front` | 4 Dome `t_dome_pts` (Z. 356, 560-563); Länge: 22 abzüglich Senkung 1,8 plus Kernloch 9 = 29,2 (Z. 347, 358); Montagefolge Z. 637 |
-| 4 | M3×10 Flachkopf | Oberkörper von unten auf `seat` | `t_seat_pts` (Z. 359), `seat_screw_l = 10` (Z. 698, 918); Einschraubtiefe geprüft (Z. 750) |
-| 4 | M3×10 Flachkopf | `bottom` an `seat` | `dome_pts_s` (Z. 736, 859-862); Länge: 2,4 − 1,8 + 2,0 + 7,6 = 10,2 (Z. 669, 683, 685); Montagefolge Z. 640 |
+| 4 | M3×8 | Kopf: `head_back` an `head_front` | 4 Dome `dome_pts` (`dome_x`, `dome_y`); Länge: `back_t` 2,6 abzüglich `cbore_t` 1,8 plus `pilot_len` 7,5 = 8,3 |
+| 2 | M3×10 | Hals oben an `head_back` | Modul `neck_pilots`, `neck_fl_t` 2,8 plus `neck_pilot_len` 7,6; Kommentarblock „MONTAGEFOLGE“, Schritt 2 |
+| 2 | M3×10 | Hals unten an `torso_front` | Modul `neck_pilots_t`, Kernloch `neck_pilot_t` 7,6; Kommentarblock „MONTAGEFOLGE“, Schritt 1 |
+| 4 | M3×28 | Oberkörper: `torso_back` an `torso_front` | 4 Dome `t_dome_pts`; Länge: `t_d` / 2 = 22 abzüglich `cbore_t` 1,8 plus `t_dome_pilot` 9 = 29,2; Kommentarblock „MONTAGEFOLGE“, Schritt 3 |
+| 4 | M3×10 Flachkopf | Oberkörper von unten auf `seat` | `t_seat_pts`, `seat_screw_l = 10`; Einschraubtiefe geprüft mit dem Prüfteil `screw_seat` (`check_roboter.ps1`, Abschnitt 3h) |
+| 4 | M3×10 Flachkopf | `bottom` an `seat` | `dome_pts_s`; Länge: `bot_t` 2,4 − `cbore_t` 1,8 + `boss_h` 2,0 + `pilot_s_len` 7,6 = 10,2; Kommentarblock „MONTAGEFOLGE“, Schritt 5 |
 
-Summe: 4 × M3×8, 12 × M3×10, 4 × M3×28. Das passt zur Massenliste „20 × M3“ (Z. 944). Die Zierschrauben sind gedruckte Einlagen, keine echten Schrauben.
+Summe: 4 × M3×8, 12 × M3×10, 4 × M3×28. Das passt zur Massenliste „20 × M3“ (Eintrag „Schrauben (20 x M3)“ in der Massenliste). Die Zierschrauben sind gedruckte Einlagen, keine echten Schrauben.
 
 ### Montagereihenfolge
 
