@@ -21,7 +21,9 @@ cam_fpc_len  = cam_type == "OV3660" ? 21.2 : 70.5; // QUELLE: Seeed-Zeichnung, a
 cam_fpc_t    = 0.3;    // QUELLE: Seeed-Zeichnung (Zeichnung, mittel) FPC-Dicke
 cam_fov_d    = cam_type == "OV3660" ? 102 : 69;    // QUELLE: Hersteller (diagonal, Grad)
 cam_fov_h    = cam_type == "OV3660" ? 85 : 58;     // QUELLE: Hersteller OV3660 (horizontal); OV5640 VORLÄUFIG (aus 69 Grad diagonal, 4:3)
-cam_bend_r   = 2.0;    // QUELLE: Recherche (FPC-Biegeradius mindestens 2 mm)
+cam_bend_r   = 2.0;    // QUELLE: Recherche (FPC-Biegeradius mindestens 2 mm): rundet die Riegel-Aussparung, prueft den FPC-Weg
+cam_dbg_nocradle = false; // nur Pruefhilfe (Gegenprobe): true = XIAO-Wiege entfaellt
+cam_dbg_nogroove = false; // nur Pruefhilfe (Gegenprobe): true = Riegelnuten werden NICHT geschnitten
 
 // ---------------------------------------------------------------- Tasche und Riegel
 cam_play       = 0.25;  // Spiel je Seite um den Kamerakoerper (Vorgabe Spec: Koerper + 0,25 mm je Seite)
@@ -47,9 +49,14 @@ xiao_conn_w  = 12.5;  // QUELLE: Seeed-Zeichnung (Versteifung/Steckerbreite am F
 xiao_play    = 0.3;   // Spiel um den Stapel (= fit)
 xiao_gap     = 0.2;   // Luft zwischen Rahmenunterseite und Stapelvorderseite
 xiao_post_t  = 2.4;   // Dicke der Anschlag-Pfosten in X (>= 2 mm)
+xiao_post_trim = 0.6; // Pfosten enden so weit vor der Stapelkante in Y (Kopfwand der Stirnwoelbung)
+xiao_steg_t  = 1.6;   // Dicke des Klemmstegs hinter dem Stapel
+xiao_lip     = 1.0;   // Lippe des Klemmstegs ueber der Stapelrueckseite (45 Grad Einfuehrschraege); Pfosten federn beim Einlegen um diesen Betrag minus Spiel
+xiao_lip_gap = 0.1;   // Luft zwischen Stapelrueckseite und Lippe
+xiao_fpc_end = 0.5;   // gerades Stueck des FPC vor dem Stecker (Biegeweg endet dort)
 // Lage des Stapelmittelpunkts relativ zur Linse (X, Y): das Ende mit dem Kamerastecker zeigt nach +X zur Kamera.
 // Der Stapel liegt parallel zur Frontwand hinter dem Kamera-Rahmen (Z-Abstand wegen der Rahmentiefe), nach +X versetzt.
-xiao_offset  = [4.5, 0.0]; // VORLÄUFIG (Entwurf): X so gewaehlt, dass Stecker <= 16 mm Luftlinie von der Koerperkante entfernt liegt
+xiao_offset  = [7.0, 0.0]; // VORLÄUFIG (Entwurf): Stecker <= 16 mm Luftlinie von der Koerperkante UND FPC-Bogenradius >= cam_bend_r (je weiter nach +X, desto sanfter; Grenze: Kopfwand der Stirn)
 cam_fpc_air_max = 16.0;    // QUELLE: Spec (21,2 mm FPC, lockere Schleife) max. Luftlinie Koerperkante -> Stecker
 
 // ================================================================= abgeleitete Werte
@@ -68,6 +75,10 @@ function xiao_z0(w = cam_wall_t) = cam_zrear(w) - xiao_gap;                     
 function xiao_zbot(w = cam_wall_t) = xiao_z0(w) - xiao_stack;                         // Stapelrueckseite
 // Kamerastecker auf der Sense-Platine (FPC-Ebene) und Luftlinie ab der Koerperkante
 function xiao_conn_pt(w = cam_wall_t) = [xiao_offset[0] + xiao_w / 2 - xiao_conn_in, xiao_offset[1], xiao_z0(w) - xiao_conn_h / 2];
+function cam_fpc_x1() = cam_outer_h + 0.5;                                              // Beginn des Bogens (ausserhalb des Rahmens)
+function cam_fpc_run(w = cam_wall_t) = xiao_conn_pt(w)[0] - xiao_fpc_end - cam_fpc_x1();  // waagerechte Laenge des Bogens
+// Kosinus-S-Bogen z = dz (1 - cos(pi x / L)) / 2: groesste Kruemmung an den Enden = dz pi^2 / (2 L^2), Radius = Kehrwert
+function cam_fpc_rmin(w = cam_wall_t) = 2 * pow(cam_fpc_run(w), 2) / ((cam_zbb(w) - xiao_conn_pt(w)[2]) * pow(3.14159265, 2));
 function cam_fpc_air(w = cam_wall_t) = norm(xiao_conn_pt(w) - [cam_body / 2, 0, cam_zbb(w)]);
 
 // ================================================================= Tasche (positiv + negativ)
@@ -88,8 +99,10 @@ module cam_pocket_cut(wall_t = cam_wall_t) {
   // Koerpertasche: von der Anschlagflaeche nach hinten offen (Kamera wird von hinten eingesetzt)
   translate([-cam_half, -cam_half, zr - 1]) cube([2 * cam_half, 2 * cam_half, zbf - zr + 1]);
   // Riegelnuten: hinter dem Koerper, U-foermig, nach +X offen (Riegel wird von der FPC-Seite eingeschoben)
-  translate([-gh, -gh, zg1]) cube([2 * gh, 2 * gh, zbb - zg1]);
-  translate([0, -gh, zg1]) cube([cam_outer_h + 1, 2 * gh, zbb - zg1]);
+  if (!cam_dbg_nogroove) {   // cam_dbg_nogroove nur fuer die Gegenprobe der Riegel-Pruefung
+    translate([-gh, -gh, zg1]) cube([2 * gh, 2 * gh, zbb - zg1]);
+    translate([0, -gh, zg1]) cube([cam_outer_h + 1, 2 * gh, zbb - zg1]);
+  }
   // FPC-Schlitz in der +X-Wand
   translate([0, -sw / 2, zg1]) cube([cam_outer_h + 1, sw, zbb + 0.5 - zg1]);
 }
@@ -101,9 +114,10 @@ module cam_clip() {
   x0 = -gh;                                       // Quersteg hinten (-X)
   x1 = -(cam_body / 2 - cam_clip_press);          // Steg liegt cam_clip_press mm auf dem Koerper auf
   xe = cam_outer_h - 0.75;                        // Armenden (greifbar, innerhalb des Rahmens)
-  linear_extrude(cam_clip_t) union() {
-    translate([x0, -gh]) square([x1 - x0, 2 * gh]);
-    for (s = [-1, 1]) translate([x0, s > 0 ? sw / 2 : -gh]) square([xe - x0, gh - sw / 2]);
+  // Platte mit FPC-Aussparung nach +X; die inneren Ecken der Aussparung sind mit cam_bend_r gerundet (FPC-Biegeradius >= 2 mm)
+  linear_extrude(cam_clip_t) difference() {
+    translate([x0, -gh]) square([xe - x0, 2 * gh]);
+    offset(r = cam_bend_r) offset(delta = -cam_bend_r) translate([x1, -sw / 2]) square([xe - x1 + 1, sw]);
   }
 }
 module cam_clip_place(wall_t = cam_wall_t) {    // Riegel in Einbaulage (direkt hinter der Koerperrueckseite)
@@ -119,11 +133,23 @@ module xiao_cradle_add(wall_t = cam_wall_t) {
   zb = xiao_zbot(wall_t);
   bx = xiao_offset[0]; by = xiao_offset[1];
   gap_h = xiao_conn_w / 2 + 0.15;                           // freie Mitte
-  yo = xiao_l / 2;                                          // Pfosten enden buendig mit der Stapelkante (nicht weiter, sonst Kopfwand)
-  for (ex = [-1, 1], sy = [-1, 1])
-    translate([ex > 0 ? bx + xiao_w / 2 + xiao_play : bx - xiao_w / 2 - xiao_play - xiao_post_t,
-               sy > 0 ? by + gap_h : by - yo, zb])
-      cube([xiao_post_t, yo - gap_h, 0.5 - zb]);
+  yo = xiao_l / 2 - xiao_post_trim;                         // Pfosten enden kurz vor der Stapelkante (nicht weiter, sonst Kopfwand)
+  yb = xiao_l / 2;                                          // Steg ueberspannt die ganze Stapelbreite
+  if (!cam_dbg_nocradle) for (ex = [-1, 1]) {   // cam_dbg_nocradle nur fuer die Gegenprobe der Wiege-Pruefung
+    xin =ex > 0 ? bx + xiao_w / 2 + xiao_play : bx - xiao_w / 2 - xiao_play;   // Innenflaeche des Stirnanschlags
+    xp = ex > 0 ? xin : xin - xiao_post_t;
+    for (sy = [-1, 1])
+      translate([xp, sy > 0 ? by + gap_h : by - yo, zb - xiao_lip_gap]) cube([xiao_post_t, yo - gap_h, 0.5 - zb + xiao_lip_gap]);
+    // Klemmsteg: liegt hinter dem Stapel, verbindet die beiden Pfosten (Bruecke yb*2 - 2*..., hier <= 15 mm) und greift mit einer
+    // 45-Grad-Lippe xiao_lip ueber die Stapelrueckseite. Die Pfosten federn beim Einlegen nach aussen (Einlegen von hinten, Auflage an der Lippe).
+    translate([xp, by - yo, zb - xiao_steg_t - xiao_lip_gap]) cube([xiao_post_t, 2 * yo, xiao_steg_t]);
+    translate([0, by - yo, 0]) rotate([90, 0, 0]) mirror([0, 0, 1])
+      linear_extrude(2 * yo)
+        polygon(ex > 0 ? [[xin + 0.01, zb - xiao_lip_gap], [xin - xiao_lip, zb - xiao_lip_gap],
+                          [xin + 0.01, zb - xiao_lip_gap - xiao_lip]]
+                       : [[xin - 0.01, zb - xiao_lip_gap], [xin + xiao_lip, zb - xiao_lip_gap],
+                          [xin - 0.01, zb - xiao_lip_gap - xiao_lip]]);
+  }
 }
 module xiao_cradle_cut(wall_t = cam_wall_t) {               // Stapelraum + Spiel (haelt Rahmen/Wand frei)
   translate([xiao_offset[0] - xiao_w / 2 - xiao_play, xiao_offset[1] - xiao_l / 2 - xiao_play, xiao_zbot(wall_t)])
@@ -139,11 +165,17 @@ module cam_dummy(wall_t = cam_wall_t) {                     // Koerper, Tubus, F
   c = xiao_conn_pt(wall_t);
   translate([-cam_body / 2, -cam_body / 2, zbb]) cube([cam_body, cam_body, zbf - zbb]);
   translate([0, 0, zbf - 0.01]) cylinder(d = cam_tube_d, h = cam_tube_len + 0.01);
-  p1 = [cam_outer_h + 0.5, 0, zbb];
-  p2 = [c[0] - 3, c[1], c[2]];
-  cam_seg([0, 0, zbb], p1);
-  cam_seg(p1, p2);
-  cam_seg(p2, c);
+  // FPC-Weg: gerade aus der Tasche, dann sanfter S-Bogen (Kosinus-Profil) auf die Steckerebene, dann gerade in den Stecker.
+  // Der Mindest-Biegeradius des Bogens muss >= cam_bend_r sein (assert).
+  assert(cam_fpc_rmin(wall_t) >= cam_bend_r, str("FPC-Biegeradius zu klein: ", cam_fpc_rmin(wall_t), " < ", cam_bend_r));
+  n = 16; x1 = cam_fpc_x1(); L = cam_fpc_run(wall_t); dz = cam_zbb(wall_t) - c[2];
+  cam_seg([0, 0, zbb], [x1, 0, zbb]);
+  for (i = [0 : n - 1]) {
+    t0 = i / n; t1 = (i + 1) / n;
+    cam_seg([x1 + L * t0, c[1] * (1 - cos(180 * t0)) / 2, zbb - dz * (1 - cos(180 * t0)) / 2],
+            [x1 + L * t1, c[1] * (1 - cos(180 * t1)) / 2, zbb - dz * (1 - cos(180 * t1)) / 2]);
+  }
+  cam_seg([x1 + L, c[1], c[2]], c);
 }
 module xiao_stack_dummy(wall_t = cam_wall_t) {
   translate([xiao_offset[0] - xiao_w / 2, xiao_offset[1] - xiao_l / 2, xiao_zbot(wall_t)])

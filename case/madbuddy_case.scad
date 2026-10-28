@@ -198,6 +198,27 @@ module plugs_dummy() {
 module cam_body_dummy() cam_place() cam_dummy(front_t);           // Kamerakoerper, Tubus, FPC
 module xiao_dummy()     cam_place() xiao_stack_dummy(front_t);    // XIAO-Stapel
 module lens_cone()      cam_place() cam_fov_cone(30, front_t);    // Sichtpyramide 102/85 Grad, 30 mm
+
+// Kabelweg XIAO -> CYD (Pruefkoerper, Ader/Kabel 1,6 mm): 4 Adern vom unteren Rand des Stapels (Loetstellen an der Laengsseite)
+// zu CN1 (untere Laengskante) und P1 (+X-Schmalseite), im Raum hinter den Rueckseitenbauteilen (Z -20).
+cab_w   = 1.6;                                  // VORLÄUFIG (Schaetzung) Dicke eines Kabelbuendels
+cab_z   = -20;                                  // VORLÄUFIG (Entwurf) Hoehe des Kabelwegs hinter den Rueckseitenbauteilen (z_rear = -16,3)
+cn1_x   = pcb_x1 - 55;                          // VORLÄUFIG (Foto, +-2 mm) CN1-Mitte, gemessen von der USB-Kante
+p1_y    = pcb_h / 2 - 16;                       // VORLÄUFIG (Foto, +-2 mm) P1-Mitte in Y (16 mm von der oberen Laengskante)
+module cab_seg(p, q) hull() for (r = [p, q]) translate(r - [cab_w / 2, cab_w / 2, cab_w / 2]) cube(cab_w);
+module cable_dummy(dz = 0) {
+  ya = xiao_cy + xiao_offset[1] - xiao_l / 2 - 0.9;      // knapp unter der unteren Stapelkante
+  bx = xiao_offset[0];
+  zc = cab_z + dz;
+  // zu CN1: nach unten durch den Freiraum, am Plattenrand (Y < -25) hoch zum Stecker
+  cab_seg([bx - 5, ya, zc], [bx - 5, 8, zc]);
+  cab_seg([bx - 5, 8, zc], [cn1_x, -pcb_h / 2 - 3.5, zc]);
+  cab_seg([cn1_x, -pcb_h / 2 - 3.5, zc], [cn1_x, -pcb_h / 2 - 3.5, z_pcb_bot - 1.7]);
+  // zu P1: schraeg ueber die Platinenmitte, an der +X-Kante (neben den Buchsen, Y > 2,3) hoch zum Stecker
+  cab_seg([bx + 1, ya, zc], [30, 14, zc]);
+  cab_seg([30, 14, zc], [pcb_x1 + 0.9, p1_y, zc]);
+  cab_seg([pcb_x1 + 0.9, p1_y, zc], [pcb_x1 + 0.9, p1_y, z_pcb_bot - 1.7]);
+}
 module card_dummy() {
   // Karte (Pruefkoerper) steckt in der Wandoeffnung und ragt nach aussen (nur Kollisionspruefung, nicht in der Ansicht)
   translate([sd_x - card_w / 2, -hy - 12, z_pcb_bot - sd_h / 2 - card_t / 2]) cube([card_w, hy + 12 - pcb_h / 2 + 6, card_t]);
@@ -243,6 +264,7 @@ module info() {
   echo(str("PLANE tilt=", tilt, " c=", plane_c, " zback=", z_back));
   echo(str("WINDOW=", win_w, "x", win_h));
   echo(str("FPC_AIR=", cam_fpc_air(front_t), " FPC_AIR_MAX=", cam_fpc_air_max));
+  echo(str("FPC_R=", cam_fpc_rmin(front_t), " FPC_R_MIN=", cam_bend_r));
   cube(1);
 }
 
@@ -301,6 +323,42 @@ else if (part == "cam_selftest")
 else if (part == "clip_test")
   // Riegel in Einbaulage gegen die Frontschale: MUSS durch das Uebermass (0,1 mm) Schnittmenge haben
   intersection() { front_shell(); cam_place() cam_clip_place(front_t); }
+else if (part == "clip_band")
+  // Obergrenze fuer den Riegel: die Schnittmenge darf NUR im Uebermassband (unter dem Nutboden zg1, hintere Lippe) liegen.
+  // Ohne Nut (cam_dbg_nogroove=true) liegt der Riegel im vollen Material -> Rest nicht leer -> FAIL.
+  difference() {
+    intersection() { front_shell(); cam_place() cam_clip_place(front_t); }
+    translate([-50, -50, -front_t + cam_zbb(front_t) - cam_clip_t - 1])
+      cube([100, 100, cam_clip_t + 1 + cam_zg1(front_t) - cam_zbb(front_t) + 0.0005]);
+  }
+else if (part == "cradle_fit")
+  // Positive-Kontrolle Wiege: Pfosten/Steg muessen den Stapel (um 0,6 mm aufgeweitet) beruehren, sonst fehlt die Wiege oder sie sitzt falsch
+  intersection() {
+    cam_place() xiao_cradle_add(front_t);
+    cam_place() translate([xiao_offset[0] - xiao_w / 2 - 0.6, xiao_offset[1] - xiao_l / 2 - 0.6, xiao_zbot(front_t) - 0.6])
+      cube([xiao_w + 1.2, xiao_l + 1.2, xiao_stack + 1.2]);
+  }
+else if (part == "inside_ctrl")
+  // Positive-Kontrolle zu cam_inside: um 15 mm nach oben verschoben MUSS die Wiege aus der Kopfhaut ragen
+  difference() {
+    translate([0, 15, 0]) cam_place() { cam_pocket_add(front_t); xiao_cradle_add(front_t); }
+    translate([0, 0, z_floor]) linear_extrude(-z_floor) offset(delta = -0.8) outer2d();
+  }
+else if (part == "fb_ctrl")
+  // Positive-Kontrolle zu fb_overlap: um 15 mm nach oben verschoben MUSS die Wiege das Rueckteil (Ring) schneiden
+  intersection() { translate([0, 15, 0]) cam_place() { cam_pocket_add(front_t); xiao_cradle_add(front_t); } back_part(); }
+else if (part == "cable_check")
+  // Kabelweg zu P1 und CN1 muss frei sein: Kabel gegen Gehaeuse, Platine, Rueckseitenbauteile, Buchsen, Stapel, Kamera
+  intersection() {
+    cable_dummy();
+    union() { front_shell(); back_part(); pcb_dummy(); glass_dummy(); rear_dummy(); sockets_dummy(); buttons_dummy(); sd_dummy(); xiao_dummy(); cam_body_dummy(); }
+  }
+else if (part == "cable_ctrl")
+  // Positive-Kontrolle zum Kabelweg: 9 mm hoeher (Z -11) liegt das Kabel in den Rueckseitenbauteilen -> MUSS treffen
+  intersection() {
+    cable_dummy(9);
+    union() { front_shell(); back_part(); pcb_dummy(); glass_dummy(); rear_dummy(); sockets_dummy(); buttons_dummy(); sd_dummy(); xiao_dummy(); cam_body_dummy(); }
+  }
 else if (part == "fb_overlap")
   // Rahmen und Wiege (Teile der Frontschale) duerfen das Rueckteil nicht durchdringen (Ring, Falz, Pfosten, Schienen).
   // Nur die neue Geometrie wird geprueft: Front gegen Rueck insgesamt ueberlappt schon im Bestand an den Schraubdomen.

@@ -109,42 +109,45 @@ if (-not $custom) {
   else { Bad "Selbsttest: absichtliche Kollision NICHT erkannt (Pruefung taugt nichts)" }
 }
 
-# 3c) Kamera: Selbsttest (Kamerakoerper +0,6 mm muss die Tasche treffen), Riegel in den Nuten, Front/Rueck ueberschneiden sich nicht,
-#     Kamera-Halter liegt innerhalb der Kopfhaut, FPC-Luftlinie Tasche -> Stecker
-if (-not $custom) {
-  $f1 = Join-Path $env:TEMP 'madbuddy_camself.stl'
-  if (Test-Path $f1) { Remove-Item $f1 }
-  $r = Run-Scad ((PartArg 'cam_selftest') + @('-o', $f1))
-  if ((FacetCount $f1) -gt 0) { Ok "Kamera-Selbsttest: Kamerakoerper +0,6 mm trifft die Tasche (Pruefung wirkt)" }
-  else { Bad "Kamera-Selbsttest: zu grosser Kamerakoerper NICHT erkannt" }
-
-  $f2 = Join-Path $env:TEMP 'madbuddy_clip_test.stl'
-  if (Test-Path $f2) { Remove-Item $f2 }
-  $r = Run-Scad ((PartArg 'clip_test') + @('-o', $f2))
-  if ((FacetCount $f2) -gt 0) { Ok "Riegel: sitzt in den Nuten (Schnittmenge Riegel/Rahmen > 0 durch 0,1 mm Uebermass)" }
-  else { Bad "Riegel: keine Schnittmenge mit dem Rahmen (Nuten/Uebermass falsch) $($r.Text.Trim())" }
-
-  $f3 = Join-Path $env:TEMP 'madbuddy_fb_overlap.stl'
-  if (Test-Path $f3) { Remove-Item $f3 }
-  $r = Run-Scad ((PartArg 'fb_overlap') + @('-o', $f3))
-  if ($r.Text -match 'WARNING|ERROR' -and $r.Text -notmatch $emptyMsg) { Bad "Front/Rueckwand: WARNING/ERROR: $($r.Text.Trim())" }
-  elseif ($r.Text -match $emptyMsg -or (FacetCount $f3) -eq 0) { Ok "Front/Rueckwand: Teile durchdringen sich nicht (Wiege, Pfosten)" }
-  else { Bad "Front/Rueckwand durchdringen sich ($(FacetCount $f3) Facetten) -> $f3" }
-
-  $f4 = Join-Path $env:TEMP 'madbuddy_cam_inside.stl'
-  if (Test-Path $f4) { Remove-Item $f4 }
-  $r = Run-Scad ((PartArg 'cam_inside') + @('-o', $f4))
-  if ($r.Text -match 'WARNING|ERROR' -and $r.Text -notmatch $emptyMsg) { Bad "Kamera innerhalb: WARNING/ERROR: $($r.Text.Trim())" }
-  elseif ($r.Text -match $emptyMsg -or (FacetCount $f4) -eq 0) { Ok "Kamera-Tasche und Wiege liegen innerhalb der Kopfhaut" }
-  else { Bad "Kamera-Tasche/Wiege ragt aus dem Kopf ($(FacetCount $f4) Facetten) -> $f4" }
+# 3c) Kamera, Riegel, Wiege, Kabelweg. Jede "muss leer sein"-Pruefung hat eine Positiv-Kontrolle ("muss treffen"),
+#     damit eine leere/falsch sitzende Geometrie nicht still als "gruen" durchgeht. Laeuft auch mit -Define (Gegenproben).
+function Scad-Facets([string]$part) {
+  $o = Join-Path $env:TEMP "madbuddy_chk_$part.stl"
+  if (Test-Path $o) { Remove-Item $o }
+  $r = Run-Scad ((PartArg $part) + @('-o', $o))
+  return @{ N = (FacetCount $o); R = $r }
 }
+function Chk-Empty([string]$part, [string]$okMsg, [string]$badMsg) {
+  $x = Scad-Facets $part
+  if ($x.R.Text -match 'WARNING|ERROR' -and $x.R.Text -notmatch $emptyMsg) { Bad "$badMsg : WARNING/ERROR $($x.R.Text.Trim())" }
+  elseif ($x.N -eq 0) { Ok $okMsg } else { Bad "$badMsg ($($x.N) Facetten)" }
+}
+function Chk-Hit([string]$part, [string]$okMsg, [string]$badMsg) {
+  $x = Scad-Facets $part
+  if ($x.N -gt 0) { Ok "$okMsg ($($x.N) Facetten)" } else { Bad $badMsg }
+}
+Chk-Hit   'cam_selftest' "Kamera-Selbsttest: Kamerakoerper +0,6 mm trifft die Tasche (Pruefung wirkt)" "Kamera-Selbsttest: zu grosser Kamerakoerper NICHT erkannt"
+Chk-Hit   'clip_test'    "Riegel: sitzt in den Nuten (Schnittmenge Riegel/Rahmen > 0)" "Riegel: keine Schnittmenge mit dem Rahmen (Nuten/Uebermass falsch)"
+Chk-Empty 'clip_band'    "Riegel: Schnittmenge liegt nur im 0,1-mm-Uebermassband (Obergrenze, Nut ist wirklich da)" "Riegel: Schnittmenge ausserhalb des Uebermassbands (Nut fehlt oder zu klein)"
+Chk-Hit   'cradle_fit'   "Wiege: Pfosten/Klemmsteg umschliessen den Stapel (Positiv-Kontrolle)" "Wiege: beruehrt den aufgeweiteten Stapel NICHT (leer oder falsche Lage)"
+Chk-Empty 'fb_overlap'   "Wiege/Rahmen durchdringen das Rueckteil nicht" "Wiege/Rahmen durchdringen das Rueckteil"
+Chk-Hit   'fb_ctrl'      "Kontrolle Rueckteil: um 15 mm verschobene Wiege wird erkannt" "Kontrolle Rueckteil: verschobene Wiege NICHT erkannt (Pruefung taugt nichts)"
+Chk-Empty 'cam_inside'   "Kamera-Tasche und Wiege liegen innerhalb der Kopfhaut" "Kamera-Tasche/Wiege ragt aus dem Kopf"
+Chk-Hit   'inside_ctrl'  "Kontrolle Kopfhaut: um 15 mm verschobene Wiege wird erkannt" "Kontrolle Kopfhaut: verschobene Wiege NICHT erkannt (Pruefung taugt nichts)"
+Chk-Empty 'cable_check'  "Kabelweg XIAO -> CN1 und P1 ist frei (kein Gehaeuse, Bauteil, Stapel im Weg)" "Kabelweg XIAO -> CN1/P1 ist blockiert"
+Chk-Hit   'cable_ctrl'   "Kontrolle Kabelweg: zu hoch liegendes Kabel trifft die Rueckseitenbauteile" "Kontrolle Kabelweg: Treffer NICHT erkannt (Pruefung taugt nichts)"
 $r = Run-Scad ((PartArg 'info') + @('-o', (Join-Path $env:TEMP 'madbuddy_info2.stl')))
+$inv = [Globalization.CultureInfo]::InvariantCulture
 if ($r.Text -match 'FPC_AIR=([-0-9.e]+) FPC_AIR_MAX=([-0-9.e]+)') {
-  $inv = [Globalization.CultureInfo]::InvariantCulture
   $air = [double]::Parse($Matches[1], $inv); $amax = [double]::Parse($Matches[2], $inv)
   if ($air -le $amax) { Ok ("FPC: Luftlinie Tasche -> Stecker {0:N1} mm (max {1})" -f $air, $amax) }
   else { Bad ("FPC: Luftlinie {0:N1} mm ist laenger als {1} mm" -f $air, $amax) }
 } else { Bad "FPC: keine FPC_AIR-Werte aus info gelesen" }
+if ($r.Text -match 'FPC_R=([-0-9.e]+) FPC_R_MIN=([-0-9.e]+)') {
+  $rr = [double]::Parse($Matches[1], $inv); $rm = [double]::Parse($Matches[2], $inv)
+  if ($rr -ge $rm) { Ok ("FPC: kleinster Biegeradius des Wegs {0:N2} mm (min {1})" -f $rr, $rm) }
+  else { Bad ("FPC: Biegeradius {0:N2} mm kleiner als {1} mm" -f $rr, $rm) }
+} else { Bad "FPC: keine FPC_R-Werte aus info gelesen" }
 
 # 4) PNG-Renders
 if (-not $NoPng) {
