@@ -29,14 +29,9 @@ rear_extra  = 10.0; // Zusatztiefe hinten: verlegt die hintere Kippkante nach hi
 // CYD-Masse, Fenster und Pruefkoerper. Muss NACH front_t, glass_gap, fit, disp_x stehen: OpenSCAD wertet Zuweisungen der Reihe nach aus.
 include <cyd_common.scad>
 
-// ---------------------------------------------------------------- XIAO ESP32S3 Sense + Kameraplatine
-xiao_w      = 21.0; // VORLÄUFIG (Datenblatt)
-xiao_h      = 17.8; // VORLÄUFIG (Datenblatt)
-xiao_stack  = 15.0; // VORLÄUFIG (Datenblatt) Stapelhoehe inkl. Linsentubus
-lens_d      = 8.0;  // VORLÄUFIG (Datenblatt) Linse
-lens_hole   = 9.0;  // VORLÄUFIG (Datenblatt) Linsenloch
-lens_fov    = 30;   // VORLÄUFIG (Datenblatt) halber Bildwinkel fuer den Freiraum-Kegel
-rib_t       = 1.6;  // Klemmrippen links/rechts des XIAO
+// ---------------------------------------------------------------- XIAO ESP32S3 Sense + Kamera: Masse, Tasche, Riegel, Wiege, Pruefkoerper
+// Lokales System der Kamera: Frontwand-Innenseite = Z 0, Blick nach +Z, Linsenmitte = Ursprung (siehe cam_place unten).
+include <xiao_cam_common.scad>
 
 // ---------------------------------------------------------------- Kopfform
 dome_d      = 6.4;  // Schraubdom aussen
@@ -64,7 +59,9 @@ dome_y    = pcb_h / 2 + fit + dome_d / 2 + 0.1;
 hy_in     = dome_y + dome_d / 2;
 hx        = hx_in + wall;
 hy        = hy_in + wall;
-xiao_cy   = pcb_h / 2 + 0.4 + xiao_h / 2;
+xiao_cy   = pcb_h / 2 + 0.4 + xiao_l / 2;      // Linse mittig in der Stirn (wie bisher), Stapel dahinter
+xiao_bot  = -front_t + xiao_zbot(front_t);     // Konstruktions-Z der Stapelrueckseite
+module cam_place() { translate([0, xiao_cy, -front_t]) children(); }   // lokales Kamerasystem -> Konstruktionskoordinaten
 dome_pts  = [for (sx = [-1, 1], sy = [-1, 1]) [sx * dome_x, sy * dome_y]];
 // Fusslage: Tischebene y*cos(tilt)+z*sin(tilt)=c, beruehrt die hintere untere Kante
 plane_c   = -hy * cos(tilt) + z_back * sin(tilt);
@@ -117,13 +114,11 @@ module front_shell() {
       }
       // Schraubdome: von der Frontplatte bis zur Innenseite der Rueckwand
       for (p = dome_pts) translate([p[0], p[1], z_floor]) cylinder(d = dome_d, h = -front_t / 2 - z_floor);
-      // Klemmrippen fuer XIAO
-      for (sx = [-1, 1])
-        translate([sx * (xiao_w / 2 + 0.15 + rib_t / 2) - rib_t / 2, xiao_cy - 7, z_split])
-          cube([rib_t, 14, -front_t / 2 - z_split]);
+      // Kameratasche (Rahmen mit Riegelnuten) und XIAO-Wiege (Stirnpfosten)
+      cam_place() { cam_pocket_add(front_t); xiao_cradle_add(front_t); }
     }
     window_cut();
-    translate([0, xiao_cy, -front_t - 1]) cylinder(d = lens_hole, h = front_t + 2);
+    cam_place() { cam_pocket_cut(front_t); xiao_cradle_cut(front_t); }   // Linsenloch 6,7 mit Fase, Tasche, Nuten, FPC-Schlitz
     usb_cuts();
     sd_cut();
     for (p = dome_pts) translate([p[0], p[1], z_floor - 0.01]) cylinder(d = pilot_d, h = pilot_len);
@@ -149,10 +144,11 @@ module back_part() {
         cylinder(d = 6.4, h = z_pcb_bot - 0.1 - z_floor + 0.01);
         cylinder(d = hole_d - 0.4, h = z_pcb_bot - 0.1 - z_floor + 0.01 + (pcb_t - 0.2));
       }
-      // Anschlagpfosten unter dem XIAO und Kabelkanal (Schienen)
+      // Anschlagpfosten unter dem XIAO-Stapel und Kabelkanal (Schienen), mit der Stapellage (xiao_offset) mitgewandert;
+      // die Pfosten enden 0,1 mm unter der Stapelrueckseite
       for (sx = [-1, 1]) {
-        translate([sx * 7.75 - 1.75, xiao_cy + 5, z_floor - 0.01]) cube([3.5, 3.0, -xiao_stack - 0.1 - z_floor + 0.01]);
-        translate([sx * 3.8 - 0.6, pcb_h / 2 + 0.6, z_floor - 0.01]) cube([1.2, 17, -xiao_stack - 0.1 - z_floor + 0.01]);
+        translate([xiao_offset[0] + sx * 7.75 - 1.75, xiao_cy + xiao_offset[1] + 5, z_floor - 0.01]) cube([3.5, 3.0, xiao_bot - 0.1 - z_floor + 0.01]);
+        translate([xiao_offset[0] + sx * 3.8 - 0.6, pcb_h / 2 + 0.6, z_floor - 0.01]) cube([1.2, 17, xiao_bot - 0.1 - z_floor + 0.01]);
       }
       // Fuss mit Neigung
       yt = -hy + 1.5;
@@ -171,7 +167,7 @@ module back_part() {
       cube([btn_open_w, btn_open_h, back_t + 2]);
     // Lueftungsschlitze hinter dem XIAO
     for (sx = [-9.5, -6.5, 6.5, 9.5])
-      translate([sx - 0.8, xiao_cy - 3, z_back - 1]) cube([1.6, 12, back_t + 2]);
+      translate([xiao_offset[0] + sx - 0.8, xiao_cy + xiao_offset[1] - 3, z_back - 1]) cube([1.6, 12, back_t + 2]);
   }
 }
 
@@ -199,17 +195,9 @@ module plugs_dummy() {
   for (u = usb_list) if (u[4])
     translate([pcb_x1 + sock_over, u[0] - u[3] / 2, usb_zc - plug_h / 2]) cube([hx + 25, u[3], plug_h]);
 }
-module xiao_dummy() {
-  translate([-xiao_w / 2, xiao_cy - xiao_h / 2, -xiao_stack]) cube([xiao_w, xiao_h, xiao_stack - front_t - 0.2]);
-  translate([0, xiao_cy, -front_t - 0.2 - 0.01]) cylinder(d = lens_d, h = front_t + 0.2 + 0.01);
-}
-module lens_cone() {
-  L = 30;
-  translate([0, xiao_cy, 0]) hull() {
-    translate([0, 0, -0.5]) cylinder(d = lens_d, h = 0.5);
-    translate([0, 0, L]) cylinder(r = lens_d / 2 + L * tan(lens_fov), h = 0.01);
-  }
-}
+module cam_body_dummy() cam_place() cam_dummy(front_t);           // Kamerakoerper, Tubus, FPC
+module xiao_dummy()     cam_place() xiao_stack_dummy(front_t);    // XIAO-Stapel
+module lens_cone()      cam_place() cam_fov_cone(30, front_t);    // Sichtpyramide 102/85 Grad, 30 mm
 module card_dummy() {
   // Karte (Pruefkoerper) steckt in der Wandoeffnung und ragt nach aussen (nur Kollisionspruefung, nicht in der Ansicht)
   translate([sd_x - card_w / 2, -hy - 12, z_pcb_bot - sd_h / 2 - card_t / 2]) cube([card_w, hy + 12 - pcb_h / 2 + 6, card_t]);
@@ -219,10 +207,10 @@ module dummies() {
   if (dummy_sel != "all") {
     if (dummy_sel == "pcb") pcb_dummy(); if (dummy_sel == "glass") glass_dummy(); if (dummy_sel == "rear") rear_dummy();
     if (dummy_sel == "sockets") sockets_dummy(); if (dummy_sel == "plugs") plugs_dummy(); if (dummy_sel == "buttons") buttons_dummy();
-    if (dummy_sel == "xiao") xiao_dummy(); if (dummy_sel == "lens") lens_cone(); if (dummy_sel == "active") active_cone(); if (dummy_sel == "sd") { sd_dummy(); card_dummy(); }
+    if (dummy_sel == "xiao") { xiao_dummy(); cam_body_dummy(); } if (dummy_sel == "lens") lens_cone(); if (dummy_sel == "active") active_cone(); if (dummy_sel == "sd") { sd_dummy(); card_dummy(); }
   } else {
   pcb_dummy(); glass_dummy(); rear_dummy(); sockets_dummy(); plugs_dummy(); buttons_dummy();
-  xiao_dummy(); lens_cone(); active_cone(); sd_dummy(); card_dummy();
+  xiao_dummy(); cam_body_dummy(); lens_cone(); active_cone(); sd_dummy(); card_dummy();
   }
 }
 
@@ -254,10 +242,13 @@ module info() {
   echo(str("STAND_REAR_MARGIN=", margin_rear, " STAND_FRONT_MARGIN=", margin_front, " STAND_MIN=", stand_min));
   echo(str("PLANE tilt=", tilt, " c=", plane_c, " zback=", z_back));
   echo(str("WINDOW=", win_w, "x", win_h));
+  echo(str("FPC_AIR=", cam_fpc_air(front_t), " FPC_AIR_MAX=", cam_fpc_air_max));
   cube(1);
 }
 
 // ================================================================= Anordnung
+// Ausschnitt um die Kamera, nur X <= 0 (Schnittebene X = 0), fuer part = "cam_section"
+module cam_cutbox() translate([-25, xiao_cy - 14, z_floor - 3]) cube([25, 28, -z_floor + 6]);
 module world() {
   // Anzeige-Welt: Z nach oben, Gesicht blickt nach -Y, Kopf um view_tilt nach hinten geneigt, steht auf Z=0
   c = -hy * cos(view_tilt) + z_back * sin(view_tilt);
@@ -273,10 +264,13 @@ module assembly_parts() {
   color("#888888", 0.5) rear_dummy();
   color("#c0c0c0") { sockets_dummy(); buttons_dummy(); sd_dummy(); }
   color("#8a4fc9", 0.8) xiao_dummy();
+  color("#d03030") cam_body_dummy();
   }
+  color("#e0e0e0") cam_place() cam_clip_place(front_t);
 }
 
 if (part == "front") rotate([180, 0, 0]) front_shell();
+else if (part == "cam_clip") cam_clip();
 else if (part == "back") translate([0, 0, -z_back]) back_part();
 else if (part == "frame_test") rotate([180, 0, 0]) frame_test();
 else if (part == "assembly") world() assembly_parts();
@@ -296,4 +290,35 @@ else if (part == "selftest")
   intersection() {
     union() { front_shell(); back_part(); }
     scale([1.1, 1.1, 1]) pcb_dummy();
+  }
+else if (part == "cam_selftest")
+  // Positive-Kontrolle Kamera: Kamerakoerper +0,6 mm (Tasche hat nur +0,5) MUSS die Tasche treffen
+  intersection() {
+    front_shell();
+    cam_place() translate([-(cam_body + 0.6) / 2, -(cam_body + 0.6) / 2, cam_zbb(front_t)])
+      cube([cam_body + 0.6, cam_body + 0.6, cam_zbf(front_t) - cam_zbb(front_t)]);
+  }
+else if (part == "clip_test")
+  // Riegel in Einbaulage gegen die Frontschale: MUSS durch das Uebermass (0,1 mm) Schnittmenge haben
+  intersection() { front_shell(); cam_place() cam_clip_place(front_t); }
+else if (part == "fb_overlap")
+  // Rahmen und Wiege (Teile der Frontschale) duerfen das Rueckteil nicht durchdringen (Ring, Falz, Pfosten, Schienen).
+  // Nur die neue Geometrie wird geprueft: Front gegen Rueck insgesamt ueberlappt schon im Bestand an den Schraubdomen.
+  intersection() { cam_place() { cam_pocket_add(front_t); xiao_cradle_add(front_t); } back_part(); }
+else if (part == "cam_inside")
+  // Tasche und Wiege muessen mindestens 0,8 mm innerhalb der Aussenkontur des Kopfes bleiben
+  difference() {
+    cam_place() { cam_pocket_add(front_t); xiao_cradle_add(front_t); }
+    translate([0, 0, z_floor]) linear_extrude(-z_floor) offset(delta = -0.8) outer2d();
+  }
+else if (part == "cam_section")
+  // Schnitt durch die Kameratasche bei X = 0 (Blick von +X), mit Riegel, Kamera, XIAO-Stapel; Hinterteil zeigt die Anschlagpfosten.
+  // Gedreht (Blick von +X auf die Schnittflaeche: Frontwand links, Y nach oben), damit die Kamera-Einstellung des Prueflaufs einfach bleibt.
+  // Jedes Teil einzeln geschnitten, damit die Schnittflaechen ihre eigene Farbe behalten.
+  rotate([0, -90, 0]) union() {
+    intersection() { color("#f2b84b") front_shell(); cam_cutbox(); }
+    intersection() { color("#4fa8c9") back_part(); cam_cutbox(); }
+    intersection() { color("#e8e8e8") cam_place() cam_clip_place(front_t); cam_cutbox(); }
+    intersection() { color("#d03030") cam_body_dummy(); cam_cutbox(); }
+    intersection() { color("#8a4fc9") xiao_dummy(); cam_cutbox(); }
   }

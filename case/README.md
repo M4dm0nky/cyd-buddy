@@ -2,14 +2,15 @@
 
 Parametrisches OpenSCAD-Gehäuse (OpenSCAD 2021.01) für das ESP32-2432S028 (CYD 2,8", Micro-USB + USB-C) und ein Seeed XIAO ESP32S3 Sense mit Kameraplatine (Linse in der Stirn, schaut nach vorn).
 
-Datei: `madbuddy_case.scad`. Teil wählen mit `-D 'part="front"'` (`front`, `back`, `frame_test`, `assembly`, `section`, `collision`, `info`).
+Dateien: `madbuddy_case.scad` und `xiao_cam_common.scad` (Kamera: Tasche, Riegel, XIAO-Wiege, Prüfkörper; gemeinsam mit dem Roboter nutzbar). Teil wählen mit `-D 'part="front"'` (`front`, `back`, `cam_clip`, `frame_test`, `assembly`, `section`, `cam_section`, `collision`, `info`).
 Alle Maße stehen oben in der Datei mit Kommentar: `QUELLE: Originalzeichnung`, `GEMESSEN` oder `VORLÄUFIG`.
 
 ## Teile
 
 | Teil | Datei | Inhalt |
 |---|---|---|
-| front | `stl/madbuddy_front.stl` | Kopfschale mit Display-Fenster (nach vorn angefast), Stirn, Linsenloch, Klemmrippen für den XIAO, 4 Schraubdome (M3, von hinten) |
+| front | `stl/madbuddy_front.stl` | Kopfschale mit Display-Fenster (nach vorn angefast), Stirn, Kameratasche (Linsenloch Ø 6,7 mit 45°-Fase, Rahmen mit Riegelnuten, FPC-Schlitz), XIAO-Wiege (4 Pfosten), 4 Schraubdome (M3, von hinten) |
+| cam_clip | `stl/madbuddy_cam_clip.stl` | Kamera-Riegel: flache U-Platte, 1,2 mm dick, hält den Kamerakörper in der Tasche (1× drucken) |
 | back | `stl/madbuddy_back.stl` | Rückwand mit Falz, USB-C-Öffnung, SD-Aussparung, BOOT/RESET-Fenster, Lüftungsschlitze, Platinen-Andrückfüße mit Zentrierstift, Kabelkanal, Fuß mit 15° Neigung |
 | frame_test | `stl/madbuddy_frame_test.stl` | flacher Streifen (2 mm Front + Display-Auflage) zum Prüfen von Fenstermaß, Glas-Sitz und Lochbild in ca. 20 min |
 | assembly / section | nur Ansicht (`render/*.png`) | alles mit farbigen Prüfkörpern |
@@ -20,20 +21,30 @@ Alle Maße stehen oben in der Datei mit Kommentar: `QUELLE: Originalzeichnung`, 
 - front: Gesicht nach unten auf dem Bett (Fenster und Linsenloch sind Durchbrüche, Fenster-Fase ist ein Überhang von 35°).
 - back: Rückseite (Außenfläche) liegt flach unten, der Fuß hat nur 15° Überhang.
 - frame_test: Gesicht nach unten.
+- cam_clip: flach auf dem Bett (1,2 mm dick, 1 Lage Wandlinie genügt nicht, 3 Wände einstellen).
 - Schrauben: 4× M3×8 (Senkung hinten, Kernloch 2,6 mm in den Domen; bei PETG selbstschneidend).
+- **Wer `front` schon gedruckt hat, muss es neu drucken** (Linsenloch, Tasche und Wiege sind neu).
+
+## Kamera und XIAO einbauen (Stufe 2)
+
+1. `front` liegt mit dem Gesicht nach unten. Kamera von hinten in die Tasche legen: Linse (Tubus) durch das Loch Ø 6,7, Körper 8 × 8 an den Anschlag, das FPC zeigt nach +X (rechts im Blick von vorn) und läuft durch den Schlitz.
+2. Riegel `cam_clip` von der FPC-Seite in die beiden Nuten schieben, bis der Quersteg am Tascheneck anliegt. Er klemmt mit 0,1 mm Übermaß, kein Kleber nötig (optional ein dünnes Klebepad auf der Kamerarückseite). Das FPC liegt im Riegel-Ausschnitt.
+3. XIAO-Stapel (Sense-Platine zur Kamera, Stecker am Ende zur Kamera) von oben zwischen die Pfosten legen. Das FPC in den Klappstecker der Sense-Platine stecken: lockere Schleife, nicht knicken (Biegeradius mindestens 2 mm; die Luftlinie Körperkante bis Stecker ist laut `check.ps1` unter 16 mm). Die Längsseiten des Stapels bleiben für die angelöteten Drähte frei.
+4. Rückwand aufsetzen: Ihre Anschlagpfosten enden 0,1 mm unter der Stapelrückseite und halten den Stapel nach hinten. Die Lage des Stapels relativ zur Linse ist `xiao_offset`.
 - Mindestwand 2,4 mm, Passungsspiel `fit = 0,3 mm` (Variable).
 
 ## Prüfung
 
 `& case\check.ps1` (aus PowerShell im Repo-Ordner) führt alles aus (STL ohne Warnungen, Standsicherheit, Standebene, Kollision gegen alle Prüfkörper inkl. Linsen-Freiraum und aktiver Fläche mit Sichtkegel, Selbsttest der Kollisionsprüfung, PNG-Renders). Exitcode ungleich 0 bei jedem Fehler.
 Gegenprobe: `check.ps1 -Define window_shrink=2 -NoPng` muss fehlschlagen (Fenster 2 mm schmaler).
+Kamera-Prüfungen (ohne `-Define`): Selbsttest (Kamerakörper +0,6 mm muss die Tasche treffen), `clip_test` (Riegel in Einbaulage schneidet den Rahmen durch das Übermaß), Rahmen und Wiege durchdringen das Rückteil nicht und bleiben 0,8 mm innerhalb der Kopfhaut, FPC-Luftlinie (Körperkante bis Stecker) höchstens 16 mm. Bild `render/madbuddy_kamera_schnitt.png` zeigt den Schnitt bei X = 0.
 
 ## Maße
 
 - Aus Originalzeichnung (`QUELLE`): Platine 86 × 50, Eckradius 4, Löcher Ø3,2 mit 4,0 mm Randabstand, Displaymodul 69,2 × 50 × 2,3, LCD-Glas 64,75, Fenster = AA + 0,3 mm je Seite. Die Zeichnungs-AA (57,6 × 43,2, mittig im Glas) passte nicht.
 - Gemessen (2026-10-26, nach Testdruck): bespielte Fläche 58,8 mm breit (Fenster rechnet mit 59), beginnt 10 mm nach der linken Platinenkante (Blick von vorn). Höhe 44,3 mm ist daraus hochgerechnet (VORLÄUFIG).
 - Gemessen: USB-Buchsen-Lage entlang der Schmalseite (Micro ab 9,67 mm, USB-C 17,88 bis 27,32 mm, von der Kante mit dem SD-Slot).
-- VORLÄUFIG (Datenblatt/Schätzung): Platinendicke, Displayhöhe über Platine (4,5), Micro-USB-Breite, alle Höhen (z) der Buchsen/Stecker, SD-Slot (Länge, Lage, Höhe), BOOT/RESET-Lage, Rückseitenbauteile (8 mm, Randstreifen), XIAO-Stapel (21 × 17,8 × 15), Linse, Sichtwinkel, Wandöffnungen, Schwerpunkt-Massen.
+- VORLÄUFIG (Datenblatt/Schätzung): Platinendicke, Displayhöhe über Platine (4,5), Micro-USB-Breite, alle Höhen (z) der Buchsen/Stecker, SD-Slot (Länge, Lage, Höhe), BOOT/RESET-Lage, Rückseitenbauteile (8 mm, Randstreifen), XIAO-Stapel (Höhe 15, Platinendicke 1,2, Lage und Höhe des Kamerasteckers), Tubuslänge der Kamera (2,7), Sichtwinkel, Wandöffnungen, Schwerpunkt-Massen. Kameramaße (OV3660: Körper 8,0, Tiefe 5,3, Tubus Ø 6,2, FPC 21,2 × 6,5) stammen aus der Seeed-Zeichnung; den Aufdruck am eigenen Modul prüfen (`cam_type`).
 
 ## Offene Punkte
 
