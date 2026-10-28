@@ -363,7 +363,8 @@ t_deco_pts = [for (sx = [-1, 1], z = [12, 40.8]) [sx * 23, z]];   // QUELLE: Kon
 // --- Kamera / XIAO: einfach gehalten und parametrisch, die Halterung wird nach Task 4 neu bestimmt
 cam_tilt   = 15;     // QUELLE: Aufgabe: Kamera nach oben gekippt
 cam_z      = 27;     // VORLÄUFIG (gerechnet): Linsenhoehe ueber der Unterkante (Konzept 0,6 * t_h = 28,8). Der gekippte Stapel (15 Grad, 21 mm Tiefe) belegt Z cam_z-14,8 ... cam_z+6,3: oben bleiben 1,7 mm zum Halsblock (Z 35), unten 0,5 mm ueber den unteren Domen (Oberkante Z 11,7)
-cam_chamfer_ang = 28; // VORLÄUFIG (gerechnet): Flankenwinkel der Linsenloch-Fase zur Achse (Spec 45). Achse 15 Grad zur Druckrichtung geneigt: obere Flanke 28+15 = 43 Grad Ueberhang (<= 45), mit 45 waeren es 60
+// Linsenloch-Fase im Roboter: 45 Grad zur Achse (QUELLE: Spec 45 Grad; Entscheidung 2026-10-28: Stuetzen am Linsenloch beim Druck von torso_front akzeptiert, die Fase ist
+// die einzige Ausnahme der Ueberhang-Pruefung, siehe check_roboter.ps1 Schritt 3j). cam_chamfer_ang bleibt ungesetzt (Vorgabe 45 in xiao_cam_common.scad).
 cam_cone_l = 26;     // QUELLE: Entscheidung Auftraggeber 2026-10-28 (Spec: Roboter 26 mm statt 30 mm). Begruendung (gerechnet): Laenge des Sichtkegels (Spec: 30). Die Fuesse beginnen bei Y -62, 32 mm vor der Linse: der untere Bildrand (102 Grad diagonal) trifft sie ab etwa 27 mm Abstand; bis 26 mm ist die Sicht frei
 cam_xiao_dx = 9.0;   // VORLÄUFIG (gerechnet): X-Versatz des XIAO-Stapels (siehe xiao_cam_common.scad). Die linke Wiegen-Stirnwand muss rechts von der linken Werkzeugkanal-Kante (X -4,7) bleiben: Pfosten ab X -4,2
 // Kameratasche, Riegel, XIAO-Wiege und Pruefkoerper kommen aus xiao_cam_common.scad (lokales System: Innenseite der Wand = Z 0, Blick +Z, Linse = Ursprung).
@@ -1125,6 +1126,7 @@ else if (part == "pilot_neck_back") intersection() { torso_back(false); neck_pil
 else if (part == "warn_ctrl") { echo(k = undefined_k2_probe); intersection() { cube(1); translate([5, 5, 5]) cube(1); } }   // Kontrolle fuer Chk-Empty: leer, aber mit WARNING (unbekannte Variable)
 else if (part == "empty_ctrl") intersection() { cube(1); translate([5, 5, 5]) cube(1); }   // Kontrolle fuer Chk-Empty: sauber leer, keine WARNING
 else if (part == "ovh_ctrl_steep") translate([0, 0, 5]) rotate([35, 0, 0]) cube([10, 10, 3]);   // Kontrolle fuer die Ueberhang-Pruefung: Flanke mit 55 Grad Ueberhang (nz -0,82), MUSS als "steil" erkannt werden
+else if (part == "ovh_ctrl_steep_low") translate([0, 0, 0.3]) rotate([35, 0, 0]) cube([10, 3, 3]);   // Kontrolle zur Ausnahme: steile Flanke ganz unten (innerhalb der Hoehengrenze der Ausnahme), aber weit von der Linsenachse: MUSS trotz Ausnahme erkannt werden
 else if (part == "ovh_ctrl_flat") translate([0, 0, 5]) cube([20, 20, 2]);                       // Kontrolle: 20 mm freitragende Decke, MUSS als Bruecke > 15 mm erkannt werden
 // ---- Montagewege (Task K2, Fix-Runde): Reihenfolge Kamera -> Riegel -> XIAO-Stapel (alle bei abgenommener Rueckwand) -> torso_back schliessen. Jeder Weg ist eine Reihe von Zwischenstellungen.
 else if (part == "asm_clip")   // Riegel gleitet in lokaler +X-Richtung aus der Nut (Zwischenstellungen alle 2,5 mm bis 20 mm = Armende 26,5 mm, Seitenwand bei ca. 29,6), nur im 0,1-mm-Uebermassband (Pressung) darf er anliegen

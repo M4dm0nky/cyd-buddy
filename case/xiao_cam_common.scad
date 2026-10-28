@@ -30,7 +30,7 @@ cam_play       = 0.25;  // Spiel je Seite um den Kamerakoerper (Vorgabe Spec: Ko
 cam_hole_play  = 0.5;   // Linsenloch = Tubus + 0,5 (OV3660: 6,7) -- QUELLE: Recherche
 cam_lens_rec   = 0.3;   // Linse endet 0,3 mm hinter der Aussenflaeche -- QUELLE: Spec
 cam_chamfer    = 1.0;   // Fase aussen am Linsenloch: Aufweitung je Seite (Winkel siehe cam_cone_ang)
-// Flankenwinkel der Fase zur Linsenachse: 45 Grad (Spec). Die einbindende Datei darf cam_chamfer_ang setzen (Roboter: Achse 15 Grad zur Druckrichtung geneigt, deshalb 28 Grad, damit die obere Flanke <= 45 Grad Ueberhang bleibt).
+// Flankenwinkel der Fase zur Linsenachse: 45 Grad (Spec). Die einbindende Datei darf cam_chamfer_ang setzen; bisher setzt keine Datei es (Vorgabe 45 gilt fuer Stufe 2 und Roboter).
 cam_cone_ang   = is_undef(cam_chamfer_ang) ? 45 : cam_chamfer_ang;
 cam_cone_h     = cam_chamfer / tan(cam_cone_ang);   // Tiefe der Fase entlang der Achse
 cam_frame_wall = 2.0;   // Wandstaerke des Rahmens um die Tasche (>= 2 mm)

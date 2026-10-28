@@ -89,6 +89,7 @@ STL liegen in `stl/roboter_<teil>.stl`, schon in Druckausrichtung (ohne Stützen
 ### Druck (PETG)
 
 - 0,2 mm Schichthöhe, 3 Wände, ohne Stützen, Überhänge höchstens 45°.
+- `torso_front`: Stützen nur am Linsenloch (Fase 45° bei geneigter Achse, bis ca. 60° Überhang), z. B. mit Support-Painting/Support-Blocker in Bambu Studio. Überall sonst ohne Stützen.
 - Steckzapfen sind als Presspassung gedacht (`fit_peg = 0,15 mm`). Zuerst ein Zapfen-Probestück oder den Fuß drucken und die Passung prüfen; bei Bedarf `fit_peg` ändern.
 - Kernlöcher für M3 sind Ø 2,6 mm (selbstschneidend in PETG, mindestens 7,5 mm tief).
 - Die Zierschrauben-Einlagen nur als Einlage einkleben oder pressen (Taschen sind 0,15 mm größer).
@@ -121,7 +122,7 @@ Summe: 4 × M3×8, 12 × M3×10, 4 × M3×28. Das passt zur Massenliste „20 ×
 5. Oberkörper mit Hals und Kopf auf `seat` stecken und von unten mit 4 × M3×10 verschrauben (Schraubendreher durch den offenen Boden).
 6. Akku einlegen, 5 V und GND verdrahten (Schalter, Kabel nach oben), `bottom` mit 4 × M3×10 schließen. Füße vorn auf die Beine stecken.
 
-Kamera im Roboter: Der Sichtkegel (102° diagonal, 85° horizontal) wird nur 26 mm lang geprüft, weil die Füße ab ca. 27 mm unten im Bild liegen (Entscheidung 2026-10-28). Die Linsenloch-Fase hat im Roboter 28° statt 45° zur Achse (Achse 15° geneigt, so bleibt der Überhang im Druck ≤ 45°).
+Kamera im Roboter: Der Sichtkegel (102° diagonal, 85° horizontal) wird nur 26 mm lang geprüft, weil die Füße ab ca. 27 mm unten im Bild liegen (Entscheidung 2026-10-28).
 
 Jede Schraube ist im Modell mit einem Schraubendreher-Prüfkörper Ø 6 × 60 auf Erreichbarkeit geprüft (`check_roboter.ps1`, Schritte 3g/3h).
 
