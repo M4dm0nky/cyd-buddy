@@ -10,12 +10,14 @@ Die Grafik zeigt oben die Lage der Stecker auf der CYD-Rückseite und unten, wel
 
 ## Welche Ader wohin
 
-| CYD-Stecker | Pin | Signal | → XIAO | Pin am XIAO | Farbe |
+| CYD-Stecker | Pin | Signal | → XIAO | Pin am XIAO | Farbe in Grafik |
 |---|---|---|---|---|---|
 | P1 | 1 VIN | 5 V | 5V | Reihe A, Pin 1 (an der USB-Buchse) | 🔴 rot |
 | P1 | 4 GND | Masse | GND | Reihe A, Pin 2 | ⚫ schwarz |
 | CN1 | 2 IO27 | RX des CYD | D6 (TX) | Reihe B, Pin 7 (gegenüber USB) | 🟡 gelb |
 | CN1 | 3 IO22 | TX des CYD | D7 (RX) | Reihe A, Pin 7 (gegenüber USB) | 🟢 grün |
+
+Die Farben sind nur die Namen in dieser Anleitung und der Grafik, **nicht die Aderfarben deines gekauften Kabels**. Maßgeblich ist die Position am Stecker (Pin-Nummer).
 
 TX und RX sind **gekreuzt**: Der Sender des XIAO (D6) geht an den Empfänger des CYD (IO27), und umgekehrt. Beide Boards laufen mit 3,3-V-Logik, ein Pegelwandler ist nicht nötig.
 
@@ -56,7 +58,7 @@ Mit Sense-Erweiterung ist der Stapel ca. 15 mm hoch (Seeed-Wiki, Kamera-Anteil u
 - ⛔ **CN1 3V3 nicht benutzen.** Der Regler auf dem CYD reicht für die Kamera nicht. Der XIAO bekommt 5 V und macht seine 3,3 V selbst.
 - ⚠️ **Pin 1 am eigenen Board prüfen.** Die Reihenfolge ist aus Foto und Schaltplan gelesen. Im Zweifel die Pinbeschriftung (Silkscreen) am Stecker lesen.
 - ⚠️ **XIAO vor dem Einbau flashen.** Sein USB-C ist im Gehäuse nicht erreichbar. Spätere Updates laufen per WLAN.
-- ⚠️ **Diode bei gleichzeitigem USB am XIAO.** Der 5V-Pin des XIAO ist ein Ausgang vom USB, laut Seeed-Wiki aber auch als Eingang nutzbar. Hängt dann zusätzlich USB am XIAO, gehört eine Diode (Schottky) dazwischen: Anode zur externen Quelle, Kathode zum 5V-Pin. Im normalen Betrieb ist der XIAO-USB nicht angesteckt, dann ist keine Diode nötig.
+- ⚠️ **Diode bei gleichzeitigem USB am XIAO.** Der 5V-Pin des XIAO ist ein Ausgang vom USB, laut Seeed-Wiki aber auch als Eingang nutzbar. Hängt dann zusätzlich USB am XIAO, gehört eine Diode (Schottky) dazwischen: Anode zur externen Quelle, Kathode zum 5V-Pin (im Roboter siehe Abschnitt Stufe 3: Diode nur im XIAO-Zweig). Im normalen Betrieb ist der XIAO-USB nicht angesteckt, dann ist keine Diode nötig.
 - ⚠️ **Zum Flashen des CYD per Kabel** die Stromzufuhr über P1 trennen (Roboter: Schalter aus). Am CYD hängt USB-5V über eine Diode am selben Netz wie VIN. Das ist laut Schaltplan entkoppelt, aber am Gerät nicht geprüft.
 
 ## Schritt für Schritt
@@ -68,7 +70,7 @@ Material: 2× 1,25 mm 4-Pin Kabel mit Stecker, einseitig offen (je ein Kabel fü
    - Am Kabel mit P1: Pin 1 (VIN) und Pin 4 (GND) abisolieren und verzinnen. Pin 2 und 3 (TX, RX) **kürzen und einzeln mit Schrumpfschlauch isolieren**, sie bleiben unbenutzt.
    - Am Kabel mit CN1: Pin 2 (IO27) und Pin 3 (IO22) abisolieren und verzinnen. Pin 1 (3V3) kürzen und isolieren. Pin 4 (GND) darf zusätzlich an XIAO GND (zweite Masse) oder wird isoliert.
    - Die Aderfarben des Kabels sind je nach Hersteller verschieden. **Nach dem Stecker zählen, nicht nach der Farbe**, und die Ader notieren (Klebeband mit Beschriftung).
-3. **An den XIAO löten.** Den XIAO **vorher flashen**. Rot an 5V, schwarz an GND, gelb an D6, grün an D7. Kurz löten, nicht zu heiß, die Lötstellen bleiben an der Längsseite des Stapels frei (der Halter lässt dort Platz).
+3. **An den XIAO löten.** Den XIAO **vorher flashen**. Nach Steckerposition, am Stecker gezählt: Ader von P1-Pin 1 → 5V, P1-Pin 4 → GND, CN1-Pin 2 → D6, CN1-Pin 3 → D7. Kurz löten, nicht zu heiß, die Lötstellen bleiben an der Längsseite des Stapels frei (der Halter lässt dort Platz).
 4. **Prüfen mit Multimeter, bevor du einsteckst:**
    - Durchgangsprüfung zwischen **5V und GND**: Es darf **kein** Durchgang sein (kein Kurzschluss).
    - Jede Ader gegen ihre Nachbarn prüfen: kein Durchgang.
@@ -94,8 +96,12 @@ Der XIAO liegt in der Brust (Kamera 15° nach oben gekippt), das CYD im Kopf. Di
 
 - **Kabellänge ca. 150 mm** für beide Kabel (durch den Hals, Spec). **VORLÄUFIG:** Der Wert stammt aus der Spec, nicht aus einer Messung am Modell. Am eigenen Aufbau von der Brust bis zu P1 und CN1 mit einem Faden abmessen, dazu ca. 10 mm Reserve.
 - **Strom:** Akku (DFR0969) → Schiebeschalter → 5 V und GND.
-  - Die 5-V- und GND-Litze vom Schalter und die rote und schwarze Ader zum CYD (P1 VIN, P1 GND) kommen **gemeinsam an XIAO 5V und GND**. Das sind zwei Drähte je Lötstelle. Der XIAO-5V-Pin ist laut Recherche als Eingang zulässig.
-  - Litze mind. 0,25 mm², weil CYD und Kamera zusammen bis etwa 1 A ziehen können (Schätzung).
+  - **Verteilerpunkt hinter dem Schalter** (Lötverbinder oder Quetschhülse), zwei Zweige:
+    - **Zweig 1:** Ader von P1 Pin 1 (VIN) direkt an den Verteilerpunkt 5 V, die Ader von P1 Pin 4 (GND) an den GND-Verteiler. Sie hängt **vor** der Diode, der Strom des CYD fließt nicht durch die Diode.
+    - **Zweig 2:** Verteilerpunkt 5 V → **Diode** (Schottky, Anode zum Verteilerpunkt, Kathode zum XIAO-5V-Pad) → XIAO 5V. GND vom Verteiler an XIAO GND.
+  - Die Diode gehört **nur in den XIAO-Zweig**. Sie schützt vor Rückspeisung, falls doch einmal USB am XIAO hängt. Der XIAO-5V-Pin ist laut Recherche als Eingang zulässig.
+  - **VORLÄUFIG:** Die dünne P1-Ader (1,25-mm-Kabel) trägt dann die ganze Last des CYD. Die Strombelastbarkeit von P1 VIN ist nicht belegt, am eigenen Aufbau prüfen (Wärme der Ader und des Steckers beim Betrieb).
+  - Zuleitung vom Akku bis zum Verteiler: Litze mind. 0,25 mm², weil CYD und Kamera zusammen bis etwa 1 A ziehen können (Schätzung).
   - Der DIP-Schalter am Akkumodul steht fest auf **HOLD**.
   - **VORLÄUFIG:** Die Lage von Schalter und Anschlusspads am Akkumodul ist aus dem Datenblatt geschätzt. Auf dem eigenen Modul prüfen, welche Pads 5 V und GND sind.
 - **Flashen des CYD per Kabel:** Schalter aus (siehe Warnungen).

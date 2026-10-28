@@ -153,7 +153,7 @@
   <rect x="30" y="900" width="1140" height="84" rx="8" fill="#f4f6fa" stroke="#ccc"/>
   <g font-size="13" fill="#222">
     <text x="48" y="924"><tspan font-weight="bold" fill="#b00020">Nicht benutzen:</tspan> P1 TX/RX (hängen am USB-Chip, stören Flashen) und CN1 3V3 (der Regler reicht nicht für die Kamera).</text>
-    <text x="48" y="946"><tspan font-weight="bold">Kreuz TX/RX:</tspan> D6 (TX des XIAO) geht an IO27 (RX des CYD), D7 (RX des XIAO) an IO22 (TX des CYD).</text>
+    <text x="48" y="946"><tspan font-weight="bold">Kreuz TX/RX:</tspan> D6 (TX des XIAO) an IO27 (RX des CYD), D7 (RX des XIAO) an IO22 (TX des CYD). <tspan font-weight="bold">Farben nur Namen dieser Grafik, nicht die Farben deines Kabels: nach Pin am Stecker zählen.</tspan></text>
     <text x="48" y="968"><tspan font-weight="bold">Prüfen:</tspan> Pin-1-Markierung am eigenen CYD und XIAO-Beschriftung vor dem Löten ansehen. Beide Boards haben 3,3-V-Logik.</text>
   </g>
 </svg>
