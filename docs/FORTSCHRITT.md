@@ -2,6 +2,14 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
+## Kamera-Firmware Phase A – Task 1: Spike `cam/` (XIAO) – Bau ERLEDIGT, Messung offen
+- Zeit: 2026-10-29 (Sonnet), Branch `feature/kamera-firmware`
+- Weg: **Weg 1** (pioarduino 55.03.312-1, Arduino als IDF-Komponente, ESP-DL v3 `human_face_detect`). Grund: baut sauber, neuere ESP-DL; Weg 2 (Arduino-Kern 2.0.17) bleibt Rückfall.
+- Anpassungen gegenüber dem Plan: Pixeltyp heißt `DL_IMAGE_PIX_TYPE_RGB565BE` (nicht `..._RGB565`); zusätzlich `CONFIG_AUTOSTART_ARDUINO=y` in `cam/sdkconfig.defaults`, sonst fehlt `app_main` beim Linken. Erzeugtes (`managed_components/`, `dependencies.lock`, `sdkconfig.cam`, `CMakeLists.txt`) steht in `cam/.gitignore`.
+- Build: SUCCESS, Flash 908 009 B von 3 342 336 B (27,2 %), RAM 36 516 B (11,1 %).
+- Neu: `cam/` (Kamera, Erkennung, Mess-`main.cpp`), `src/logic/cam_xiao.h` (`CamFace`, `cam_box_to_face`), `tools/cam-serial.py` (pyserial 3.5 vorhanden).
+- Messung am Gerät: offen (Flash und ms/Bild folgen mit dem Nutzer; Weg 1 bleibt nur bei ≤ 250 ms/Bild).
+
 ## Kamera + Gehäuse – Teil 1: Gehäuse-Entwurf – ERLEDIGT, wartet auf Testdruck
 - Zeit: 2026-10-26 (Opus plant und prüft, Sonnet baut das SCAD-Modell), Branch `feature/kamera-gehaeuse`
 - Entscheidung: Kamera = **Seeed XIAO ESP32S3 Sense** (eigener Rechner mit PSRAM, erkennt Gesichter selbst, schickt dem CYD nur Koordinaten). Direkt am CYD geht keine Kamera: Es sind nur GPIO 22/27/35 frei, und PSRAM fehlt. Bestellt **ohne Header**. Spec: `docs/superpowers/specs/2026-10-26-kamera-gehaeuse-design.md`.
