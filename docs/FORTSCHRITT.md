@@ -2,13 +2,18 @@
 
 Neueste Einträge oben. Format und Regeln: `docs/superpowers/plans/2026-10-25-cyd-buddy.md`, Abschnitt „Fortschritts-Protokoll“.
 
-## Kamera-Firmware Phase A – Task 1: Spike `cam/` (XIAO) – Bau ERLEDIGT, Messung offen
+## Kamera-Firmware Phase A – Task 1: Spike `cam/` (XIAO) – ERLEDIGT, am Gerät gemessen
 - Zeit: 2026-10-29 (Sonnet), Branch `feature/kamera-firmware`
 - Weg: **Weg 1** (pioarduino 55.03.312-1, Arduino als IDF-Komponente, ESP-DL v3 `human_face_detect`). Grund: baut sauber, neuere ESP-DL; Weg 2 (Arduino-Kern 2.0.17) bleibt Rückfall.
 - Anpassungen gegenüber dem Plan: Pixeltyp heißt `DL_IMAGE_PIX_TYPE_RGB565BE` (nicht `..._RGB565`); zusätzlich `CONFIG_AUTOSTART_ARDUINO=y` in `cam/sdkconfig.defaults`, sonst fehlt `app_main` beim Linken. Erzeugtes (`managed_components/`, `dependencies.lock`, `sdkconfig.cam`, `CMakeLists.txt`) steht in `cam/.gitignore`.
 - Build: SUCCESS, Flash 908 009 B von 3 342 336 B (27,2 %), RAM 36 516 B (11,1 %).
 - Neu: `cam/` (Kamera, Erkennung, Mess-`main.cpp`), `src/logic/cam_xiao.h` (`CamFace`, `cam_box_to_face`), `tools/cam-serial.py` (pyserial 3.5 vorhanden).
-- Messung am Gerät: offen (Flash und ms/Bild folgen mit dem Nutzer; Weg 1 bleibt nur bei ≤ 250 ms/Bild).
+- Am Gerät (COM7, Kabel-Flash, Opus mit Nutzer): PSRAM 8 MB, Kamera und Erkennung starten. **10–12 Bilder/s, 77–83 ms pro Bild** → Weg 1 bleibt. Gesicht aufrecht im Bild: 17 Treffer mit RGB565**BE**, 0 mit LE (Diagnose lief beide abwechselnd) → BE ist richtig.
+- Gefunden und behoben:
+  - Konsole und `Serial` lagen auf UART0 = GPIO 43/44 (genau die CYD-Leitung) → `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`, `-DARDUINO_USB_MODE=1 -DARDUINO_USB_CDC_ON_BOOT=1`.
+  - „Do not support Concat“ + Absturz beim Modell-Laden: esp-dl baut nur die Operatoren angemeldeter Modelle; angemeldet hatte nur `esp-sr` (kommt mit dem Arduino-Kern). → `custom_component_remove = espressif/esp-sr`, damit `DL_COMPILE_ALL 1`.
+  - Build im Dropbox-Ordner scheitert (Cloud-Platzhalter, WinError 32; `com.dropbox.ignored` greift hier nicht). → `tools/cam-build.ps1` spiegelt `cam/` und `src/logic/` nach `%LOCALAPPDATA%\3zoll-cam` und baut dort (`-Upload -Port COM7` zum Flashen). Bin: `%LOCALAPPDATA%\3zoll-cam\cam\.pio\build\cam\firmware.bin`.
+- Lage der Kamera: Beim Halten in der Hand stand das Bild auf dem Kopf; aufrecht wird erkannt. Die Drehung (`CAM_FLIP_180`, per `set_vflip`/`set_hmirror`) wird erst beim Einbau festgelegt.
 
 ## Kamera + Gehäuse – Teil 1: Gehäuse-Entwurf – ERLEDIGT, wartet auf Testdruck
 - Zeit: 2026-10-26 (Opus plant und prüft, Sonnet baut das SCAD-Modell), Branch `feature/kamera-gehaeuse`
